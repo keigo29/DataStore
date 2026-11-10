@@ -516,3 +516,10 @@ html.wide .top .ttl h1 { white-space: nowrap; overflow: hidden; text-overflow: e
 /* タブレットの縦：ノートの上のボタンを減らして、名前を見えるように（分割・キー操作の一覧は PC で） */
 @media (max-width: 960px) { html.wide .nt-more button[title^="右に分割"], html.wide .nt-more button[title^="キー操作"] { display: none; } }
 @media (hover: none) { html.wide .nt-more button[title^="キー操作"] { display: none; } }
+/* ノートのフォルダの木：横にずれない（長い名前は … で切る。名前はマウスを乗せると全部出る） */
+html.wide #sideNotes .nt-tree, html.wide #sideNotes .nt-treeScroll { overflow-x: hidden; }
+html.wide #sideNotes .nt-tree .nav, html.wide #sideNotes .nt-tree .nt-kids { width: auto; min-width: 0; }
+html.wide #sideNotes .nt-tree .nav .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.wide #sideNotes .nt-tree .nav > .lc, html.wide #sideNotes .nt-tree .nav > svg { flex-shrink: 0; }
+/* とても広い画面：中央が端まで伸びすぎないように（ノートは書く場所を広く使うのでそのまま） */
+html.wide body:not([data-app="notes"]) .center { width: 100%; max-width: 1720px; }
