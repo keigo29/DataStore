@@ -108,52 +108,6 @@ const MDParser = (() => {
     return text.replace(/\s*$/, '') + `\n\n- [ ] ${v}\n`;
   }
 
-  // 予定を足す（デイリーノートに書く）。ev = { title, time?, endTime? }。時刻がなければ終日（#予定）
-  // 入れる場所：「予定」の見出しの下 → ほかの予定の行の並び → ノートの最後に「## 予定」を作る。どれも時刻の順に入れる
-  function eventLine(ev) {
-    const title = String(ev.title || '').replace(/\s+/g, ' ').trim();
-    if (!ev.time) return `- ${title} #予定`;
-    return `- ${pad(ev.time)}${ev.endTime ? '-' + pad(ev.endTime) : ''} ${title}`;
-  }
-  function addEvent(text, ev) {
-    const v = eventLine(ev);
-    const key = ev.time ? pad(ev.time) : '';        // 終日は時刻のある予定より前
-    const nl = text.includes('\r\n') ? '\r\n' : '\n';
-    const ls = text.split(/\r?\n/);
-    const fmEnd = fmLines(text);
-    const fence = [];
-    let inF = false;
-    for (let i = 0; i < ls.length; i++) { if (/^\s*(```|~~~)/.test(ls[i])) { inF = !inF; fence[i] = true; } else fence[i] = inF; }
-    const isList = i => i >= fmEnd && !fence[i] && LIST_RE.test(ls[i]);
-    const timeOf = i => { const m = ls[i].match(LIST_RE); const t = m && m[2] === undefined && m[3].match(TIME_RE); return t ? pad(t[1]) : null; };
-    const evLine = i => { const m = ls[i].match(LIST_RE); return m && m[2] === undefined && (TIME_RE.test(m[3]) || /(^|\s)#予定(\s|$)/.test(m[3])); };
-    // 並び [from, to) の中で、時刻の順になる場所に入れる
-    const insertSorted = (idx) => {
-      const later = idx.find(i => key ? (timeOf(i) || '') > key : timeOf(i) != null);
-      const at = later != null ? later : idx[idx.length - 1] + 1;
-      ls.splice(at, 0, v);
-      return ls.join(nl);
-    };
-
-    const h = ls.findIndex((l, i) => i >= fmEnd && !fence[i] && /^#{1,6}\s*(予定|スケジュール|schedule)\s*$/i.test(l));
-    if (h >= 0) {
-      let end = ls.findIndex((l, i) => i > h && !fence[i] && /^#{1,6}\s/.test(l));
-      if (end < 0) end = ls.length;
-      const blank = ls.findIndex((l, i) => i > h && i < end && /^\s*[-*+]\s*$/.test(l));   // テンプレートの空の「- 」
-      if (blank >= 0) { ls[blank] = ls[blank].replace(/[-*+]\s*$/, v); return ls.join(nl); }
-      const idx = [];
-      for (let i = h + 1; i < end; i++) if (isList(i) && /^\S/.test(ls[i])) idx.push(i);
-      if (idx.length) return insertSorted(idx);
-      ls.splice(h + 1, 0, v);
-      return ls.join(nl);
-    }
-    const evs = [];
-    for (let i = fmEnd; i < ls.length; i++) if (isList(i) && /^\S/.test(ls[i]) && evLine(i)) evs.push(i);
-    if (evs.length) return insertSorted(evs);
-    const body = text.replace(/\s*$/, '');
-    return (body ? body + nl + nl : '') + `## 予定${nl}${v}${nl}`;
-  }
-
-  return { parse, toggle, addTodo, addEvent, eventLine, clean };
+  return { parse, toggle, addTodo, clean };
 })();
 if (typeof module !== 'undefined') module.exports = MDParser;
