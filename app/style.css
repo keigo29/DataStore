@@ -666,3 +666,36 @@ button.plan { width: 100%; border: 0; background: none; padding: 6px 0; text-ali
 .tagPick .chip { border: 0; height: 28px; padding: 0 10px; font-size: 12px; }
 .fchip span { flex: 0 1 auto; min-width: 0; }
 .fchip i { white-space: nowrap; flex-shrink: 0; }
+
+/* ---- カレンダー：1行で予定を入れる・1日の時間割 ---- */
+.qEv { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
+.qEvRow { display: flex; gap: 8px; align-items: center; }
+.qEvRow .inp { flex: 1; min-width: 0; height: 40px; }
+.qEvRow .btn { flex-shrink: 0; height: 40px; }
+.qEvPv { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); min-height: 18px; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.qEvPv .lc { width: 14px; height: 14px; flex-shrink: 0; }
+.qEvPv b { color: var(--text); font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.tlAllDay { display: flex; flex-direction: column; gap: 0; padding: 4px 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.tlAdL { font-size: 11px; font-weight: 700; color: var(--sub); }
+.tl { position: relative; max-height: 460px; overflow-y: auto; border-radius: 14px; background: var(--soft); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.tlIn { position: relative; cursor: copy; touch-action: pan-y; }
+.tlHour { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); pointer-events: none; }
+.tlHour::after { content: ''; position: absolute; left: 46px; right: 0; top: 50%; border-top: 1px dashed color-mix(in srgb, var(--line) 70%, transparent); }
+.tlHour span { position: absolute; left: 6px; top: 3px; font-size: 10.5px; font-weight: 600; color: var(--sub); font-variant-numeric: tabular-nums; }
+.tlEv { position: absolute; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 3px 7px; border: 0; border-left: 3px solid #005cff; border-radius: 8px;
+  background: color-mix(in srgb, #005cff 14%, var(--card)); color: var(--text); text-align: left; overflow: hidden; cursor: pointer; }
+.tlEv b { font-size: 12.5px; font-weight: 700; line-height: 1.3; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tlEv small { font-size: 10.5px; color: var(--sub); font-variant-numeric: tabular-nums; }
+.tlEv.isTodo { border-left-color: #00c230; background: color-mix(in srgb, #00c230 12%, var(--card)); }
+.tlEv.done b { text-decoration: line-through; color: var(--sub); }
+.tlNow { position: absolute; left: 40px; right: 0; height: 2px; background: #f2280d; z-index: 3; pointer-events: none; }
+.tlNow::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #f2280d; }
+.tlGhost { position: absolute; left: 46px; right: 4px; z-index: 1; border-radius: 8px; border: 1.5px dashed var(--text); background: color-mix(in srgb, var(--text) 6%, transparent);
+  font-size: 11px; font-weight: 700; color: var(--sub); padding: 3px 8px; pointer-events: none; overflow: hidden; }
+.tlHint { margin: 6px 2px 0; }
+.evTimes { display: flex; flex-direction: column; gap: 8px; }
+.evTimes[hidden] { display: none; }
+.evLens { display: flex; flex-wrap: wrap; gap: 6px; }
+.evLens .chip { height: 30px; padding: 0 12px; font-size: 12.5px; border: 0; cursor: pointer; }
+.evLens .chip.on { background: var(--text); color: var(--bg); }
+#sheetIn .evTimes + .hint { margin-top: 6px; }

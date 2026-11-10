@@ -1,8 +1,8 @@
 /* =====================================================================
-   PC の幅（900px 以上）の見た目：Mac の Workstation と同じ並び
+   PC・タブレットの幅（700px 以上）の見た目：Mac の Workstation と同じ並び
    左端のレール｜サイドバー｜中央（ツールバー＋中身）
    レール・サイドバー・ダッシュボード・プロジェクトのページは、Mac 版 src/renderer/style.css と同じ値
-   スマホ（900px 未満）では、ここのものは出さない
+   スマホ（700px 未満）では、ここのものは出さない
    ===================================================================== */
 .rail, .side { display: none; }
 .app, .center { display: contents; }
@@ -497,3 +497,25 @@ html.wide .sideApp { display: flex; flex-direction: column; gap: 18px; min-heigh
 html.wide .side .nav { position: relative; }
 html.wide #sideNotes .nt-sideHead { margin: 0; }
 html.wide #sideNotes .nt-sideHead .sideTitle { margin: 0 6px 6px; }
+
+/* ---- タブレット（700〜960px）：レールとサイドバーを細く ---- */
+@media (max-width: 960px) {
+  html.wide .app, html.wide body[data-app="notes"] .app { grid-template-columns: 70px var(--nt-side, 196px) minmax(0, 1fr); }
+  html.wide .railBtn .rname { font-size: 9px; }
+  html.wide .center { padding: 0 12px 0 4px; }
+  html.wide .top h1 { font-size: 22px; }
+  html.wide .topActs .btn .lbl, html.wide .topActs .toggle { font-size: 12px; }
+}
+/* 指で使うとき：マウスを乗せたときだけ出るボタンを、いつも出す */
+@media (hover: none) {
+  html.wide #sideNotes .nt-rowActs { display: flex; opacity: 1; pointer-events: auto; }
+  html.wide #sideNotes .nt-folder small { display: none; }
+}
+/* タブレット：見出しは1行で（長いときは …）、ボタンに場所をゆずる */
+html.wide .top .ttl h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (max-width: 960px) { html.wide body[data-app="notes"] .top .ttl small { display: none; } }
+/* 指で使うとき：フォルダの行は「…」だけ出す（ほかは「…」の中から） */
+@media (hover: none) { html.wide #sideNotes .nt-rowActs > :not(:last-child) { display: none; } }
+/* タブレットの縦：ノートの上のボタンを減らして、名前を見えるように（分割・キー操作の一覧は PC で） */
+@media (max-width: 960px) { html.wide .nt-more button[title^="右に分割"], html.wide .nt-more button[title^="キー操作"] { display: none; } }
+@media (hover: none) { html.wide .nt-more button[title^="キー操作"] { display: none; } }

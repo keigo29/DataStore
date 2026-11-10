@@ -817,8 +817,154 @@
     sheet.showModal();
   }
 
+  // 1行の文から予定を読む。日付（今日・明日・あさって・11/12・2026-11-12・金曜）と時刻（14:00・14時・14時半・14-15時・14:00〜15:30）
+  const isTouch = () => matchMedia('(hover: none)').matches;
+  function parseQuickEvent(text, base) {
+    let s2 = ' ' + String(text || '').replace(/\s+/g, ' ').trim() + ' ';
+    let date = base;
+    const take = (re, fn) => { const m = re.exec(s2); if (!m) return false; const r = fn(m); if (r === false) return false; s2 = s2.slice(0, m.index) + ' ' + s2.slice(m.index + m[0].length); return true; };
+    const rel = { '今日': 0, 'きょう': 0, '明日': 1, 'あした': 1, 'あす': 1, '明後日': 2, 'あさって': 2 };
+    take(/\s(今日|きょう|明日|あした|あす|明後日|あさって)(?=\s|$)/, m => { date = addDays(todayKey(), rel[m[1]]); })
+      || take(/\s(\d{4})-(\d{1,2})-(\d{1,2})(?=\s)/, m => { date = `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`; })
+      || take(/\s(\d{1,2})[\/月](\d{1,2})日?(?=\s|\d|$)/, m => {
+        const t = todayKey(); let y = +t.slice(0, 4);
+        let d = `${y}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`;
+        if (d < addDays(t, -60)) d = `${y + 1}` + d.slice(4);   // 2か月より前なら来年のこと
+        if (+m[1] < 1 || +m[1] > 12 || +m[2] < 1 || +m[2] > 31) return false;
+        date = d;
+      })
+      || take(/\s(?:(来週)の?)?([月火水木金土日])曜日?(?=\s)/, m => {
+        const want = '日月火水木金土'.indexOf(m[2]), t = todayKey(), now = parseKey(t).getDay();
+        // 来週の○曜：来週（月曜はじまり）のその曜日。ただの○曜：次のその曜日（今日をふくむ）
+        const n = m[1] ? 7 - ((now + 6) % 7) + ((want + 6) % 7) : (want - now + 7) % 7;
+        date = addDays(t, n);
+      });
+    const T = '(\\d{1,2})(?::(\\d{2})|時(?:(半)|(\\d{1,2})分)?)';
+    const hm = (h, mm, half, mm2) => { const H = +h, M = mm != null ? +mm : half ? 30 : mm2 != null ? +mm2 : 0; return H <= 24 && M < 60 ? `${String(Math.min(H, 23)).padStart(2, '0')}:${String(H === 24 ? 59 : M).padStart(2, '0')}` : null; };
+    let start = null, end = null;
+    take(new RegExp(`(?:^|\\s|から)${T}\\s*(?:[-–〜~ーから]+\\s*${T})?`), m => {
+      start = hm(m[1], m[2], m[3], m[4]); if (!start) return false;
+      if (m[5]) end = hm(m[5], m[6], m[7], m[8]);
+    })
+      || take(/\s(\d{1,2})\s*[-–〜~]\s*(\d{1,2})時(?=\s|$)/, m => { start = hm(m[1], null, null, null); end = hm(m[2], null, null, null); });
+    if (start && end && end <= start) end = null;
+    const title = s2.replace(/\s+/g, ' ').trim();
+    return { date, start, end, title };
+  }
+  async function addEventNow(ev) {
+    const d = ev.date, e2 = { title: ev.title };
+    if (ev.start) { e2.time = ev.start; if (ev.end) e2.endTime = ev.end; }
+    calSel = d;
+    const pd = parseKey(d);
+    calMonth = new Date(pd.getFullYear(), pd.getMonth(), 1);
+    const ok = await edit(dailyPathOf(d), t => MDParser.addEvent(t == null ? newDailyText(d) : t, e2), `予定: ${e2.time ? e2.time + ' ' : ''}${ev.title}`);
+    if (ok) toast(`${relDay(d)}${e2.time ? ' ' + e2.time : ''} に「${ev.title}」を入れました`);
+    return ok;
+  }
+  // 予定を1行で入れる欄（読み取った結果をすぐ下に出す）
+  function quickEventBox(k) {
+    const f = el('form', 'qEv');
+    const row = el('div', 'qEvRow');
+    const inp = el('input', 'inp');
+    inp.placeholder = '例：14時 MTG／明日 10:00-11:30 歯医者';
+    inp.maxLength = 200; inp.enterKeyHint = 'done';
+    const go = btn('btn primary small', ['plus', '入れる'], null);
+    go.type = 'submit';
+    row.append(inp, go);
+    const pv = el('div', 'qEvPv');
+    const show = () => {
+      const r = parseQuickEvent(inp.value, k);
+      pv.innerHTML = '';
+      if (!inp.value.trim()) { pv.append('日付・時刻・タイトルを1行で書けます（日付を書かなければ ' + md(k) + '）'); return; }
+      pv.innerHTML = icon('calendar-clock');
+      pv.append(`${md(r.date)}  ${r.start ? r.start + (r.end ? '–' + r.end : '') : '終日'}  `, el('b', '', r.title || '（タイトルを入れてください）'));
+    };
+    inp.addEventListener('input', show);
+    show();
+    f.addEventListener('submit', async e => {
+      e.preventDefault();
+      const r = parseQuickEvent(inp.value, k);
+      if (!r.title) { inp.focus(); return; }
+      inp.value = ''; show();
+      await addEventNow(r);
+    });
+    f.append(row, pv);
+    return f;
+  }
+  // 1日の時間割：予定を時間の位置に並べる。空いているところを押すと、その時間で予定を入れる（マウスはドラッグで長さも）
+  function dayTimeline(k, ev) {
+    const PX = isWide() ? 44 : 46;
+    const toMin = v => { const m = /^(\d{1,2}):(\d{2})/.exec(v || ''); return m ? +m[1] * 60 + +m[2] : null; };
+    const timed = ev.filter(i => toMin(i.time) != null);
+    let H0 = 6, H1 = 24;
+    for (const i of timed) H0 = Math.min(H0, Math.floor(toMin(i.time) / 60));
+    const box = el('div', 'tl');
+    const inner = el('div', 'tlIn');
+    inner.style.height = (H1 - H0) * PX + 'px';
+    for (let h = H0; h < H1; h++) {
+      const r = el('div', 'tlHour'); r.style.top = (h - H0) * PX + 'px'; r.style.height = PX + 'px';
+      r.append(el('span', '', `${h}:00`));
+      inner.append(r);
+    }
+    const lanes = [];   // 重なる予定は横に並べる
+    const placed = timed.map(i => { const a = toMin(i.time), b = Math.max(toMin(i.endTime) ?? a + 60, a + 20); return { i, a, b }; }).sort((x, y) => x.a - y.a);
+    let group = [], gEnd = -1;
+    const flush = () => { const n = Math.max(1, ...group.map(g => g.lane + 1)); group.forEach(g => (g.n = n)); group = []; };
+    for (const p of placed) {
+      if (p.a >= gEnd) { flush(); lanes.length = 0; }
+      let l = lanes.findIndex(e2 => e2 <= p.a); if (l < 0) l = lanes.length;
+      lanes[l] = p.b; p.lane = l; group.push(p); gEnd = Math.max(gEnd, p.b);
+    }
+    flush();
+    for (const p of placed) {
+      const b = btn('tlEv' + (p.i.type === 'todo' ? ' isTodo' : '') + (p.i.done ? ' done' : ''), [], () => openItem(p.i), p.i.title);
+      b.style.top = ((p.a - H0 * 60) / 60) * PX + 'px';
+      b.style.height = Math.max(((p.b - p.a) / 60) * PX - 2, 20) + 'px';
+      b.style.left = `calc(46px + (100% - 50px) * ${p.lane / p.n})`;
+      b.style.width = `calc((100% - 50px) / ${p.n} - 3px)`;
+      b.append(el('b', '', p.i.title), el('small', '', p.i.endTime ? `${p.i.time}–${p.i.endTime}` : p.i.time));
+      inner.append(b);
+    }
+    if (k === todayKey()) {
+      const n = new Date(), m = n.getHours() * 60 + n.getMinutes();
+      if (m >= H0 * 60) { const ln = el('div', 'tlNow'); ln.style.top = ((m - H0 * 60) / 60) * PX + 'px'; inner.append(ln); }
+    }
+    // 押した・ドラッグした時間（30分ごと）
+    const ghost = el('div', 'tlGhost'); ghost.hidden = true; inner.append(ghost);
+    const p2 = n => String(n).padStart(2, '0');
+    const hhmm2 = m => `${p2(Math.floor(m / 60))}:${p2(m % 60)}`;
+    const minAt = e => { const y = e.clientY - inner.getBoundingClientRect().top; return Math.max(H0 * 60, Math.min(H1 * 60 - 30, H0 * 60 + Math.floor((y / PX) * 2) * 30)); };
+    const paint = (a, b) => { ghost.hidden = false; ghost.style.top = ((a - H0 * 60) / 60) * PX + 'px'; ghost.style.height = ((b - a) / 60) * PX + 'px'; ghost.textContent = `${hhmm2(a)}–${hhmm2(b)} に予定を入れる`; };
+    let drag = null;
+    inner.addEventListener('pointerdown', e => {
+      if (e.target.closest('.tlEv') || e.button) return;
+      const a = minAt(e);
+      if (e.pointerType !== 'mouse') return;   // 指はスクロールに使うので、押して離したときだけ
+      drag = { a, b: a + 30 }; paint(drag.a, drag.b);
+      inner.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    inner.addEventListener('pointermove', e => {
+      if (!drag) { if (e.pointerType === 'mouse' && !e.target.closest('.tlEv')) { const a = minAt(e); paint(a, a + 60); } return; }
+      const m = minAt(e); drag.b = Math.max(drag.a + 30, m + 30); paint(drag.a, drag.b);
+    });
+    inner.addEventListener('pointerleave', () => { if (!drag) ghost.hidden = true; });
+    inner.addEventListener('pointerup', e => {
+      if (drag) { const d2 = drag; drag = null; ghost.hidden = true; newEvent(k, { start: hhmm2(d2.a), end: hhmm2(Math.min(d2.b === d2.a + 30 ? d2.a + 60 : d2.b, 23 * 60 + 59)) }); }
+    });
+    inner.addEventListener('click', e => {
+      if (e.target.closest('.tlEv') || e.pointerType === 'mouse' || (e.pointerType == null && !isTouch())) return;
+      const a = minAt(e); newEvent(k, { start: hhmm2(a), end: hhmm2(Math.min(a + 60, 23 * 60 + 59)) });
+    });
+    box.append(inner);
+    // はじめは今（今日）か、最初の予定か、8時のあたりを見せる
+    const first = k === todayKey() ? new Date().getHours() * 60 - 60 : placed.length ? placed[0].a - 30 : 8 * 60;
+    requestAnimationFrame(() => { box.scrollTop = Math.max(0, ((first - H0 * 60) / 60) * PX); });
+    return box;
+  }
+
   // 予定を足す（その日のデイリーノートに「- 14:00-15:00 タイトル」、終日は「- タイトル #予定」で書く）
-  function newEvent(k = todayKey()) {
+  function newEvent(k = todayKey(), opt = {}) {
     const inn = $('#sheetIn');
     sheetHead(inn, '予定を追加');
     const fld = (label, input) => { const l = el('label', 'fld'); l.append(el('span', '', label), input); return l; };
@@ -826,6 +972,11 @@
     ttl.placeholder = '例：MTG、歯医者、ジム';
     ttl.maxLength = 200;
     ttl.enterKeyHint = 'done';
+    ttl.value = opt.title || '';
+    // 前に入れた予定のタイトルを候補に出す
+    const dl = el('datalist'); dl.id = 'evTitles';
+    [...new Set(items.filter(i => i.type === 'event').sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(i => i.title))].slice(0, 30).forEach(t => { const o = el('option'); o.value = t; dl.append(o); });
+    ttl.setAttribute('list', 'evTitles');
     const day = el('input', 'inp');
     day.type = 'date';
     day.value = k;
@@ -837,12 +988,25 @@
     // 初めの時刻：今日なら次のちょうどの時間、ほかの日は 10:00。終わりは1時間あと
     const p2 = n => String(n).padStart(2, '0');
     const h0 = k === todayKey() ? Math.min(new Date().getHours() + 1, 23) : 10;
-    const st = el('input', 'inp'); st.type = 'time'; st.value = `${p2(h0)}:00`;
-    const en = el('input', 'inp'); en.type = 'time'; en.value = h0 < 23 ? `${p2(h0 + 1)}:00` : '';
-    const times = el('div', 'two');
-    times.append(fld('開始', st), fld('終了（なくても可）', en));
+    const st = el('input', 'inp'); st.type = 'time'; st.value = opt.start || `${p2(h0)}:00`;
+    const en = el('input', 'inp'); en.type = 'time'; en.value = opt.start ? (opt.end || '') : h0 < 23 ? `${p2(h0 + 1)}:00` : '';
+    const times = el('div', 'evTimes');
+    const two = el('div', 'two');
+    two.append(fld('開始', st), fld('終了（なくても可）', en));
+    times.append(two);
     let lastLen = 60;   // 開始を動かしたら、長さを保って終了も動かす
     const mins = v => { const m = /^(\d{1,2}):(\d{2})/.exec(v); return m ? +m[1] * 60 + +m[2] : null; };
+    // 長さのボタン：押すと終了がその分あとになる
+    const lens = el('div', 'evLens');
+    const paintLens = () => { const a = mins(st.value), b = mins(en.value); lens.querySelectorAll('button').forEach(x => x.classList.toggle('on', a != null && b != null && b - a === +x.dataset.m)); };
+    [[30, '30分'], [60, '1時間'], [90, '1時間半'], [120, '2時間'], [180, '3時間']].forEach(([m, l]) => {
+      const b = btn('chip', l, () => { const a = mins(st.value); if (a == null) return; const e2 = Math.min(a + m, 23 * 60 + 59); en.value = `${p2(Math.floor(e2 / 60))}:${p2(e2 % 60)}`; lastLen = m; paintLens(); });
+      b.dataset.m = m; lens.append(b);
+    });
+    times.append(lens);
+    st.addEventListener('change', paintLens); en.addEventListener('change', paintLens);
+    { const a = mins(st.value), b = mins(en.value); if (a != null && b != null && b > a) lastLen = b - a; }
+    setTimeout(paintLens);
     en.addEventListener('change', () => { const a = mins(st.value), b = mins(en.value); if (a != null && b != null && b > a) lastLen = b - a; });
     st.addEventListener('change', () => { const a = mins(st.value); if (a == null || !en.value) return; const b = Math.min(a + lastLen, 23 * 60 + 59); en.value = `${p2(Math.floor(b / 60))}:${p2(b % 60)}`; });
     allDay.addEventListener('change', () => { times.hidden = allDay.checked; });
@@ -850,7 +1014,7 @@
     const showWhere = () => { where.textContent = day.value ? `${dailyPathOf(day.value)} に書きます` : ''; };
     day.addEventListener('input', showWhere);
     showWhere();
-    inn.append(fld('タイトル', ttl), fld('日付', day), tog, times, where);
+    inn.append(fld('タイトル', ttl), dl, fld('日付', day), tog, times, where);
 
     const save = async () => {
       const title = ttl.value.replace(/\s+/g, ' ').trim();
@@ -878,6 +1042,7 @@
     bs.append(btn('btn primary', ['calendar-plus', '追加する'], save));
     inn.append(bs);
     sheet.showModal();
+    if (!isTouch()) ttl.focus();
     setTimeout(() => ttl.focus(), 50);
   }
 
@@ -1068,7 +1233,7 @@
       for (let i = 0; i < 7; i++) {
         const k = addDays(ws, i), d = parseKey(k);
         const c = btn('cal-day' + (d.getMonth() !== calMonth.getMonth() ? ' out' : '') + ([0, 6].includes(d.getDay()) ? ' we' : '') + (k === today ? ' today' : '') + (k === calSel ? ' sel' : ''),
-          [], () => { calSel = k; if (d.getMonth() !== calMonth.getMonth()) calMonth = new Date(d.getFullYear(), d.getMonth(), 1); render(); }, md(k));
+          [], () => { if (calSel === k) return newEvent(k); calSel = k; if (d.getMonth() !== calMonth.getMonth()) calMonth = new Date(d.getFullYear(), d.getMonth(), 1); render(); }, `${md(k)}（もう一度押すと予定を入れる）`);
         c.style.gridColumn = String(i + 1);
         c.append(el('span', 'cal-dnum', String(d.getDate())));
         if (dayFiles(k).length) c.append(el('i', 'cal-hb'));
@@ -1117,9 +1282,12 @@
     const arr = items.filter(i => i.date === k);
     const ev = arr.filter(i => i.type === 'event' || i.time).sort(byTime);
     const td = arr.filter(i => i.type === 'todo' && !i.time);
-    p.append(panelHead('calendar-clock', '予定', [el('span', '', `${ev.length}件`), btn('linkBtn', '＋ 予定', () => newEvent(k))]));
-    if (!ev.length) p.append(noData('この日の予定はありません'));
-    ev.forEach(i => p.append(planRow(i)));
+    p.append(panelHead('calendar-clock', '予定', [el('span', '', `${ev.length}件`), btn('linkBtn', '＋ くわしく', () => newEvent(k))]));
+    p.append(quickEventBox(k));
+    const allDay = ev.filter(i => !i.time);
+    if (allDay.length) { const ad = el('div', 'tlAllDay'); ad.append(el('span', 'tlAdL', '終日')); allDay.forEach(i => ad.append(planRow(i))); p.append(ad); }
+    p.append(dayTimeline(k, ev));
+    p.append(el('p', 'hint sub tlHint', isTouch() ? '時間割の空いているところを押すと、その時間で予定を入れられます' : '時間割の空いているところを押す（ドラッグで長さも）と、その時間で予定を入れられます'));
     p.append(panelHead('list-todo', 'やること', el('span', '', `${td.filter(i => i.done).length}/${td.length}`)));
     if (!td.length) p.append(noData('この日のやることはありません'));
     td.forEach(i => p.append(todoRow(i, { noDate: true })));
@@ -2356,7 +2524,9 @@
   }
 
   // ================= PC の幅：レール・サイドバー（Mac の Workstation と同じ並び） =================
-  const mq = window.matchMedia('(min-width: 900px)');
+  // タブレット（縦でも）から PC と同じ並びにする。スマホを横にしたとき（高さが低い）はスマホのまま
+  const WIDE_Q = '(min-width: 700px) and (min-height: 500px)';
+  const mq = window.matchMedia(WIDE_Q);
   const isWide = () => mq.matches;
   document.documentElement.classList.toggle('wide', mq.matches);
   mq.addEventListener('change', () => { if (window.NotesApp) NotesApp.flush(); document.documentElement.classList.toggle('wide', mq.matches); render(); });
@@ -2631,6 +2801,7 @@
     acts.innerHTML = '';
     if (tab === 'notes' && !note) acts.append(btn('btn primary small', ['plus', 'ノート'], () => newNote({ day: todayKey() })));
     if (tab === 'proj' && !proj && projView === 'list') acts.append(btn('btn primary small', ['plus', 'プロジェクト'], () => openProjectSheet(null)));
+    if (tab === 'cal') acts.append(btn('btn primary small', ['calendar-plus', '予定'], () => newEvent(calSel)));
     if (tab !== 'sync') {
       const sb = btn('iconBtn' + (syncing ? ' spin' : ''), 'refresh-cw', () => sync(), '同期');
       acts.append(sb);
@@ -2657,6 +2828,7 @@
       if (tab === 'proj' && proj) ey.textContent = 'メモ・リンク・タスク';
       if (tab === 'notes' && note) ey.textContent = folderOf(note) || '';
       if (tab === 'home') acts.prepend(btn('btn white', ['file-plus', 'ノートを書く'], () => newNote({ day: todayKey() })));
+      if (tab === 'cal') { acts.querySelector('.btn.primary')?.remove(); acts.prepend(btn('btn primary', ['calendar-plus', '予定を追加'], () => newEvent(calSel))); }
       if (tab === 'proj' && proj && projByPath(proj)) {
         acts.prepend(btn('btn white', ['chart-gantt', 'ガントで見る'], () => { proj = null; projView = 'gantt'; render(); }),
           btn('btn white', ['palette', '色'], () => openProjectSheet(projByPath(proj))),
@@ -2707,6 +2879,20 @@
     render();
     sync(true);
     try { navigator.storage?.persist?.(); } catch {}
-    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      // 新しい版を公開したら：裏で取ってきて入れかわったときに1回だけ読み直す（書いている途中なら、次に開いたとき）
+      const hadCtl = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadCtl || reloaded) return;
+        const busy = editing || document.querySelector('#notesView .nt-editor:focus') || $('#sheet').open;
+        if (busy) { toast('新しい版があります。アプリを開き直すと入れかわります'); return; }
+        reloaded = true; location.reload();
+      });
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => {
+        r.update().catch(() => {});
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') r.update().catch(() => {}); });
+      }).catch(() => {});
+    }
   })();
 })();

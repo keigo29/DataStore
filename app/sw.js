@@ -1,12 +1,13 @@
 // オフラインでも開けるように、アプリのファイルを取っておく（ノートの中身はアプリ側の IndexedDB）
 // ファイルを変えたら VERSION を上げる
-const VERSION = 'ws-notes-v15';
+const VERSION = 'ws-notes-v16';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'parser.js', 'daily.js', 'icons.js', 'manifest.webmanifest',
   'vendor/marked.js', 'vendor/purify.js', 'vendor/fonts/fonts.css', 'desk.css', 'ws/notes.css', 'ws/ui.js', 'ws/keys.js', 'ws/notes.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // ブラウザの HTTP キャッシュ（GitHub Pages は 10 分）を通さずに、新しいファイルを取る
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
