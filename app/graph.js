@@ -11,7 +11,8 @@
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   // カテゴリの色（暗い背景で光って見える、やわらかい色）
   const COLORS = ['#6ab0de', '#7ccf6a', '#e2c15c', '#a565dc', '#5fd2b5', '#e0605e', '#5a5ad6', '#d8d8d8', '#e89a5c', '#c77fd6'];
-  const GRAY = '#6e7075', BG = '#1e1f22', ACCENT = '#a882ff';
+  // 白い背景に黒い丸（色は使わず、選んだ所は濃さと太さで見せる）
+  const GRAY = '#1d1d1f', BG = '#ffffff', ACCENT = '#000000', INK = '#1d1d1f';
   const NONE = '（なし）';
 
   function create(opts = {}) {
@@ -39,7 +40,7 @@
     function setData(d) {
       const old = new Map(nodes.map(n => [n.id, n]));
       let ci = 0;
-      groups = d.groups.map(g => ({ ...g, color: g.id === NONE ? GRAY : COLORS[ci++ % COLORS.length] }));
+      groups = d.groups.map(g => ({ ...g, color: INK, tint: g.id === NONE ? GRAY : COLORS[ci++ % COLORS.length] }));
       const gc = new Map(groups.map(g => [g.id, g.color]));
       const R = 140 + groups.length * 22;
       nodes = [];
@@ -143,8 +144,8 @@
         const [x1, y1] = toScreen(e.a.x, e.a.y), [x2, y2] = toScreen(e.b.x, e.b.y);
         if ((x1 < -50 && x2 < -50) || (x1 > W + 50 && x2 > W + 50) || (y1 < -50 && y2 < -50) || (y1 > H + 50 && y2 > H + 50)) continue;
         const key = (hover || byId.get(sel))?.id;
-        if (hl && on && key && (e.a.id === key || e.b.id === key)) { ctx.strokeStyle = ACCENT; ctx.globalAlpha = .9; ctx.lineWidth = 1.2; }
-        else { ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = (e.hub ? (e.primary ? .14 : .06) : .2) * (L ? (on ? 1.6 : .35) : 1); ctx.lineWidth = .8; }
+        if (hl && on && key && (e.a.id === key || e.b.id === key)) { ctx.strokeStyle = ACCENT; ctx.globalAlpha = .75; ctx.lineWidth = 1.3; }
+        else { ctx.strokeStyle = '#000000'; ctx.globalAlpha = (e.hub ? (e.primary ? .12 : .05) : .18) * (L ? (on ? 1.8 : .35) : 1); ctx.lineWidth = .8; }
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
       }
       ctx.globalAlpha = 1;
@@ -155,9 +156,10 @@
         const [x, y] = toScreen(n.x, n.y);
         if (x < -40 || x > W + 40 || y < -40 || y > H + 40) continue;
         const r = n.r * sz;
-        ctx.globalAlpha = on ? 1 : .2;
-        ctx.fillStyle = n.id === sel || (hover && n.id === hover.id) ? ACCENT : n.color;
+        ctx.globalAlpha = on ? (n.hub ? 1 : .9) : .12;
+        ctx.fillStyle = n.color;
         ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+        if (n.id === sel || (hover && n.id === hover.id)) { ctx.globalAlpha = 1; ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r + 3.5, 0, 7); ctx.stroke(); }
       }
       // 名前（マウスを乗せた・選んだ・つながり／拡大したとき／ノートが少ないとき）
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
@@ -173,7 +175,7 @@
         const [x, y] = toScreen(n.x, n.y);
         if (x < -100 || x > W + 100 || y < -30 || y > H + 30) continue;
         ctx.globalAlpha = a;
-        ctx.fillStyle = '#dcddde';
+        ctx.fillStyle = '#2b2b2e';
         const label = n.name.length > 22 ? n.name.slice(0, 21) + '…' : n.name;
         ctx.fillText(label, x, y + n.r * sz + 4);
       }

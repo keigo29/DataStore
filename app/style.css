@@ -700,57 +700,59 @@ button.plan { width: 100%; border: 0; background: none; padding: 6px 0; text-ali
 .evLens .chip.on { background: var(--text); color: var(--bg); }
 #sheetIn .evTimes + .hint { margin-top: 6px; }
 
-/* ---------- ノートのつながり（graph.js）：Obsidian のグラフに近い、平らな見た目 ---------- */
-.ng { position: relative; overflow: hidden; border-radius: 18px; background: #1e1f22; color: #dcddde; touch-action: none; user-select: none; -webkit-user-select: none;
+/* ---------- ノートのつながり（graph.js）：白い背景に黒い丸 ---------- */
+.ng { position: relative; overflow: hidden; border-radius: 18px; background: #ffffff; color: #1d1d1f; touch-action: none; user-select: none; -webkit-user-select: none;
   box-shadow: var(--shadow); font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif; }
 .ngCanvas { display: block; position: absolute; inset: 0; cursor: grab; }
 .ngCanvas:active { cursor: grabbing; }
 .ng .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-.ngSearch, .ngPanel, .ngBar, .ngList .ngItem { background: #262729; border: 1px solid #36373b; box-shadow: 0 6px 18px rgba(0,0,0,.28); }
-.ngSearch { position: absolute; z-index: 3; top: 12px; left: 12px; width: 220px; height: 34px; border-radius: 8px; display: flex; align-items: center; gap: 8px; padding: 0 10px; color: #8a8c91; }
-.ngSearch:focus-within { border-color: #7f6df2; }
+.ngSearch, .ngPanel, .ngBar, .ngList .ngItem { background: #ffffff; border: 1px solid #e3e3e6; box-shadow: 0 4px 14px rgba(0,0,0,.07); }
+.ngSearch { position: absolute; z-index: 3; top: 12px; left: 12px; width: 220px; height: 34px; border-radius: 8px; display: flex; align-items: center; gap: 8px; padding: 0 10px; color: #8e8e93; }
+.ngSearch:focus-within { border-color: #1d1d1f; }
 .ngSearch .lc { width: 14px; height: 14px; flex-shrink: 0; }
-.ngSearchInp { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: #dcddde; font: inherit; font-size: 13px; }
-.ngSearchInp::placeholder { color: #75777c; }
+.ngSearchInp { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: #1d1d1f; font: inherit; font-size: 13px; }
+.ngSearchInp::placeholder { color: #a1a1a6; }
 .ngList { position: absolute; z-index: 3; top: 10px; left: 10px; right: 10px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .ngList::-webkit-scrollbar { display: none; }
 .ngList[hidden] { display: none; }
-.ngList .ngItem { flex-shrink: 0; height: 32px; border-radius: 8px; padding: 0 11px; color: #c9cacd; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; box-shadow: none; }
-.ngList .ngItem small { color: #7d7f84; font-size: 11px; }
-.ngList .ngItem.on { background: #3a3b40; color: #fff; border-color: #4a4b50; }
+.ngList .ngItem { flex-shrink: 0; height: 32px; border-radius: 8px; padding: 0 11px; color: #3a3a3c; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; box-shadow: none; }
+.ngList .ngItem small { color: #8e8e93; font-size: 11px; }
+.ngList .ngItem.on { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
+.ngList .ngItem.on .dot { background: #fff !important; }
+.ngList .ngItem.on small { color: rgba(255,255,255,.6); }
 .ngList:not([hidden]) ~ .ngSearch { top: 50px; left: 10px; width: 190px; }
-.ngTip { position: absolute; z-index: 4; pointer-events: none; padding: 4px 8px; border-radius: 6px; background: #2f3034; border: 1px solid #44454a; color: #dcddde; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.ngTip { position: absolute; z-index: 4; pointer-events: none; padding: 4px 8px; border-radius: 6px; background: #1d1d1f; border: 0; color: #fff; font-size: 12px; font-weight: 500; white-space: nowrap; }
 .ngBar { position: absolute; z-index: 3; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 4px; border-radius: 10px; white-space: nowrap; max-width: calc(100% - 20px); }
 .ngSeg { display: flex; gap: 2px; }
-.ngSeg button, .ngLbl2 { height: 28px; padding: 0 11px; border: 0; border-radius: 7px; background: none; color: #9a9ca1; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-.ngSeg button.on, .ngLbl2.on { background: #3a3b40; color: #fff; }
-.ngCount { font-size: 11.5px; color: #7d7f84; font-variant-numeric: tabular-nums; padding: 0 2px 0 8px; border-left: 1px solid #3a3b40; }
-.ngFit { width: 28px; height: 28px; border: 0; border-radius: 7px; background: none; color: #9a9ca1; display: grid; place-items: center; cursor: pointer; }
+.ngSeg button, .ngLbl2 { height: 28px; padding: 0 11px; border: 0; border-radius: 7px; background: none; color: #6e6e73; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.ngSeg button.on, .ngLbl2.on { background: #1d1d1f; color: #fff; }
+.ngCount { font-size: 11.5px; color: #8e8e93; font-variant-numeric: tabular-nums; padding: 0 2px 0 8px; border-left: 1px solid #e3e3e6; }
+.ngFit { width: 28px; height: 28px; border: 0; border-radius: 7px; background: none; color: #6e6e73; display: grid; place-items: center; cursor: pointer; }
 .ngFit .lc { width: 15px; height: 15px; }
-.ngFit:hover, .ngSeg button:hover, .ngLbl2:hover { background: #333438; color: #dcddde; }
+.ngFit:hover, .ngSeg button:not(.on):hover, .ngLbl2:not(.on):hover { background: #f2f2f4; color: #1d1d1f; }
 .ngPanel { position: absolute; z-index: 3; right: 12px; bottom: 58px; width: 280px; max-height: calc(100% - 84px); overflow-y: auto; border-radius: 12px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
 .ngPanel[hidden] { display: none; }
-.ngPHead { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #9a9ca1; }
+.ngPHead { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #6e6e73; }
 .ngPHead .kind { flex: 1; }
-.ngClose { border: 0; background: none; color: #7d7f84; font: inherit; font-size: 11.5px; cursor: pointer; padding: 2px 4px; }
-.ngClose:hover { color: #dcddde; }
-.ngPanel h3 { margin: 2px 0 0; font-size: 18px; font-weight: 700; color: #f0f0f2; letter-spacing: -.01em; word-break: break-word; }
-.ngSub { margin: 0; font-size: 11.5px; color: #7d7f84; }
+.ngClose { border: 0; background: none; color: #8e8e93; font: inherit; font-size: 11.5px; cursor: pointer; padding: 2px 4px; }
+.ngClose:hover { color: #1d1d1f; }
+.ngPanel h3 { margin: 2px 0 0; font-size: 18px; font-weight: 700; color: #1d1d1f; letter-spacing: -.01em; word-break: break-word; }
+.ngSub { margin: 0; font-size: 11.5px; color: #8e8e93; }
 .ngStats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 4px 0 2px; }
-.ngStats > div { border-top: 1px solid #36373b; padding-top: 7px; display: flex; flex-direction: column; gap: 2px; }
-.ngStats small { font-size: 10.5px; color: #7d7f84; }
-.ngStats b { font-size: 17px; color: #f0f0f2; font-variant-numeric: tabular-nums; }
-.ngLbl { margin: 6px 0 0; font-size: 10.5px; color: #7d7f84; }
+.ngStats > div { border-top: 1px solid #e8e8eb; padding-top: 7px; display: flex; flex-direction: column; gap: 2px; }
+.ngStats small { font-size: 10.5px; color: #8e8e93; }
+.ngStats b { font-size: 17px; color: #1d1d1f; font-variant-numeric: tabular-nums; }
+.ngLbl { margin: 6px 0 0; font-size: 10.5px; color: #8e8e93; }
 .ngRows { display: flex; flex-direction: column; gap: 2px; }
-.ngRow { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 8px; border: 0; border-radius: 6px; background: none; color: #c9cacd; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
-.ngRow:hover { background: #333438; color: #fff; }
+.ngRow { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 8px; border: 0; border-radius: 6px; background: none; color: #3a3a3c; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.ngRow:hover { background: #f2f2f4; color: #1d1d1f; }
 .ngRow .dot { width: 6px; height: 6px; }
 .ngRow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ngRow small { color: #75777c; font-size: 10.5px; flex-shrink: 0; }
+.ngRow small { color: #a1a1a6; font-size: 10.5px; flex-shrink: 0; }
 .ngTags { display: flex; flex-wrap: wrap; gap: 5px; }
-.ngTag { height: 22px; padding: 0 8px; border-radius: 6px; border: 0; background: color-mix(in srgb, var(--c) 20%, #2a2b2f); color: color-mix(in srgb, var(--c) 70%, #fff); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
-.ngOpen { margin-top: 6px; height: 34px; border: 0; border-radius: 8px; background: #7f6df2; color: #fff; font: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
-.ngOpen:hover { background: #8f7ff5; }
+.ngTag { height: 22px; padding: 0 8px; border-radius: 6px; border: 0; background: #f2f2f4; color: #1d1d1f; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ngOpen { margin-top: 6px; height: 34px; border: 0; border-radius: 8px; background: #1d1d1f; color: #fff; font: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+.ngOpen:hover { background: #3a3a3c; }
 .ngOpen .lc { width: 15px; height: 15px; }
 /* スマホ */
 main#view.gMode .ng { height: calc(100dvh - 300px - env(safe-area-inset-bottom)); min-height: 360px; }
