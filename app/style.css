@@ -979,3 +979,10 @@ html.wide .evBar { bottom: 22px; left: 50%; right: auto; width: 480px; transform
 .evBar.shake { animation: evShake .25s; }
 html.wide .evBar.shake { animation: none; }
 .cg.mWeek .cgDraftT { overflow: hidden; }
+/* 予定の四角を動かす */
+.cgEv { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.cgEvH { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; cursor: ns-resize; }
+.cgEv.lift { z-index: 6; box-shadow: 0 10px 26px rgba(0,0,0,.22); background: color-mix(in srgb, var(--ev) 26%, var(--card)); transform: scale(1.02); cursor: grabbing; }
+.cgEv.lift .cgEvH { height: 4px; background: var(--ev); border-radius: 0 0 6px 0; opacity: .6; }
+html.wide .cgEv { cursor: grab; }
+.btn.danger.sure { background: var(--danger); color: #fff; }

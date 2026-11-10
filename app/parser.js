@@ -116,7 +116,7 @@ const MDParser = (() => {
     return `- ${pad(ev.time)}${ev.endTime ? '-' + pad(ev.endTime) : ''} ${title}`;
   }
   function addEvent(text, ev) {
-    const v = eventLine(ev);
+    const v = ev.line || eventLine(ev);   // ev.line：ほかのノートから移すときの、そのままの行
     const key = ev.time ? pad(ev.time) : '';        // 終日は時刻のある予定より前
     const nl = text.includes('\r\n') ? '\r\n' : '\n';
     const ls = text.split(/\r?\n/);
@@ -154,6 +154,60 @@ const MDParser = (() => {
     return (body ? body + nl + nl : '') + `## 予定${nl}${v}${nl}`;
   }
 
-  return { parse, toggle, addTodo, addEvent, eventLine, clean };
+  // 予定の行を書きかえる。v = { title?, time?, endTime?, date? }
+  // ・time が null なら終日（#予定 をつける）。・title を変えるときも [[リンク]]・#タグ・📅 などの印は残す
+  // ・date は 📅／@due() の印があるときだけ書きかえる（ないときは、その日のノートへ移すのは呼ぶ側）
+  const LINE_RE = /^(\s*)([-*+]|\d+[.)])(\s+)(\[(?: |x|X)\]\s*)?(.*)$/;
+  function findLine(ls, lineIndex, expectedRaw) { return ls[lineIndex] === expectedRaw ? lineIndex : ls.indexOf(expectedRaw); }
+  function rewriteEvent(line, v) {
+    const m = line.match(LINE_RE);
+    if (!m) return null;
+    let rest = m[5];
+    const tm = rest.match(TIME_RE);
+    if (tm) rest = rest.slice(tm[0].length);
+    if (v.title != null && v.title !== clean(rest)) {
+      const marks = [];
+      let title = String(v.title).replace(/\s+/g, ' ').trim();
+      // [[リンク]]：見えている名前がタイトルにあれば、そこをリンクに戻す。なければ後ろに残す
+      for (const x of rest.matchAll(/!?\[\[([^\]|]*)(?:\|([^\]]*))?\]\]/g)) {
+        const shown = (x[2] || x[1]).trim();
+        if (shown && title.includes(shown)) title = title.replace(shown, x[0]); else marks.push(x[0]);
+      }
+      for (const x of rest.matchAll(TAG_RE)) marks.push('#' + x[2]);
+      for (const x of rest.matchAll(/(?:[📅🛫⏳✅]\s*\d{4}-\d{2}-\d{2}|@(?:due|start)\(\d{4}-\d{2}-\d{2}\)|🏁)/gu)) marks.push(x[0]);
+      rest = [title, ...marks].join(' ');
+    }
+    if (v.date) rest = rest.replace(/(📅\s*)\d{4}-\d{2}-\d{2}/u, `$1${v.date}`).replace(/@due\(\d{4}-\d{2}-\d{2}\)/, `@due(${v.date})`);
+    let head = '';
+    if (v.time) {
+      head = `${pad(v.time)}${v.endTime ? '-' + pad(v.endTime) : ''} `;
+      rest = rest.replace(/(^|\s)#予定(?=\s|$)/, '$1').replace(/\s+/g, ' ').trim();
+    } else {
+      const hasDate = DUE_RES.some(re => re.test(rest));
+      if (!hasDate && !/(^|\s)#予定(?=\s|$)/.test(rest)) rest = rest.trim() + ' #予定';
+    }
+    return m[1] + m[2] + m[3] + (m[4] || '') + head + rest;
+  }
+  function updateEvent(text, lineIndex, expectedRaw, v) {
+    const nl = text.includes('\r\n') ? '\r\n' : '\n';
+    const ls = text.split(/\r?\n/);
+    const i = findLine(ls, lineIndex, expectedRaw);
+    if (i < 0) return null;
+    const nx = rewriteEvent(ls[i], v);
+    if (nx == null) return null;
+    ls[i] = nx;
+    return ls.join(nl);
+  }
+  // 行を消す（予定の削除・ほかの日へ移すとき）
+  function removeLine(text, lineIndex, expectedRaw) {
+    const nl = text.includes('\r\n') ? '\r\n' : '\n';
+    const ls = text.split(/\r?\n/);
+    const i = findLine(ls, lineIndex, expectedRaw);
+    if (i < 0) return null;
+    ls.splice(i, 1);
+    return ls.join(nl);
+  }
+
+  return { parse, toggle, addTodo, addEvent, eventLine, updateEvent, rewriteEvent, removeLine, clean };
 })();
 if (typeof module !== 'undefined') module.exports = MDParser;

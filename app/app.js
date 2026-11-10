@@ -804,6 +804,7 @@
     inn.append(hd);
   }
   function openItem(it) {
+    if (it.type === 'event') return newEvent(it.date, { item: it });
     const inn = $('#sheetIn');
     sheetHead(inn, it.type === 'todo' ? 'やること' : '予定');
     inn.append(el('div', 'itTitle' + (it.done ? ' done' : ''), it.title));
@@ -901,10 +902,32 @@
     f.append(row, pv);
     return f;
   }
+  async function updateEventItem(it, v) {
+    const titleChanged = v.title != null && v.title !== it.title;
+    const upd = { title: titleChanged ? v.title : null, time: v.time || null, endTime: v.time ? v.endTime || null : null, date: it.due ? v.date : null };
+    const msg = `予定を変更: ${v.time ? v.time + ' ' : ''}${v.title || it.title}`;
+    if (v.date === it.date || it.due) {
+      const ok = await edit(it.path, t => (t == null ? null : MDParser.updateEvent(t, it.line, it.raw, upd)), msg);
+      if (!ok) toast('予定の行が見つかりませんでした。同期してからもう一度', 'warn');
+      return ok;
+    }
+    // ちがう日へ：その日のデイリーノートに書いてから、元の行を消す
+    const line = MDParser.rewriteEvent(it.raw, upd);
+    if (line == null) return false;
+    const dst = dailyPathOf(v.date);
+    const ok = await edit(dst, t => MDParser.addEvent(t == null ? newDailyText(v.date) : t, { time: v.time || null, line: line.replace(/^\s+/, '') }), msg);
+    if (!ok) return false;
+    const ok2 = await edit(it.path, t => (t == null ? null : MDParser.removeLine(t, it.line, it.raw)), msg);
+    if (!ok2) toast('元の行を消せませんでした。ノートを見てください', 'warn');
+    return ok;
+  }
+
   // 予定を足す（その日のデイリーノートに「- 14:00-15:00 タイトル」、終日は「- タイトル #予定」で書く）
   function newEvent(k = todayKey(), opt = {}) {
+    const it = opt.item || null;   // あれば「予定を直す」
+    if (it) { k = it.date; opt = { ...opt, title: it.title, start: it.time || '', end: it.endTime || '', allDay: !it.time }; }
     const inn = $('#sheetIn');
-    sheetHead(inn, '予定を追加');
+    sheetHead(inn, it ? '予定を直す' : '予定を追加');
     const fld = (label, input) => { const l = el('label', 'fld'); l.append(el('span', '', label), input); return l; };
     const ttl = el('input', 'inp');
     ttl.placeholder = '例：MTG、歯医者、ジム';
@@ -950,7 +973,10 @@
     allDay.addEventListener('change', () => { times.hidden = allDay.checked; });
     if (opt.allDay) { allDay.checked = true; times.hidden = true; }
     const where = el('div', 'hint sub');
-    const showWhere = () => { where.textContent = day.value ? `${dailyPathOf(day.value)} に書きます` : ''; };
+    const showWhere = () => {
+      if (it && (day.value === it.date || it.due)) where.textContent = `${it.path}（${it.line + 1}行目）を書きかえます`;
+      else where.textContent = day.value ? `${dailyPathOf(day.value)} に${it ? '移します' : '書きます'}` : '';
+    };
     day.addEventListener('input', showWhere);
     showWhere();
     inn.append(fld('タイトル', ttl), dl, fld('日付', day), tog, times, where);
@@ -973,16 +999,30 @@
       calSel = d;
       const pd = parseKey(d);
       calMonth = new Date(pd.getFullYear(), pd.getMonth(), 1);
+      if (it) {
+        const ok = await updateEventItem(it, { title, date: d, time: ev.time || null, endTime: ev.endTime || null });
+        if (ok) toast('予定を直しました');
+        return;
+      }
       const ok = await edit(dailyPathOf(d), t => MDParser.addEvent(t == null ? newDailyText(d) : t, ev), `予定: ${ev.time ? ev.time + ' ' : ''}${title}`);
       if (ok) toast(`${relDay(d)}に予定を入れました`);
     };
     ttl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save(); } });
     const bs = el('div', 'shBtns');
-    bs.append(btn('btn primary', ['calendar-plus', '追加する'], save));
+    if (it) {
+      // 削除：1回目で「本当に削除」に変わり、2回目で消す
+      const del = btn('btn danger', ['trash-2', '削除'], async () => {
+        if (!del.classList.contains('sure')) { del.classList.add('sure'); del.lastChild.textContent = '本当に削除'; setTimeout(() => { if (del.isConnected) { del.classList.remove('sure'); del.lastChild.textContent = '削除'; } }, 3000); return; }
+        sheet.close();
+        const ok = await edit(it.path, t => (t == null ? null : MDParser.removeLine(t, it.line, it.raw)), `予定を削除: ${it.title}`);
+        if (ok) toast(`「${it.title}」を削除しました`); else toast('予定の行が見つかりませんでした。同期してからもう一度', 'warn');
+      });
+      bs.append(del, btn('btn', ['file-text', 'ノート'], () => { sheet.close(); openNote(it.path); }));
+    }
+    bs.append(btn('btn primary', it ? ['check', '保存'] : ['calendar-plus', '追加する'], save));
     inn.append(bs);
     sheet.showModal();
-    if (!isTouch()) ttl.focus();
-    setTimeout(() => ttl.focus(), 50);
+    if (!it) { if (!isTouch()) ttl.focus(); setTimeout(() => ttl.focus(), 50); }
   }
 
   // ================= ホーム =================
@@ -1313,6 +1353,73 @@
   }
   function hideEvBar() { const bar = $('#evBar'); if (bar) { bar.hidden = true; $('#evBarIn').blur(); } }
 
+  // 予定の四角を動かす：マウスはそのままドラッグ、指は長押ししてからドラッグ（ふつうのスクロールとぶつからないように）
+  // 下の端（指は下のほう）をつかむと長さを変える。週の表なら、ほかの日へも動かせる。15分きざみ
+  function evDrag(b, p, days, P) {
+    const it = p.i, len0 = p.b - p.a;
+    b.append(el('i', 'cgEvH'));
+    let st = null;
+    const colAt = (x, y) => { b.style.pointerEvents = 'none'; const c = document.elementFromPoint(x, y)?.closest('.cgCol'); b.style.pointerEvents = ''; return c; };
+    const begin = (x, y, resize) => {
+      st = { x, y, resize, a: p.a, b: p.b, col: b.parentElement, moved: false };
+      b.classList.add('lift');
+    };
+    const move = (x, y) => {
+      if (!st) return;
+      const dm = Math.round(((y - st.y) / P) * 60 / SNAP) * SNAP;
+      if (dm || Math.abs(x - st.x) > 6) st.moved = true;
+      if (st.resize) { st.b = Math.min(24 * 60, Math.max(p.a + SNAP, p.b + dm)); st.a = p.a; }
+      else {
+        st.a = Math.max(0, Math.min(24 * 60 - len0, p.a + dm)); st.b = st.a + len0;
+        const c = days.length > 1 ? colAt(x, y) : null;
+        if (c && c !== st.col) { st.col = c; c.append(b); }
+      }
+      b.style.top = (st.a / 60) * P + 1 + 'px';
+      b.style.height = Math.max(((st.b - st.a) / 60) * P - 3, 18) + 'px';
+      if (st.col !== p.colEl) { b.style.left = '2px'; b.style.width = 'calc(100% - 5px)'; }
+      b.querySelector('small').textContent = `${hhmmOf(st.a)}–${hhmmOf(Math.min(st.b, 24 * 60 - 1))}`;
+    };
+    const finish = async () => {
+      if (!st) return;
+      const s2 = st; st = null; b.classList.remove('lift');
+      if (!s2.moved) return;
+      b.dataset.dragged = '1'; setTimeout(() => delete b.dataset.dragged, 400);
+      const cols = [...b.closest('.cgIn').querySelectorAll('.cgCol')];
+      const date = days[Math.max(0, cols.indexOf(s2.col))] || it.date;
+      const keepEnd = it.endTime || s2.resize || s2.b - s2.a !== 60;
+      const ok = await updateEventItem(it, { title: null, date, time: hhmmOf(s2.a), endTime: keepEnd ? hhmmOf(Math.min(s2.b, 23 * 60 + 59)) : null });
+      if (ok) toast(`「${it.title}」を ${date !== it.date ? md(date) + ' ' : ''}${hhmmOf(s2.a)} に動かしました`);
+      else render();
+    };
+    p.colEl = null; requestAnimationFrame(() => { p.colEl = b.parentElement; });
+    // マウス
+    b.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'mouse' || e.button) return;
+      e.stopPropagation();
+      const r = b.getBoundingClientRect();
+      begin(e.clientX, e.clientY, e.clientY > r.bottom - 8);
+      try { b.setPointerCapture(e.pointerId); } catch {}
+    });
+    b.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && st) move(e.clientX, e.clientY); });
+    b.addEventListener('pointerup', e => { if (e.pointerType === 'mouse') finish(); });
+    // 指：長押し（0.4秒）でつかむ
+    let timer = null, t0 = null;
+    b.addEventListener('touchstart', e => {
+      const t = e.touches[0]; t0 = { x: t.clientX, y: t.clientY };
+      const r = b.getBoundingClientRect(), resize = t.clientY > r.bottom - Math.min(18, r.height / 3);
+      clearTimeout(timer);
+      timer = setTimeout(() => { timer = null; begin(t0.x, t0.y, resize); navigator.vibrate?.(12); }, 400);
+    }, { passive: true });
+    b.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      if (st) { e.preventDefault(); move(t.clientX, t.clientY); return; }
+      if (timer && t0 && Math.hypot(t.clientX - t0.x, t.clientY - t0.y) > 8) { clearTimeout(timer); timer = null; }
+    }, { passive: false });
+    const tend = () => { clearTimeout(timer); timer = null; if (st) finish(); };
+    b.addEventListener('touchend', tend); b.addEventListener('touchcancel', tend);
+    b.addEventListener('contextmenu', e => { if (isTouch()) e.preventDefault(); });
+  }
+
   // 週・日：時間が縦に並ぶ表
   function timeGrid(days) {
     const today = todayKey(), P = isWide() ? 48 : 52;
@@ -1355,7 +1462,8 @@
     days.forEach(k => {
       const col = el('div', 'cgCol' + (k === today ? ' today' : '') + ([0, 6].includes(parseKey(k).getDay()) ? ' we' : ''));
       for (const p of layoutLanes(dayItems(k).timed)) {
-        const b = btn('cgEv' + (p.i.type === 'todo' ? ' todo' : '') + (p.i.done ? ' done' : '') + (p.b - p.a <= 40 ? ' short' : ''), [], () => openItem(p.i), p.i.title);
+        const b = btn('cgEv' + (p.i.type === 'todo' ? ' todo' : '') + (p.i.done ? ' done' : '') + (p.b - p.a <= 40 ? ' short' : ''), [], () => { if (!b.dataset.dragged) openItem(p.i); }, p.i.title);
+        if (p.i.type === 'event') evDrag(b, p, days, P);
         b.style.top = (p.a / 60) * P + 1 + 'px';
         b.style.height = Math.max(((p.b - p.a) / 60) * P - 3, 18) + 'px';
         b.style.left = `calc(${(p.lane / p.n) * 100}% + 2px)`;
