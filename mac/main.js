@@ -121,6 +121,8 @@ ipcMain.handle('mdws:openExternal', (e, url) => { if (/^https?:/i.test(url)) she
 
 // ---------- はじめ・おわり ----------
 app.whenReady().then(async () => {
+  // npm start のときも Dock に自前のアイコンを出す（.app にしたときは electron-builder が入れる）
+  if (!app.isPackaged && app.dock) app.dock.setIcon(path.join(__dirname, 'build', 'icon.png'));
   loadConf();
   openFolder(conf.folder);
   createWindow();
