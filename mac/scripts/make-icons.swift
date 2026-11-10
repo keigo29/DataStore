@@ -1,10 +1,10 @@
 // アイコンを作る（Mac 版・PWA・iPhone すべて同じデザイン）
 //   swift mac/scripts/make-icons.swift      ← リポジトリのいちばん上で実行
 // デザイン：
-//   ・背景：アプリの予定の色（#005cff）を真ん中に、水色 → 青 → 藍のななめのグラデーション
+//   ・背景：控えめな青灰色。くすんだ水色 → 青灰 → 紺のななめのグラデーション
 //   ・左上の光：画面のカードと同じ --gloss（radial-gradient at 23% 0%）
 //   ・3本の線：ノートの行。2本目を少し薄くして奥行きを出す
-//   ・ひし形：今日・節目のしるし。アプリの --focus（#ff5a00）に寄せたオレンジ
+//   ・ひし形：今日・節目のしるし。やわらかい黄土色
 import AppKit
 import CoreGraphics
 
@@ -37,7 +37,7 @@ func render(_ mode: Mode, size: Int, to out: String) {
     if mode == .mac {
         ctx.saveGState()
         ctx.setShadow(offset: CGSize(width: 0, height: -S * 10 / 1024), blur: S * 24 / 1024, color: col(0x0a1440, 0.30))
-        ctx.addPath(shape); ctx.setFillColor(col(0x0040c0)); ctx.fillPath()
+        ctx.addPath(shape); ctx.setFillColor(col(0x4a5f82)); ctx.fillPath()
         ctx.restoreGState()
     }
 
@@ -45,20 +45,20 @@ func render(_ mode: Mode, size: Int, to out: String) {
     ctx.addPath(shape); ctx.clip()
 
     // 背景のグラデーション
-    let bg = CGGradient(colorsSpace: cs, colors: [col(0x38b6ff), col(0x005cff), col(0x2a14b8)] as CFArray, locations: [0, 0.5, 1])!
+    let bg = CGGradient(colorsSpace: cs, colors: [col(0x8fa9c6), col(0x5b779c), col(0x3e4c6e)] as CFArray, locations: [0, 0.5, 1])!
     ctx.drawLinearGradient(bg, start: CGPoint(x: tile.minX, y: tile.minY), end: CGPoint(x: tile.maxX, y: tile.maxY),
                            options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
     // 左上の光（--gloss と同じ形）
-    let gl = CGGradient(colorsSpace: cs, colors: [col(0xffffff, 0.30), col(0xffffff, 0)] as CFArray, locations: [0, 1])!
+    let gl = CGGradient(colorsSpace: cs, colors: [col(0xffffff, 0.20), col(0xffffff, 0)] as CFArray, locations: [0, 1])!
     ctx.drawRadialGradient(gl, startCenter: CGPoint(x: tile.minX + tile.width * 0.23, y: tile.minY), startRadius: 0,
                            endCenter: CGPoint(x: tile.minX + tile.width * 0.23, y: tile.minY), endRadius: tile.width * 1.0, options: [])
     // 下のほうを少し沈める
-    let dk = CGGradient(colorsSpace: cs, colors: [col(0x000000, 0), col(0x000000, 0.18)] as CFArray, locations: [0.55, 1])!
+    let dk = CGGradient(colorsSpace: cs, colors: [col(0x000000, 0), col(0x000000, 0.14)] as CFArray, locations: [0.55, 1])!
     ctx.drawLinearGradient(dk, start: CGPoint(x: tile.midX, y: tile.minY), end: CGPoint(x: tile.midX, y: tile.maxY), options: [])
 
     // 線とひし形（影でうすく浮かせる）
     ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -6 * u * g), blur: 16 * u * g, color: col(0x0a1450, 0.30))
+    ctx.setShadow(offset: CGSize(width: 0, height: -6 * u * g), blur: 16 * u * g, color: col(0x0a1450, 0.22))
     ctx.beginTransparencyLayer(auxiliaryInfo: nil)
     func pill(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat, _ c: CGColor) {
         let a = p(x0, y0), b = p(x1, y1)
@@ -78,20 +78,20 @@ func render(_ mode: Mode, size: Int, to out: String) {
     dia.move(to: CGPoint(x: (pts[3].x + pts[0].x) / 2, y: (pts[3].y + pts[0].y) / 2))
     for i in 0..<4 { dia.addArc(tangent1End: pts[i], tangent2End: pts[(i + 1) % 4], radius: rr) }
     dia.closeSubpath()
-    ctx.addPath(dia); ctx.setFillColor(col(0xff7a1a)); ctx.fillPath()
+    ctx.addPath(dia); ctx.setFillColor(col(0xe0a96a)); ctx.fillPath()
     ctx.endTransparencyLayer()
     ctx.restoreGState()
     // ひし形の中の明るさ（上を明るく）
     ctx.saveGState()
     ctx.addPath(dia); ctx.clip()
-    let dg = CGGradient(colorsSpace: cs, colors: [col(0xffc247), col(0xff5a00)] as CFArray, locations: [0, 1])!
+    let dg = CGGradient(colorsSpace: cs, colors: [col(0xf2c98a), col(0xd49355)] as CFArray, locations: [0, 1])!
     ctx.drawLinearGradient(dg, start: CGPoint(x: c.x, y: c.y - h), end: CGPoint(x: c.x, y: c.y + h), options: [])
     ctx.restoreGState()
 
     // ふちの光（Mac のみ。暗い Dock でも形がわかるように）
     if mode == .mac {
         ctx.addPath(shape)
-        ctx.setStrokeColor(col(0xffffff, 0.18)); ctx.setLineWidth(S * 3 / 1024); ctx.strokePath()
+        ctx.setStrokeColor(col(0xffffff, 0.16)); ctx.setLineWidth(S * 3 / 1024); ctx.strokePath()
     }
     ctx.restoreGState()
 
