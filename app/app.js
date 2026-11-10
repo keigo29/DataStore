@@ -377,6 +377,70 @@
     sheet.showModal();
   }
 
+  // 予定を足す（その日のデイリーノートに「- 14:00-15:00 タイトル」、終日は「- タイトル #予定」で書く）
+  function newEvent(k = todayKey()) {
+    const inn = $('#sheetIn');
+    sheetHead(inn, '予定を追加');
+    const fld = (label, input) => { const l = el('label', 'fld'); l.append(el('span', '', label), input); return l; };
+    const ttl = el('input', 'inp');
+    ttl.placeholder = '例：MTG、歯医者、ジム';
+    ttl.maxLength = 200;
+    ttl.enterKeyHint = 'done';
+    const day = el('input', 'inp');
+    day.type = 'date';
+    day.value = k;
+    day.required = true;
+    const allDay = el('input');
+    allDay.type = 'checkbox';
+    const tog = el('label', 'tog');
+    tog.append(allDay, '終日');
+    // 初めの時刻：今日なら次のちょうどの時間、ほかの日は 10:00。終わりは1時間あと
+    const p2 = n => String(n).padStart(2, '0');
+    const h0 = k === todayKey() ? Math.min(new Date().getHours() + 1, 23) : 10;
+    const st = el('input', 'inp'); st.type = 'time'; st.value = `${p2(h0)}:00`;
+    const en = el('input', 'inp'); en.type = 'time'; en.value = h0 < 23 ? `${p2(h0 + 1)}:00` : '';
+    const times = el('div', 'two');
+    times.append(fld('開始', st), fld('終了（なくても可）', en));
+    let lastLen = 60;   // 開始を動かしたら、長さを保って終了も動かす
+    const mins = v => { const m = /^(\d{1,2}):(\d{2})/.exec(v); return m ? +m[1] * 60 + +m[2] : null; };
+    en.addEventListener('change', () => { const a = mins(st.value), b = mins(en.value); if (a != null && b != null && b > a) lastLen = b - a; });
+    st.addEventListener('change', () => { const a = mins(st.value); if (a == null || !en.value) return; const b = Math.min(a + lastLen, 23 * 60 + 59); en.value = `${p2(Math.floor(b / 60))}:${p2(b % 60)}`; });
+    allDay.addEventListener('change', () => { times.hidden = allDay.checked; });
+    const where = el('div', 'hint sub');
+    const showWhere = () => { where.textContent = day.value ? `${dailyPathOf(day.value)} に書きます` : ''; };
+    day.addEventListener('input', showWhere);
+    showWhere();
+    inn.append(fld('タイトル', ttl), fld('日付', day), tog, times, where);
+
+    const save = async () => {
+      const title = ttl.value.replace(/\s+/g, ' ').trim();
+      if (!title) { ttl.focus(); return; }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day.value)) { day.focus(); return; }
+      const ev = { title };
+      if (!allDay.checked) {
+        if (!st.value) { st.focus(); return; }
+        ev.time = st.value.slice(0, 5);
+        if (en.value) {
+          if (mins(en.value) <= mins(st.value)) { toast('終了は開始より後にしてください', 'warn'); en.focus(); return; }
+          ev.endTime = en.value.slice(0, 5);
+        }
+      }
+      const d = day.value;
+      sheet.close();
+      calSel = d;
+      const pd = parseKey(d);
+      calMonth = new Date(pd.getFullYear(), pd.getMonth(), 1);
+      const ok = await edit(dailyPathOf(d), t => MDParser.addEvent(t == null ? newDailyText(d) : t, ev), `予定: ${ev.time ? ev.time + ' ' : ''}${title}`);
+      if (ok) toast(`${relDay(d)}に予定を入れました`);
+    };
+    ttl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save(); } });
+    const bs = el('div', 'shBtns');
+    bs.append(btn('btn primary', ['calendar-plus', '追加する'], save));
+    inn.append(bs);
+    sheet.showModal();
+    setTimeout(() => ttl.focus(), 50);
+  }
+
   // ================= ホーム =================
   function addForm(k, ph) {
     const f = el('form', 'addRow');
@@ -467,7 +531,7 @@
     put('left', p);
 
     const ps = panel();
-    ps.append(panelHead('calendar-clock', '今日の予定', el('span', '', `${sched.length}件`)));
+    ps.append(panelHead('calendar-clock', '今日の予定', [el('span', '', `${sched.length}件`), btn('linkBtn', '＋ 予定', () => newEvent(t))]));
     if (!sched.length) ps.append(noData('時刻つきの予定（- 14:00 MTG など）はありません'));
     sched.forEach(i => ps.append(planRow(i)));
     put('right', ps);
@@ -611,7 +675,7 @@
     const arr = items.filter(i => i.date === k);
     const ev = arr.filter(i => i.type === 'event' || i.time).sort(byTime);
     const td = arr.filter(i => i.type === 'todo' && !i.time);
-    p.append(panelHead('calendar-clock', '予定', el('span', '', `${ev.length}件`)));
+    p.append(panelHead('calendar-clock', '予定', [el('span', '', `${ev.length}件`), btn('linkBtn', '＋ 予定', () => newEvent(k))]));
     if (!ev.length) p.append(noData('この日の予定はありません'));
     ev.forEach(i => p.append(planRow(i)));
     p.append(panelHead('list-todo', 'やること', el('span', '', `${td.filter(i => i.done).length}/${td.length}`)));
@@ -1598,7 +1662,7 @@
       const td = items.filter(i => i.date === calSel && i.type === 'todo');
       const bar = el('div', 'sumBar'); const bs = el('span'); bs.style.width = (td.length ? Math.round(td.filter(i => i.done).length / td.length * 100) : 0) + '%'; bar.append(bs);
       sc.append(bar, el('div', 'sumLabel', `やること ${td.filter(i => i.done).length} / ${td.length}`));
-      sb.append(sc, sideTitle('これから'));
+      sb.append(btn('btn primary wide', ['calendar-plus', '予定を追加'], () => newEvent(calSel)), sc, sideTitle('これから'));
       const up = items.filter(i => i.date && i.date >= t && !i.done && (i.type === 'event' || i.time || i.milestone)).sort(byDate).slice(0, 10);
       const n = el('nav', 'navCard');
       if (!up.length) n.append(el('div', 'noData', '予定はありません'));
