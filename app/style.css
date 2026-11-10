@@ -944,3 +944,38 @@ main > .qEv .inp, .qEv.slim .inp { background: var(--card); box-shadow: var(--sh
 .cg.mWeek .cgEv.short { flex-direction: column; align-items: flex-start; }
 .cg.mWeek .cgEv.short b { -webkit-line-clamp: 1; }
 main:not(.calMode) .cg.mWeek { height: calc(100dvh - 270px - env(safe-area-inset-bottom)); }
+
+/* ---------- カレンダー：タップで置く「新しい予定」と、下の入力欄 ---------- */
+.cgDraft { position: absolute; left: 2px; right: 3px; z-index: 4; border-radius: 6px; background: var(--ev); color: #fff; padding: 3px 7px; display: flex; flex-direction: column; gap: 0;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ev) 45%, transparent); touch-action: none; cursor: grab; overflow: visible; }
+.cgDraft.drag { cursor: grabbing; opacity: .92; }
+.cgDraft b { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cgDraftT { font-size: 10.5px; font-weight: 600; opacity: .9; font-variant-numeric: tabular-nums; }
+/* 上下のつまみ（指でつかみやすいよう、見た目より広く） */
+.cgH { position: absolute; left: 0; right: 0; height: 22px; cursor: ns-resize; touch-action: none; }
+.cgH.top { top: -11px; }
+.cgH.bot { bottom: -11px; }
+.cgH::after { content: ''; position: absolute; width: 11px; height: 11px; border-radius: 50%; background: #fff; border: 2.5px solid var(--ev); top: 50%; margin-top: -5.5px; }
+.cgH.top::after { right: 10px; }
+.cgH.bot::after { left: 10px; }
+.cg.mWeek .cgDraft { padding: 2px 3px; }
+.cg.mWeek .cgDraft b { display: none; }
+.cg.mWeek .cgDraftT { font-size: 9px; white-space: normal; line-height: 1.2; }
+.cg.mWeek .cgH.top::after { right: 2px; } .cg.mWeek .cgH.bot::after { left: 2px; }
+.evBar { position: fixed; z-index: 60; left: 10px; right: 10px; bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 10px); max-width: 520px; margin: 0 auto;
+  background: var(--card); border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,.22), 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent); padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 8px; }
+.evBar[hidden] { display: none; }
+.evBar.kbOpen { bottom: calc(var(--kb) + 8px); }
+html.wide .evBar { bottom: 22px; left: 50%; right: auto; width: 480px; transform: translateX(-50%); margin: 0; }
+.evBarHd { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: var(--ev); }
+.evBarHd .lc, .evBarHd svg { width: 16px; height: 16px; flex-shrink: 0; }
+.evBarTime { flex: 1; font-variant-numeric: tabular-nums; }
+.evBarX { width: 30px; height: 30px; color: var(--sub); }
+.evBarRow { display: flex; gap: 8px; }
+.evBarRow .inp { flex: 1; min-width: 0; height: 44px; font-size: 16px; }
+.evBarRow .btn { height: 44px; padding: 0 18px; flex-shrink: 0; }
+.evBarMore { align-self: flex-start; font-size: 12px; padding: 2px 2px; }
+@keyframes evShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.evBar.shake { animation: evShake .25s; }
+html.wide .evBar.shake { animation: none; }
+.cg.mWeek .cgDraftT { overflow: hidden; }

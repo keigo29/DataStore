@@ -1217,6 +1217,102 @@
     return c;
   }
 
+  // ---- 新しい予定の四角（下書き）と、下の入力欄 ----
+  let calDraft = null;        // { date, a, b }（分）
+  let cgScroll = { key: '', top: 0 };
+  const SNAP = 15;
+  const draftLabel = () => calDraft ? `${md(calDraft.date)}  ${hhmmOf(calDraft.a)} – ${hhmmOf(Math.min(calDraft.b, 24 * 60 - 1))}` : '';
+  function draftEl(P) {
+    const d = el('div', 'cgDraft');
+    const lab = el('span', 'cgDraftT');
+    const top = el('i', 'cgH top'), bot = el('i', 'cgH bot');
+    const place = () => {
+      d.style.top = (calDraft.a / 60) * P + 'px';
+      d.style.height = Math.max(((calDraft.b - calDraft.a) / 60) * P - 2, 14) + 'px';
+      lab.textContent = `${hhmmOf(calDraft.a)}–${hhmmOf(Math.min(calDraft.b, 24 * 60 - 1))}`;
+      const t = $('#evBarTime'); if (t) t.textContent = draftLabel();
+    };
+    d.append(top, el('b', '', '（新しい予定）'), lab, bot);
+    place();
+    // 端をドラッグで長さ、まん中をドラッグで時間ごと動かす（15分きざみ）
+    let mv = null;
+    d.addEventListener('pointerdown', e => {
+      e.stopPropagation(); e.preventDefault();
+      mv = { mode: e.target === top ? 'top' : e.target === bot ? 'bot' : 'move', y: e.clientY, a: calDraft.a, b: calDraft.b };
+      try { d.setPointerCapture(e.pointerId); } catch {} d.classList.add('drag');
+    });
+    d.addEventListener('pointermove', e => {
+      if (!mv) return;
+      const dm = Math.round(((e.clientY - mv.y) / P) * 60 / SNAP) * SNAP;
+      if (mv.mode === 'top') calDraft.a = Math.max(0, Math.min(mv.b - SNAP, mv.a + dm));
+      else if (mv.mode === 'bot') calDraft.b = Math.min(24 * 60, Math.max(mv.a + SNAP, mv.b + dm));
+      else { const len = mv.b - mv.a; calDraft.a = Math.max(0, Math.min(24 * 60 - len, mv.a + dm)); calDraft.b = calDraft.a + len; }
+      place();
+    });
+    const end = () => { if (!mv) return; mv = null; d.classList.remove('drag'); };
+    d.addEventListener('pointerup', end); d.addEventListener('pointercancel', end);
+    d.addEventListener('click', e => { e.stopPropagation(); $('#evBarIn')?.focus(); });
+    return d;
+  }
+  function setDraft(k, a, b, focus) {
+    calDraft = { date: k, a, b: Math.min(b, 24 * 60) };
+    document.querySelectorAll('.cgDraft').forEach(x => x.remove());
+    const cols = [...document.querySelectorAll('.cgCol')];
+    const idx = calV() === 'week' ? Array.from({ length: 7 }, (_, i) => addDays(weekStart(calSel), i)).indexOf(k) : 0;
+    const P = isWide() ? 48 : 52;
+    if (cols[idx]) cols[idx].append(draftEl(P));
+    showEvBar(focus);
+  }
+  function clearDraft() { calDraft = null; document.querySelectorAll('.cgDraft').forEach(x => x.remove()); hideEvBar(); }
+  // 下の入力欄（キーボードが出ても、その上に出る）
+  function evBar() {
+    let bar = $('#evBar');
+    if (bar) return bar;
+    bar = el('form', 'evBar'); bar.id = 'evBar'; bar.hidden = true;
+    const hd = el('div', 'evBarHd');
+    const tm = el('span', 'evBarTime'); tm.id = 'evBarTime';
+    hd.insertAdjacentHTML('beforeend', icon('calendar-clock'));
+    hd.append(tm, btn('iconBtn plain evBarX', 'x', () => clearDraft(), 'やめる'));
+    const row = el('div', 'evBarRow');
+    const inp = el('input', 'inp'); inp.id = 'evBarIn'; inp.placeholder = 'タイトル（例：MTG・歯医者）'; inp.maxLength = 200; inp.enterKeyHint = 'done'; inp.autocomplete = 'off';
+    const ok = btn('btn primary', '保存', null); ok.type = 'submit';
+    row.append(inp, ok);
+    const more = btn('linkBtn evBarMore', 'くわしく（場所・メモ・終日）', () => { const d = calDraft; const t = inp.value; clearDraft(); newEvent(d.date, { start: hhmmOf(d.a), end: hhmmOf(Math.min(d.b, 23 * 60 + 59)), title: t }); });
+    bar.append(hd, row, more);
+    bar.addEventListener('submit', async e => {
+      e.preventDefault();
+      const title = inp.value.trim();
+      if (!title) { inp.focus(); bar.classList.remove('shake'); void bar.offsetWidth; bar.classList.add('shake'); return; }
+      const d = calDraft; if (!d) return;
+      inp.value = ''; calDraft = null; hideEvBar();
+      await addEventNow({ date: d.date, start: hhmmOf(d.a), end: hhmmOf(Math.min(d.b, 23 * 60 + 59)), title });
+    });
+    inp.addEventListener('keydown', e => { if (e.key === 'Escape') clearDraft(); });
+    document.body.append(bar);
+    // スマホ：キーボードが出たら、その上に
+    const vv = window.visualViewport;
+    if (vv) { const fit = () => { const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); bar.style.setProperty('--kb', kb + 'px'); bar.classList.toggle('kbOpen', kb > 60); }; vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+    return bar;
+  }
+  function showEvBar(focus) {
+    const bar = evBar();
+    bar.hidden = false;
+    $('#evBarTime').textContent = draftLabel();
+    if (focus) $('#evBarIn').focus({ preventScroll: true });
+    // 置いた四角が下の入力欄にかくれるときは、表をスクロールして見えるように
+    const fit = () => {
+      const d = document.querySelector('.cgDraft'), body = d?.closest('.cgBody');
+      if (!d || !body || bar.hidden) return;
+      const r = d.getBoundingClientRect(), br = body.getBoundingClientRect(), barTop = bar.getBoundingClientRect().top;
+      const limit = Math.min(br.bottom, barTop) - 12;
+      if (r.bottom > limit) body.scrollBy({ top: Math.min(r.bottom - limit, r.top - br.top - 12), behavior: 'smooth' });
+      else if (r.top < br.top + 4) body.scrollBy({ top: r.top - br.top - 12, behavior: 'smooth' });
+    };
+    requestAnimationFrame(fit);
+    setTimeout(fit, 350);   // キーボードが出たあとにも
+  }
+  function hideEvBar() { const bar = $('#evBar'); if (bar) { bar.hidden = true; $('#evBarIn').blur(); } }
+
   // 週・日：時間が縦に並ぶ表
   function timeGrid(days) {
     const today = todayKey(), P = isWide() ? 48 : 52;
@@ -1269,26 +1365,27 @@
         if (firstMin == null || p.a < firstMin) firstMin = p.a;
       }
       if (k === today) { const n = new Date(), ln = el('div', 'cgNow'); ln.style.top = ((n.getHours() * 60 + n.getMinutes()) / 60) * P + 'px'; col.append(ln); }
-      // 押した・ドラッグした時間（30分ごと）
+      // 空いている時間：タップ（マウスはドラッグでも）すると「新しい予定」の四角を置く → 下の入力欄でタイトル
       const ghost = el('div', 'cgGhost'); ghost.hidden = true; col.append(ghost);
-      const minAt = e => { const y = e.clientY - col.getBoundingClientRect().top; return Math.max(0, Math.min(24 * 60 - 30, Math.floor((y / P) * 2) * 30)); };
+      const minAt = (e, snap = 30) => { const y = e.clientY - col.getBoundingClientRect().top; return Math.max(0, Math.min(24 * 60 - snap, Math.floor(((y / P) * 60) / snap) * snap)); };
       const paint = (a, b2) => { ghost.hidden = false; ghost.style.top = (a / 60) * P + 'px'; ghost.style.height = ((b2 - a) / 60) * P + 'px'; ghost.textContent = `${hhmmOf(a)}–${hhmmOf(Math.min(b2, 24 * 60 - 1))}`; };
       let drag = null;
       col.addEventListener('pointerdown', e => {
-        if (e.target.closest('.cgEv') || e.button || e.pointerType !== 'mouse') return;
-        const a = minAt(e); drag = { a, b: a + 30 }; paint(drag.a, drag.b);
+        if (e.target.closest('.cgEv, .cgDraft') || e.button || e.pointerType !== 'mouse') return;
+        const a = minAt(e); drag = { a, b: a + 30, moved: false }; paint(drag.a, drag.b);
         col.setPointerCapture(e.pointerId); e.preventDefault();
       });
-      col.addEventListener('pointermove', e => { if (!drag) return; drag.b = Math.max(drag.a + 30, minAt(e) + 30); paint(drag.a, drag.b); });
+      col.addEventListener('pointermove', e => { if (!drag) return; const b2 = Math.max(drag.a + 30, minAt(e) + 30); if (b2 !== drag.b) drag.moved = true; drag.b = b2; paint(drag.a, drag.b); });
       col.addEventListener('pointerup', () => {
         if (!drag) return;
         const d2 = drag; drag = null; ghost.hidden = true;
-        newEvent(k, { start: hhmmOf(d2.a), end: hhmmOf(Math.min(d2.b === d2.a + 30 ? d2.a + 60 : d2.b, 23 * 60 + 59)) });
+        setDraft(k, d2.a, d2.moved ? d2.b : d2.a + 60, true);
       });
       col.addEventListener('click', e => {
-        if (e.target.closest('.cgEv') || e.pointerType === 'mouse' || (e.pointerType == null && !isTouch())) return;
-        const a = minAt(e); newEvent(k, { start: hhmmOf(a), end: hhmmOf(Math.min(a + 60, 23 * 60 + 59)) });
+        if (e.target.closest('.cgEv, .cgDraft') || e.pointerType === 'mouse' || (e.pointerType == null && !isTouch())) return;
+        const a = minAt(e); setDraft(k, a, a + 60, true);
       });
+      if (calDraft && calDraft.date === k) col.append(draftEl(P));
       inner.append(col);
     });
     body.append(inner);
@@ -1310,7 +1407,11 @@
     const nowStart = days.includes(today) ? new Date().getHours() * 60 - 90 : null;
     const cands = [nowStart, firstMin != null ? firstMin - 30 : null].filter(x => x != null);
     const start = cands.length ? Math.min(...cands) : 8 * 60;
-    requestAnimationFrame(() => { body.scrollTop = Math.max(0, (start / 60) * P); });
+    // 同じ表を描き直したとき（予定を入れた・同期した）は、見ていた位置のまま
+    const sk = `${calV()}|${days[0]}|${days.length}`;
+    const keep = cgScroll.key === sk ? cgScroll.top : null;
+    requestAnimationFrame(() => { body.scrollTop = keep != null ? keep : Math.max(0, (start / 60) * P); cgScroll = { key: sk, top: body.scrollTop }; });
+    body.addEventListener('scroll', () => { cgScroll = { key: sk, top: body.scrollTop }; }, { passive: true });
     return wrap;
   }
 
@@ -1387,6 +1488,7 @@
 
   function renderCal(main) {
     const v = calV(), W = isWide();
+    if (v === 'month' && calDraft) clearDraft();
     main.classList.toggle('calMode', W);
     main.append(calBar());
     if (v === 'month') {
@@ -2934,6 +3036,7 @@
     if (t === 'notes' && tab === 'notes') { note = null; noteQuery = ''; }
     if (t === 'proj' && tab === 'proj') proj = null;
     if (t !== 'notes') editing = false;
+    if (t !== 'cal' && calDraft) clearDraft();
     if (tab === 'notes' && t !== 'notes' && window.NotesApp) NotesApp.flush();
     tab = t;
     render();
