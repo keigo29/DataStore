@@ -2,7 +2,7 @@
 // 変えたのは「// MDWS:」の印の行だけ（画像の表示・ない機能のボタンを出さない）。ファイルの読み書きは app.js の ctx.api.notes が受け持ちます。
 // ノート（Obsidian のような Markdown ノート）
 // ・ファイルは選んだフォルダの .md そのもの。Obsidian で同じフォルダを開いても読める
-// ・書く／並べる／読む の3つの表示。[[リンク]]・バックリンク・タグ・見出し・コールアウト・==ハイライト==・チェックリスト
+// ・書く／読む を切り替えて表示。[[リンク]]・バックリンク・タグ・見出し・コールアウト・==ハイライト==・チェックリスト
 (() => {
   const { el, btn, withIcon, icon, toast, askText } = window.UI;
   let ctx = null, box = null, side = null;
@@ -182,7 +182,8 @@
   const nameOf = p => p.split('/').pop().replace(/\.md$/i, '');
   const folderOf = p => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '');
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const view = () => paneMode || ctx.get().settings.notesView || 'split';
+  // 表示は「書く」と「読む」の2つだけ（前の「並べる」の設定は「読む」にする）
+  const view = () => ((paneMode || ctx.get().settings.notesView) === 'edit' ? 'edit' : 'preview');
 
   // ---------- 読み込み ----------
   async function load() {
@@ -305,9 +306,11 @@
     while (f) { openFolders.add(f); f = folderOf(f); }
     // ノートのタブにいるなら、画面全体は描き直さない（このあとの render と markActive で、列・上のボタン・サイドバーを合わせる）
     if (ctx.view?.() !== 'notes') ctx.go('notes');
+    // 新しいノート・空のノートは「書く」で開く
+    if ((opt.edit || !r.text.trim()) && view() !== 'edit') setView('edit');
     render();
     markActive();
-    if (opt.edit || (!r.text.trim() && view() !== 'preview')) focusEditor(opt.end);
+    if (opt.edit || !r.text.trim()) focusEditor(opt.end);
   }
   function focusEditor(end) {
     const ta = box?.querySelector('.nt-editor');
@@ -1938,14 +1941,14 @@
     const t = a?.classList?.contains('nt-editor') ? a.value.slice(a.selectionStart, a.selectionEnd) : String(window.getSelection() || '');
     return t && !t.includes('\n') && t.length <= 200 ? t : '';
   }
-  // 置換の行を出す・しまう。置換は書いている文字で行うので、読む画面なら「並べる」にする
+  // 置換の行を出す・しまう。置換は書いている文字で行うので、読む画面なら「書く」にする
   function showReplace(p, on) {
     const f = p?.find;
     if (!f) return;
     f.repOpen = on;
     f.repRow.hidden = !on;
     f.repToggle.classList.toggle('open', on);
-    if (on && f.targets?.[0]?.kind !== 'edit') { withPane(p, () => setView('split')); toast('置換は書いている文字で行うので、「並べる」にしました'); }
+    if (on && f.targets?.[0]?.kind !== 'edit') { withPane(p, () => setView('edit')); toast('置換は書いている文字で行うので、「書く」にしました'); }
     (on ? f.rep : f.input).focus();
   }
   // 今の1か所を置き換えて、次の一致へ（⌘Z で戻せる）
@@ -2254,7 +2257,7 @@
     head.append(withIcon('h2', '', 'keyboard', 'ノートのキー操作（VS Code と同じ）'), btn('iconBtn', 'x', () => d.close(), '閉じる'));
     const list = el('div', 'nt-keyList');
     for (const [k, t] of VS_KEYS) { const r = el('div', 'nt-keyRow'); r.append(el('kbd', '', k), el('span', '', t)); list.append(r); }
-    const foot = el('p', 'nt-note', 'ほかに ⌘B 太字・⌘I 斜体・⌘U 下線・⌘1〜3 見出し・⇧⌘H ハイライト・⌘T テンプレート・⌘E 読む⇔並べる・Tab 字下げ');
+    const foot = el('p', 'nt-note', 'ほかに ⌘B 太字・⌘I 斜体・⌘U 下線・⌘1〜3 見出し・⇧⌘H ハイライト・⌘T テンプレート・⌘E 書く⇔読む・Tab 字下げ');
     d.append(head, list, foot);
     document.body.append(d);
     d.addEventListener('close', () => d.remove());
@@ -2268,7 +2271,7 @@
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key === 's') { e.preventDefault(); saveNow(); return; }
     if (formatKey(e, ta)) return;
-    if (mod && e.key === 'e') { e.preventDefault(); setView(view() === 'preview' ? 'split' : 'preview'); return; }
+    if (mod && e.key === 'e') { e.preventDefault(); setView(view() === 'preview' ? 'edit' : 'preview'); return; }
     if (codeKey(e, ta)) return;
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -3007,12 +3010,12 @@
   function toolbar(tr, mk2) {
     if (!info.ready) return;
     const seg = el('div', 'seg nt-mode');
-    for (const [v, ic, label] of [['edit', 'pen-line', '書く'], ['split', 'columns-2', '並べる'], ['preview', 'book-open', '読む']]) {
+    for (const [v, ic, label] of [['edit', 'pen-line', '書く'], ['preview', 'book-open', '読む']]) {
       const b = el('button', view() === v ? 'on' : '');
       b.type = 'button';
       b.innerHTML = icon(ic);
       b.append(el('span', 'lbl', label));
-      b.title = label + '（⌘E で 読む⇔並べる）';
+      b.title = label + '（⌘E で 書く⇔読む）';
       b.addEventListener('click', () => setView(v));
       seg.append(b);
     }
@@ -3306,7 +3309,7 @@
     find: t => resolve(t, cur?.path || ''),
     findInNote: opt => openFind(active, undefined, null, opt),
     showKeys,
-    gotoLine: () => { const ta = active?.body.querySelector('.nt-editor'); if (ta && view() !== 'preview') gotoLinePrompt(ta); else toast('書く・並べる画面で使えます', 'warn'); },
+    gotoLine: () => { const ta = active?.body.querySelector('.nt-editor'); if (ta && view() !== 'preview') gotoLinePrompt(ta); else toast('書く画面で使えます', 'warn'); },
     recent: () => [...data.notes].sort((a, b) => b.mtime - a.mtime),
     searchAll: openSearch,
     openLink: t => (info.ready ? openLink(t) : ctx.go('notes')),
@@ -3321,7 +3324,7 @@
       // Windows の置換は Ctrl+H（VS Code と同じ）
       if (!Keys.isMac && e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'h') { e.preventDefault(); openFind(active, undefined, null, { replace: true }); return true; }
       if ((e.metaKey || e.ctrlKey) && e.key === '\\') { e.preventDefault(); splitRight(); return true; }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'e') { e.preventDefault(); setView(view() === 'preview' ? 'split' : 'preview'); return true; }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'e') { e.preventDefault(); setView(view() === 'preview' ? 'edit' : 'preview'); return true; }
       return false;
     },
     flush: saveNow,

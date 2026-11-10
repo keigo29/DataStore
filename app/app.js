@@ -706,10 +706,12 @@
     if (desk) { notes.reveal = rel => desk.reveal(rel); notes.openInObsidian = rel => desk.openInObsidian(rel); }
 
     const SET_KEY = 'ws-notes.ntSettings';
+    let onSet = () => {};
     let settings = (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch { return {}; } })();
     const api = {
       notes,
-      settings: { set: async o => { settings = { ...settings, ...o }; try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch {} return settings; } },
+      // 変えたら描き直す（書く⇔読む・右のパネルなど、設定を変えるだけのボタンが効くように）
+      settings: { set: async o => { settings = { ...settings, ...o }; try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch {} onSet(); return settings; } },
       app: {
         openUrl: u => { try { const x = new URL(String(u)); if (!/^https?:$/.test(x.protocol)) return; if (desk) desk.openExternal(x.href); else window.open(x.href, '_blank', 'noopener'); } catch {} },
         copy: t => navigator.clipboard?.writeText(String(t)),
@@ -719,6 +721,7 @@
     return {
       api, fileUrl, flushAll,
       get settings() { return settings; },
+      set onSettings(fn) { onSet = fn; },
       pending: rel => timers.has(rel),
       virtualDir: d => vdirs.has(d),
       notify: files => { for (const cb of listeners) { try { cb({ files }); } catch (e) { console.error(e); } } },
@@ -2783,12 +2786,14 @@
     if (!window.NotesApp || Nt.view) return;
     Nt.side = el('div', 'sideApp'); Nt.side.id = 'sideNotes'; Nt.side.dataset.app = 'notes';
     Nt.view = el('div', 'nt-view'); Nt.view.id = 'notesView';
+    // 旧ノート画面からの「描き直して」：まとめて1フレームに1回
+    const refresh = () => { if (Nt.queued) return; Nt.queued = true; requestAnimationFrame(() => { Nt.queued = false; if (ntOn()) { renderRail(); ntRender(); } else if (tab === 'home' || tab === 'todo' || tab === 'proj' || tab === 'cal') render(); }); };
+    Bridge.onSettings = refresh;
     NotesApp.init({
       api: Bridge.api,
       get: () => ({ settings: Bridge.settings, projects: projects.map(p => ({ id: p.path, name: p.name, color: p.color })), tasks: [] }),
       go: () => { if (tab !== 'notes') switchTab('notes'); else if (ntOn()) ntRender(); },
-      // 旧ノート画面からの「描き直して」：まとめて1フレームに1回
-      refresh: () => { if (Nt.queued) return; Nt.queued = true; requestAnimationFrame(() => { Nt.queued = false; if (ntOn()) { renderRail(); ntRender(); } else if (tab === 'home' || tab === 'todo' || tab === 'proj' || tab === 'cal') render(); }); },
+      refresh,
       view: () => (ntOn() ? 'notes' : tab),
       chrome: ntChrome,
       showSide: () => {},
