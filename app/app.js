@@ -1148,7 +1148,7 @@
   // ・PC／タブレット：日・週・月（はじめは週）。スマホ：月（点＋下にその日の一覧）・日
   // ・空いている時間を押す（マウスはドラッグで長さも）と、その時間で予定を入れる。予定を押すとくわしく
   let calView = (() => { try { return localStorage.getItem('ws-notes.calView') || ''; } catch { return ''; } })();
-  const calV = () => { const v = calView || (isWide() ? 'week' : 'month'); return !isWide() && v === 'week' ? 'day' : v; };
+  const calV = () => calView || (isWide() ? 'week' : 'month');
   function setCalView(v) { calView = v; try { localStorage.setItem('ws-notes.calView', v); } catch {} render(); }
   const weekStart = k => addDays(k, -((parseKey(k).getDay() + 6) % 7));
   function calGo(k, v) { calSel = k; const d = parseKey(k); calMonth = new Date(d.getFullYear(), d.getMonth(), 1); if (v) setCalView(v); else render(); }
@@ -1163,6 +1163,7 @@
     if (v === 'month') return `${d.getFullYear()}年${d.getMonth() + 1}月`;
     if (v === 'day') return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）`;
     const a = parseKey(weekStart(calSel)), b = parseKey(addDays(weekStart(calSel), 6));
+    if (!isWide()) return `${a.getMonth() + 1}/${a.getDate()} 〜 ${b.getMonth() + 1}/${b.getDate()}`;
     return `${a.getFullYear()}年${a.getMonth() + 1}月${a.getDate()}日 〜 ${a.getMonth() === b.getMonth() ? '' : b.getMonth() + 1 + '月'}${b.getDate()}日`;
   }
   // その日の予定（時刻あり・終日）と、日付のあるやること（まだの分）
@@ -1200,7 +1201,7 @@
       btn('iconBtn', 'chevron-left', () => calStep(-1), '前へ'), btn('iconBtn', 'chevron-right', () => calStep(1), '次へ'),
       el('h2', 'calTtl', calTitle()));
     const seg = el('div', 'seg calSeg');
-    (isWide() ? [['day', '日'], ['week', '週'], ['month', '月']] : [['month', '月'], ['day', '日']])
+    (isWide() ? [['day', '日'], ['week', '週'], ['month', '月']] : [['month', '月'], ['week', '週'], ['day', '日']])
       .forEach(([k, l]) => seg.append(btn(calV() === k ? 'on' : '', l, () => setCalView(k))));
     if (!isWide()) bar.classList.add('m');
     bar.append(nv, seg);
@@ -1292,6 +1293,7 @@
     });
     body.append(inner);
     if (days.length === 1 && !isWide()) wrap.classList.add('mDay');
+    if (days.length > 1 && !isWide()) wrap.classList.add('mWeek');
     wrap.append(...(days.length === 1 && !isWide() ? [] : [head]), all, body);
     // スマホ：左右にスワイプで前の日・次の日
     if (!isWide()) {

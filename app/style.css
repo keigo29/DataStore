@@ -915,3 +915,32 @@ html:not(.wide) .top h1#title { display: -webkit-box; -webkit-line-clamp: 2; -we
 html:not(.wide) .top h1#title.long { font-size: 24px; line-height: 1.25; }
 /* スマホのノート一覧のタグの並び：横にスクロールできるとわかるよう、右端をうすく */
 .tagBar { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); padding-right: 24px; }
+
+/* ---------- ずれ直し（スマホ） ---------- */
+/* 上の見出し：右のボタンを見出しの文字の高さのまん中にそろえる・ボタンの高さもそろえる */
+html:not(.wide) .topActs { height: 30px; align-items: center; padding-bottom: 0; }
+html:not(.wide) .topActs > * { flex-shrink: 0; }
+html:not(.wide) .topActs > .btn { height: 40px; padding: 0 16px; }
+html:not(.wide) .top h1#title.long ~ .topActs, html:not(.wide) .top .ttl:has(h1.long) + .topActs { height: 30px; }
+/* 月のカレンダー：ノートのある日の印を左上に（今日の丸と重ならないように） */
+.cmNote { right: auto; left: 5px; }
+/* 1行で入れる欄（カレンダーの上）：枠の色をつける */
+main > .qEv .inp, .qEv.slim .inp { background: var(--card); box-shadow: var(--shadow-sm); }
+/* スマホの週：7列の時間の表 */
+.cg.mWeek { --gut: 34px; }
+.cg.mWeek .cgDay { padding: 6px 0 5px; gap: 1px; }
+.cg.mWeek .cgDay small { font-size: 10px; }
+.cg.mWeek .cgDay b { width: 28px; height: 28px; font-size: 15px; }
+.cg.mWeek .cgGut { font-size: 9px; padding-right: 4px; }
+.cg.mWeek .cgHours span { right: 3px; font-size: 9px; }
+.cg.mWeek .cgAllCell { padding: 2px 1px; }
+.cg.mWeek .calChip { height: 16px; padding: 0 2px; font-size: 9px; gap: 2px; border-radius: 3px; }
+.cg.mWeek .calChip time, .cg.mWeek .calChip .dt { display: none; }
+.cg.mWeek .calChip .ck { width: 6px; height: 6px; border-width: 1px; }
+.cg.mWeek .calMore { font-size: 9px; height: 14px; padding: 0 2px; }
+.cg.mWeek .cgEv { padding: 2px 3px; border-left-width: 2px; border-radius: 4px; }
+.cg.mWeek .cgEv b { font-size: 9.5px; white-space: normal; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cg.mWeek .cgEv small { display: none; }
+.cg.mWeek .cgEv.short { flex-direction: column; align-items: flex-start; }
+.cg.mWeek .cgEv.short b { -webkit-line-clamp: 1; }
+main:not(.calMode) .cg.mWeek { height: calc(100dvh - 270px - env(safe-area-inset-bottom)); }
