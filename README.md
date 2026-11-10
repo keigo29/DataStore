@@ -17,6 +17,7 @@ md-workstation/
 | ほかのエディタの変更 | — | すぐ画面に出て、20秒後に commit・push |
 
 - 画面の部品・色・アイコンは **Workstation モバイル**（`style.css` `icons.js`）と同じ
+- PC の幅（900px 以上・Mac 版）では **Mac の Workstation と同じ並び**（左端のレール｜サイドバー｜ツールバー付きの中央。`desk.css`）：ダッシュボード、プロジェクトのページ（数字4つ＋2列）、カレンダー（月とその日を横に）、ノートを並べて書く画面（左に書く・右に見た目）
 - ノートの見た目は **Mac 版のノート**と同じ（marked の拡張：`[[リンク]]`・`==ハイライト==`・`#タグ`・`%%コメント%%`、コールアウト、プロパティ、Roboto Mono ＋ Zen Kaku Gothic New）
 - デイリーノートは **Obsidian の `.obsidian/daily-notes.json`**（フォルダ・日付の書式・テンプレート）に合わせる（Mac 版と同じ計算 `daily.js`）
 - 「やることを足す」は Mac のダッシュボードの「今日のノート」と同じ順で入れる（空の `- [ ]` → 最後のチェックリストの下 → 「やること」の見出しの下 → 最後）
@@ -95,6 +96,7 @@ Spring Boot のグループ開発。（← 最初の見出しまでが「メモ�
 | ファイル | 中身 |
 |---|---|
 | `index.html` / `style.css` | 画面（Workstation モバイルの CSS ＋ Mac 版のノートの CSS） |
+| `desk.css` | PC の幅の並び（Mac 版 Workstation のレール・サイドバー・ダッシュボード・プロジェクトのページと同じ値） |
 | `app.js` | 画面の動き・GitHub との読み書き |
 | `parser.js` | Markdown からやること・予定を取り出す／チェックの切り替え／やることを足す |
 | `daily.js` | デイリーノートの場所と日付（Mac 版 `src/main/notes.js` と同じ） |
@@ -109,4 +111,3 @@ Spring Boot のグループ開発。（← 最初の見出しまでが「メモ�
 ```bash
 cd app && python3 -m http.server 8000   # http://localhost:8000（つなぐ前はお試しのノートで動きます）
 ```
-# DataStore

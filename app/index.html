@@ -15,14 +15,32 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="vendor/fonts/fonts.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="desk.css">
 </head>
 <body>
-<header class="top">
-  <div class="ttl"><small id="eyebrow">WORKSTATION</small><h1 id="title">ホーム</h1></div>
-  <div class="topActs" id="topActs"></div>
-</header>
-
-<main id="view"></main>
+<div class="app">
+  <!-- PC の幅のとき：左端のレール（Mac の Workstation と同じ） -->
+  <nav class="rail" id="rail">
+    <div class="railTop drag"></div>
+    <div class="railLogo" title="MD Workstation"><span class="logo"><svg class="lc" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2" fill="currentColor"/><rect x="13" y="4" width="7" height="7" rx="2" fill="currentColor" opacity=".38"/><rect x="4" y="13" width="7" height="7" rx="2" fill="currentColor" opacity=".38"/><path d="M16.5 13.6a2.9 2.9 0 1 1-2.9 2.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></div>
+    <div class="railApps" id="railApps"></div>
+    <div class="railBottom" id="railBottom"></div>
+  </nav>
+  <!-- PC の幅のとき：サイドバー（開いている画面によって中身が変わる） -->
+  <aside class="side" id="side">
+    <div class="drag sideDrag"></div>
+    <div class="sideHead"><span class="wordmark">MD Workstation</span><h2 id="sideTitle"></h2></div>
+    <button class="sideSearch" id="sideSearch" type="button"><span class="ic" data-icon="search"></span><span class="t">ノートを検索</span><kbd>⌘K</kbd></button>
+    <div class="sideBody" id="sideBody"></div>
+  </aside>
+  <div class="center">
+    <header class="top">
+      <div class="ttl"><small id="eyebrow">WORKSTATION</small><h1 id="title">ホーム</h1></div>
+      <div class="topActs" id="topActs"></div>
+    </header>
+    <main id="view"></main>
+  </div>
+</div>
 
 <!-- 下のタブ：Workstation モバイルと同じ形 -->
 <nav class="tabs" id="tabs">

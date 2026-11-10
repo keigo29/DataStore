@@ -415,7 +415,34 @@
       kpi('list-todo', 'まだのやること', String(open.length), '件', `ノート ${Object.keys(S.files).length} 件から`),
     );
     if (over.length) kp.children[2].classList.add('warn');
-    main.append(kp);
+    // PC の幅：Mac のダッシュボードと同じ（あいさつ＋数字のタイル、下に2列）
+    const W = isWide();
+    const grid = el('div', 'db-grid'), left = el('div', 'db-col'), right = el('div', 'db-col');
+    const put = (where, node) => (W ? (where === 'left' ? left : where === 'right' ? right : grid).append(node) : main.append(node));
+    if (W) {
+      const hero = el('div', 'db-card db-hero');
+      const ht = el('div', 'db-heroText');
+      const h = new Date().getHours();
+      ht.append(el('div', 'db-date', md(t)), el('div', 'db-greet', h < 11 ? 'おはようございます' : h < 18 ? 'こんにちは' : 'こんばんは'));
+      const ks = el('div', 'db-kpis');
+      const dn = todayTodos.filter(i => i.done).length, tot = todayTodos.length;
+      const C = 2 * Math.PI * 22, pct = tot ? dn / tot : 0;
+      const ring = btn('db-kpi ring', [], () => switchTab('todo'));
+      const rg = el('div', 'db-ring');
+      rg.innerHTML = `<svg viewBox="0 0 52 52"><circle class="bgc" cx="26" cy="26" r="22"/><circle class="fgc" cx="26" cy="26" r="22" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pct)}"/></svg>`;
+      rg.append(el('b', '', String(tot - dn)));
+      const rl = el('div', 'kl'); rl.append(el('b', '', '今日のやること'), `${dn} / ${tot} 完了`);
+      ring.append(rg, rl);
+      const tile = (ic, v, unit, label, cls, go) => { const k = btn('db-kpi ' + (cls || ''), [], go); const kv = el('div', 'kv'); kv.innerHTML = icon(ic); kv.append(v); if (unit) kv.append(el('small', '', unit)); k.append(kv, el('div', 'kl', label)); return k; };
+      const nx = sched.find(i => (i.time || '') >= hhmm());
+      ks.append(ring,
+        tile('calendar-clock', String(sched.filter(i => i.type === 'event').length), '件', nx ? `今日の予定・次 ${nx.time}` : '今日の予定', '', () => switchTab('cal')),
+        tile('triangle-alert', String(over.length), '件', '期限切れ', over.length ? 'bad' : '', () => { todoFilter = 'over'; switchTab('todo'); }),
+        tile('list-todo', String(open.length), '件', 'まだのやること', '', () => { todoFilter = 'open'; switchTab('todo'); }),
+        tile('folder-kanban', String(projects.length), '件', 'プロジェクト', '', () => switchTab('proj')));
+      hero.append(ht, ks);
+      grid.append(hero);
+    } else main.append(kp);
 
     // 今日のノート（Mac のダッシュボードの「今日のノート」と同じ）
     const p = panel('dailyPanel');
@@ -437,27 +464,27 @@
       ds.forEach(i => p.append(todoRow(i, { noDate: true })));
     }
     p.append(addForm(t, S.files[dRel] ? `やることを足して Enter（${nameOf(dRel)}に入ります）` : 'やることを足す（今日のノートを作ります）'));
-    main.append(p);
+    put('left', p);
 
     const ps = panel();
     ps.append(panelHead('calendar-clock', '今日の予定', el('span', '', `${sched.length}件`)));
     if (!sched.length) ps.append(noData('時刻つきの予定（- 14:00 MTG など）はありません'));
     sched.forEach(i => ps.append(planRow(i)));
-    main.append(ps);
+    put('right', ps);
 
     if (over.length) {
       const po = panel();
       po.append(panelHead('triangle-alert', '期限切れ', el('span', '', `${over.length}件`)));
       over.slice(0, 8).forEach(i => po.append(todoRow(i)));
       if (over.length > 8) po.append(btn('addTask', ['chevron-right', `ほか ${over.length - 8} 件`], () => { todoFilter = 'over'; switchTab('todo'); }));
-      main.append(po);
+      put('right', po);
     }
     const other = todayAll.filter(i => i.type === 'todo' && !i.time);
     if (other.length) {
       const pt = panel();
       pt.append(panelHead('list-todo', 'ほかのノートの今日の分', el('span', '', `${other.length}件`)));
       other.forEach(i => pt.append(todoRow(i, { noDate: true })));
-      main.append(pt);
+      put('right', pt);
     }
     const end = addDays(t, 7);
     const soon = items.filter(i => i.date && i.date > t && i.date <= end && !i.done).sort(byDate);
@@ -469,7 +496,8 @@
       if (i.date !== last) { pn.append(el('div', 'hb-sep', relDay(i.date))); last = i.date; }
       pn.append(i.type === 'event' ? planRow(i) : todoRow(i, { noDate: true }));
     }
-    main.append(pn);
+    if (W) { pn.classList.add('db-full'); grid.append(left, right, pn); main.append(grid); }
+    else main.append(pn);
   }
   const hhmm = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 
@@ -479,12 +507,12 @@
     const seg = el('div', 'seg');
     [['open', '未完了'], ['over', '期限切れ'], ['nodate', '日付なし'], ['done', '完了']].forEach(([k, l]) =>
       seg.append(btn(todoFilter === k ? 'on' : '', l, () => { todoFilter = k; render(); })));
-    const bar = el('div', 'gtool'); bar.append(seg);
+    const bar = el('div', 'gtool mobileOnly'); bar.append(seg);
     main.append(bar);
     const all = items.filter(i => i.type === 'todo');
     const tags = [...new Set(all.flatMap(i => i.tags))].sort();
     if (tags.length) {
-      const tg = el('div', 'tagBar');
+      const tg = el('div', 'tagBar mobileOnly');
       tags.forEach(g => tg.append(btn('chip' + (todoTag === g ? ' ok' : ''), '#' + g, () => { todoTag = todoTag === g ? null : g; render(); })));
       main.append(tg);
     }
@@ -514,7 +542,8 @@
       el('b', '', `${calMonth.getFullYear()}年${calMonth.getMonth() + 1}月`),
       btn('iconBtn', 'chevron-right', () => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); render(); }, '次の月'),
       btn('btn white small', ['locate-fixed', '今月'], () => { const d = new Date(); calMonth = new Date(d.getFullYear(), d.getMonth(), 1); calSel = today; render(); }));
-    main.append(nav);
+    const calTarget = isWide() ? el('div') : main;
+    calTarget.append(nav);
     const cal = el('div', 'cal-month');
     const wd = el('div', 'cal-wd');
     [1, 2, 3, 4, 5, 6, 0].forEach(i => wd.append(el('span', i === 0 || i === 6 ? 'we' : '', WD[i])));
@@ -568,7 +597,7 @@
     const lg = el('div', 'legend');
     lg.innerHTML = '<span><i class="cal-hb"></i>その日のノートあり</span><span><i class="sq ev"></i>予定</span><span><i class="cal-dot"></i>まだのやること</span><span><i class="cal-dot late"></i>期限切れ</span>';
     cal.append(lg);
-    main.append(cal);
+    calTarget.append(cal);
 
     const k = calSel;
     const p = panel('dayPanel');
@@ -589,7 +618,8 @@
     if (!td.length) p.append(noData('この日のやることはありません'));
     td.forEach(i => p.append(todoRow(i, { noDate: true })));
     p.append(addForm(k, `${relDay(k)}のノートにやることを足す`));
-    main.append(p);
+    if (isWide()) { const g = el('div', 'calGrid'); g.append(calTarget, p); main.append(g); }
+    else main.append(p);
   }
 
   // ================= プロジェクト（Mac の Workstation のプロジェクトと同じ項目を、Markdown で） =================
@@ -671,6 +701,7 @@
     const seg = el('div', 'seg');
     seg.append(btn(projView === 'list' ? 'on' : '', '一覧', () => { projView = 'list'; render(); }),
       btn(projView === 'gantt' ? 'on' : '', 'ガント', () => { projView = 'gantt'; render(); }));
+    seg.classList.add('mobileOnly');
     tool.append(seg);
     if (projView === 'gantt') {
       const s2 = el('div', 'seg');
@@ -722,7 +753,9 @@
     bar.append(btn('btn white small', ['chevron-left', 'プロジェクト'], () => { proj = null; render(); }), el('span', 'notePath', ''),
       btn('btn white small', ['palette', '色'], () => openProjectSheet(p)),
       btn('btn white small', ['file-text', 'ノート'], () => openNote(p.path)));
-    main.append(bar);
+    if (!isWide()) main.append(bar);
+    const W = isWide();
+    const pjL = el('div', 'pj-col'), pjR = el('div', 'pj-col');
 
     // まとめ（進み具合・期間・次の期限）
     const sm = panel('projSum');
@@ -742,7 +775,19 @@
     const late = open.filter(t => t.date && t.date < today).length;
     if (late) meta.append(el('span', 'bad', `期限切れ ${late}件`));
     sm.append(meta);
-    main.append(sm);
+    if (!W) main.append(sm);
+    else {
+      const ks = el('div', 'pj-kpis');
+      const kpi = (ic, lb, val, sub, bad) => { const k = el('div', 'pj-kpi'); k.style.setProperty('--c', p.color); const l = el('div', 'lb'); l.innerHTML = icon(ic); l.append(lb); k.append(l, el('b', '', val)); if (sub != null) k.append(sub instanceof Node ? sub : el('small', bad ? 'bad' : '', sub)); return k; };
+      const tr = el('div', 'track'); const ts = el('span'); ts.style.width = pct + '%'; tr.append(ts);
+      const msN = open.filter(x => x.milestone && x.date)[0];
+      const daysTo = msN ? diffDays(today, msN.date) : null;
+      ks.append(kpi('trending-up', '進み具合', pct + '%', tr),
+        kpi('list-todo', '残りのタスク', `${open.length}件`, `完了 ${done.length}件${late ? ` ・ 期限切れ ${late}件` : ''}`, late > 0),
+        kpi('flag', '次の節目', msN ? (daysTo < 0 ? `${-daysTo}日すぎ` : daysTo === 0 ? '今日' : `あと${daysTo}日`) : '—', msN ? `${msN.title}（${sd(msN.date)}）` : '#節目 のタスクはありません', daysTo != null && daysTo < 0),
+        kpi('calendar-days', '期間', s ? `${sd(s)} 〜 ${sd(e)}` : '—', next ? `次の期限 ${relDay(next.date)}：${next.title}` : '期限のあるタスクはありません', next && next.date < today));
+      main.append(ks);
+    }
 
     // タスク
     const pt = panel();
@@ -774,7 +819,7 @@
       if (ok) toast('タスクを足しました');
     });
     pt.append(f);
-    main.append(pt);
+    if (W) pjR.append(pt); else main.append(pt);
 
     if (p.memo) {
       const pm = panel();
@@ -783,20 +828,37 @@
       const d = el('div', 'nt-doc memoDoc');
       d.innerHTML = window.DOMPurify.sanitize(window.marked.parse(p.memo));
       d.querySelectorAll('a[href^="http"]').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+      if (W) d.classList.add('pj-memo');
       pm.append(d);
-      main.append(pm);
+      if (W) pjL.append(pm); else main.append(pm);
     }
     if (p.links.length) {
       const pl = panel();
       pl.append(panelHead('link', 'リンク', el('span', '', `${p.links.length}件`)));
       p.links.forEach(l => {
-        const r = btn('prow', [], () => (desk ? desk.openExternal(l.url) : window.open(l.url, '_blank', 'noopener')));
+        const go = () => (desk ? desk.openExternal(l.url) : window.open(l.url, '_blank', 'noopener'));
+        if (W) {
+          // Mac と同じ：頭文字の四角＋名前＋ドメイン
+          const r = btn('pj-link', [], go, l.title);
+          r.style.setProperty('--c', p.color);
+          const tx = el('span', 'tx'); let host = ''; try { host = new URL(l.url).host; } catch {}
+          tx.append(el('b', '', l.title), el('small', '', host));
+          r.append(el('span', 'pj-fav', (l.title.trim()[0] || '?').toUpperCase()), tx);
+          r.insertAdjacentHTML('beforeend', icon('external-link'));
+          pl.append(r);
+          return;
+        }
+        const r = btn('prow', [], go);
         r.insertAdjacentHTML('beforeend', icon('link-2'));
         r.append(el('b', '', l.title));
         r.insertAdjacentHTML('beforeend', icon('external-link'));
         pl.append(r);
       });
-      main.append(pl);
+      if (W) pjL.append(pl); else main.append(pl);
+    }
+    if (W) {
+      if (!p.memo && !p.links.length) { const em = panel(); em.append(panelHead('notebook-text', 'メモ・リンク')); em.append(noData('ノートの最初の見出しまでがメモ、先頭の links: がリンクになります')); em.append(btn('btn small white', ['file-text', 'ノートを開いて書く'], () => openNote(p.path))); pjL.append(em); }
+      const g = el('div', 'pj-grid'); g.append(pjL, pjR); main.append(g);
     }
   }
 
@@ -967,7 +1029,7 @@
     const tagCount = new Map();
     for (const p of paths) for (const t of noteTags.get(p) || []) tagCount.set(t, (tagCount.get(t) || 0) + 1);
     if (tagCount.size) {
-      const tb = el('div', 'tagBar');
+      const tb = el('div', 'tagBar mobileOnly');
       [...tagCount.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja')).forEach(([t, n]) =>
         tb.append(btn('chip' + (noteTag === t ? ' ok' : ''), `#${t} ${n}`, () => { noteTag = noteTag === t ? null : t; render(); })));
       main.insertBefore(tb, box);
@@ -975,6 +1037,22 @@
     function drawList() {
       box.innerHTML = '';
       const s = noteQuery.trim().toLowerCase();
+      if (noteDay && !s) {
+        const pl = panel();
+        pl.append(panelHead('calendar-days', md(noteDay), [el('span', '', `${dayFiles(noteDay).length}件`), btn('linkBtn', '＋ ノート', () => newNote({ day: noteDay }))]));
+        dayFiles(noteDay).forEach(p => pl.append(row(p)));
+        box.append(pl);
+        return;
+      }
+      if (noteFolder && !s) {
+        const f = noteFolder === '（いちばん上）' ? '' : noteFolder;
+        const hit = paths.filter(p => !dayOf.has(p) && folderOf(p) === f);
+        const pl = panel();
+        pl.append(panelHead('folder', noteFolder, el('span', '', `${hit.length}件`)));
+        hit.forEach(p => pl.append(row(p)));
+        box.append(pl);
+        return;
+      }
       if (noteTag && !s) {
         const hit = paths.filter(p => (noteTags.get(p) || []).includes(noteTag)).sort((a, b) => ((dayOf.get(b) || '') > (dayOf.get(a) || '') ? 1 : (dayOf.get(b) || '') < (dayOf.get(a) || '') ? -1 : a.localeCompare(b, 'ja')));
         const pl = panel();
@@ -1187,7 +1265,7 @@
     if (editing && note && draft !== (S.files[note]?.text ?? '') && !confirm('保存していない変更があります。破棄しますか？')) return;
     note = p; editing = false;
     if (tab !== 'notes') tab = 'notes';
-    render(); window.scrollTo(0, 0);
+    render(); window.scrollTo(0, 0); $('#view').scrollTop = 0;
   }
   function startEdit() { editing = true; draft = S.files[note]?.text ?? ''; render(); }
   function renderNote(main) {
@@ -1210,6 +1288,19 @@
       ta.value = draft;
       ta.spellcheck = false;
       ta.addEventListener('input', () => { draft = ta.value; });
+      if (isWide()) {
+        // Mac の「ノートを並べて書く」と同じ：左に書く画面、右に見た目（書くたびに更新）
+        const sp = el('div', 'ntSplit');
+        const pv = panel('notePanel');
+        const draw = () => { pv.innerHTML = ''; pv.append(noteDoc(note, draft)); pv.querySelectorAll('input[type="checkbox"]').forEach(c => { c.disabled = true; }); };
+        let raf = 0;
+        ta.addEventListener('input', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); });
+        draw();
+        sp.append(ta, pv);
+        main.append(sp);
+        requestAnimationFrame(() => ta.focus());
+        return;
+      }
       main.append(ta);
       main.append(el('div', 'sub edHint', !connected() ? 'デモ表示中：保存はこの画面の中だけです' : desk ? (deskSt?.git?.repo && deskSt.autoGit ? '保存すると、少しあとで自動で commit・push します' : '保存すると、フォルダのファイルに書きます') : '保存すると、このノートを GitHub に commit します'));
       requestAnimationFrame(() => { ta.style.height = Math.max(window.innerHeight * 0.6, ta.scrollHeight) + 'px'; });
@@ -1395,6 +1486,176 @@
   }
 
   // ================= 画面の切り替え =================
+  // ================= PC の幅：レール・サイドバー（Mac の Workstation と同じ並び） =================
+  const mq = window.matchMedia('(min-width: 900px)');
+  const isWide = () => mq.matches;
+  document.documentElement.classList.toggle('wide', mq.matches);
+  mq.addEventListener('change', () => { document.documentElement.classList.toggle('wide', mq.matches); render(); });
+  const TAB_ICON = { home: 'house', todo: 'list-todo', proj: 'folder-kanban', cal: 'calendar-days', notes: 'notebook-text', sync: 'refresh-cw' };
+  let noteDay = null, noteFolder = null;   // ノート一覧の絞り込み（サイドバーから）
+
+  function railBtn(t) {
+    const b = btn('railBtn' + (tab === t ? ' on' : ''), [], () => switchTab(t), TITLES[t]);
+    const ric = el('span', 'ric'); ric.innerHTML = icon(TAB_ICON[t]);
+    if (t === 'sync') { const bd = $('#syncBadge'); if (bd && !bd.hidden) ric.append(el('i', 'badge', bd.textContent)); }
+    b.append(ric, el('span', 'rname', TITLES[t]));
+    return b;
+  }
+  function renderRail() {
+    const a = $('#railApps'); a.innerHTML = '';
+    ['home', 'todo', 'proj', 'cal', 'notes'].forEach(t => a.append(railBtn(t)));
+    const bt = $('#railBottom'); bt.innerHTML = '';
+    bt.append(railBtn('sync'));
+  }
+  const sideTitle = (t, right) => { const p = el('p', 'sideTitle', t); if (right) p.append(right); return p; };
+  function nav(ic, name, small, on, go, cls = '') {
+    const b = btn('nav' + (on ? ' on' : '') + (cls ? ' ' + cls : ''), [], go, name);
+    if (ic && ic.startsWith('#')) { const d = el('i', 'dot'); d.style.setProperty('--c', ic); b.append(d); }
+    else if (ic) b.insertAdjacentHTML('beforeend', icon(ic));
+    b.append(el('span', 'name', name));
+    if (small != null && small !== '') { const s = el('small', '', String(small)); if (String(small).startsWith('!')) { s.textContent = String(small).slice(1); s.className = 'bad'; } b.append(s); }
+    return b;
+  }
+  function stRow(ic, nm, b, small, go, bad) {
+    const r = btn('stRow', [], go, nm);
+    const ri = el('span', 'ric'); ri.innerHTML = icon(ic);
+    const tx = el('span', 'tx');
+    tx.append(el('span', 'nm', nm), el('b', '', b), el('small', bad ? 'bad' : '', small));
+    r.append(ri, tx);
+    r.insertAdjacentHTML('beforeend', icon('chevron-right'));
+    return r;
+  }
+  function renderSide() {
+    $('#sideTitle').innerHTML = icon(TAB_ICON[tab]);
+    $('#sideTitle').append(TITLES[tab]);
+    const sb = $('#sideBody'); sb.innerHTML = '';
+    const t = todayKey();
+    const todos = items.filter(i => i.type === 'todo');
+    const over = todos.filter(i => !i.done && i.date && i.date < t);
+    if (tab === 'home') {
+      const tt = todos.filter(i => i.date === t || dayOf.get(i.path) === t);
+      const ev = items.filter(i => i.date === t && (i.type === 'event' || i.time)).sort(byTime);
+      const nx = ev.find(i => (i.time || '') >= hhmm());
+      const ms = todos.filter(i => i.project && i.milestone && !i.done && i.date).sort(byDate)[0];
+      sb.append(sideTitle('アプリ'));
+      const st = el('div', 'stList');
+      st.append(
+        stRow('list-todo', 'やること', `今日 ${tt.filter(i => i.done).length} / ${tt.length}`, over.length ? `期限切れ ${over.length}件` : `まだ ${todos.filter(i => !i.done).length}件`, () => switchTab('todo'), over.length > 0),
+        stRow('folder-kanban', 'プロジェクト', `${projects.length}件`, ms ? `次の節目：${ms.title}（${sd(ms.date)}）` : '節目はありません', () => switchTab('proj')),
+        stRow('calendar-days', 'カレンダー', `今日の予定 ${ev.filter(i => i.type === 'event').length}件`, nx ? `次 ${nx.time} ${nx.title}` : 'このあとの予定はありません', () => switchTab('cal')),
+        stRow('notebook-text', 'ノート', `${Object.keys(S.files).length}件`, `今日のノート ${dayFiles(t).length}件`, () => switchTab('notes')));
+      sb.append(st, sideTitle('すぐにやる'));
+      const q = el('nav', 'navCard');
+      const dRel = dailyPathOf(t);
+      q.append(nav(S.files[dRel] ? 'notebook-text' : 'file-plus', S.files[dRel] ? '今日のノートを開く' : '今日のノートを作る', '', false, () => createDaily(t)),
+        nav('file-plus', 'ノートを書く', '', false, () => newNote({ day: t })),
+        nav('folder-plus', 'プロジェクトを追加', '', false, () => openProjectSheet(null)),
+        nav('refresh-cw', '同期する', '', false, () => sync()));
+      sb.append(q);
+    } else if (tab === 'todo') {
+      const c = { open: todos.filter(i => !i.done).length, over: over.length, nodate: todos.filter(i => !i.done && !i.date).length, done: todos.filter(i => i.done).length };
+      const n = el('nav', 'navCard');
+      [['open', 'list-todo', '未完了'], ['over', 'triangle-alert', '期限切れ'], ['nodate', 'inbox', '日付なし'], ['done', 'circle-check', '完了']].forEach(([k, ic, l]) =>
+        n.append(nav(ic, l, k === 'over' && c[k] ? '!' + c[k] : c[k], todoFilter === k, () => { todoFilter = k; render(); })));
+      sb.append(n);
+      const tags = [...new Set(todos.flatMap(i => i.tags))].filter(x => x !== '節目').sort((a, b) => a.localeCompare(b, 'ja'));
+      if (tags.length) {
+        sb.append(sideTitle('タグ'));
+        const tn = el('nav', 'navCard');
+        tn.append(nav('list', 'すべて', '', !todoTag, () => { todoTag = null; render(); }));
+        tags.forEach(g => tn.append(nav('tag', '#' + g, todos.filter(i => !i.done && i.tags.includes(g)).length, todoTag === g, () => { todoTag = todoTag === g ? null : g; render(); })));
+        sb.append(tn);
+      }
+    } else if (tab === 'proj') {
+      const v = el('nav', 'navCard');
+      v.append(nav('folder-kanban', '一覧', '', !proj && projView === 'list', () => { proj = null; projView = 'list'; render(); }),
+        nav('chart-gantt', 'ガントチャート', '', !proj && projView === 'gantt', () => { proj = null; projView = 'gantt'; render(); }));
+      sb.append(v, sideTitle('プロジェクト'));
+      const pn = el('nav', 'navCard');
+      projects.forEach(p => {
+        const all = tasksOf(p), dn = all.filter(x => x.done).length, pct = all.length ? Math.round(dn / all.length * 100) : 0;
+        const b = btn('nav gpNav' + (proj === p.path ? ' on' : ''), [], () => { proj = p.path; render(); }, p.name);
+        b.style.setProperty('--c', p.color);
+        const top = el('span', 'gpTop'); const d = el('i', 'dot'); d.style.setProperty('--c', p.color);
+        top.append(d, el('span', 'name', p.name), el('small', '', pct + '%'));
+        const tr = el('span', 'gpTrack'); const sp = el('span'); sp.style.width = pct + '%'; tr.append(sp);
+        b.append(top, tr);
+        pn.append(b);
+      });
+      if (!projects.length) pn.append(el('div', 'noData', 'まだありません'));
+      pn.append(btn('dashBtn', ['folder-plus', 'プロジェクトを追加'], () => openProjectSheet(null)));
+      sb.append(pn, sideTitle('まとめ'));
+      const pt = todos.filter(i => i.project);
+      const info = el('nav', 'navCard gpInfo');
+      const line = (ic, tx) => { const d = el('div'); d.innerHTML = icon(ic); d.append(tx); return d; };
+      info.append(line('calendar-days', `期限のあるタスク ${pt.filter(i => i.date && !i.done).length}件`), line('flag', `節目 ${pt.filter(i => i.milestone && !i.done).length}件`), line('triangle-alert', `期限切れ ${pt.filter(i => !i.done && i.date && i.date < t).length}件`));
+      sb.append(info);
+    } else if (tab === 'cal') {
+      const ev = items.filter(i => i.date === calSel && (i.type === 'event' || i.time));
+      const sc = el('div', 'summaryCard');
+      const big = el('div', 'sumBig'); big.append(el('b', '', String(ev.length)), el('span', '', '件'));
+      sc.append(big, el('div', 'sumLabel', `${relDay(calSel)}の予定`));
+      const td = items.filter(i => i.date === calSel && i.type === 'todo');
+      const bar = el('div', 'sumBar'); const bs = el('span'); bs.style.width = (td.length ? Math.round(td.filter(i => i.done).length / td.length * 100) : 0) + '%'; bar.append(bs);
+      sc.append(bar, el('div', 'sumLabel', `やること ${td.filter(i => i.done).length} / ${td.length}`));
+      sb.append(sc, sideTitle('これから'));
+      const up = items.filter(i => i.date && i.date >= t && !i.done && (i.type === 'event' || i.time || i.milestone)).sort(byDate).slice(0, 10);
+      const n = el('nav', 'navCard');
+      if (!up.length) n.append(el('div', 'noData', '予定はありません'));
+      up.forEach(i => n.append(nav(i.milestone ? 'flag' : 'clock', i.title, `${sd(i.date)}${i.time ? ' ' + i.time : ''}`, false, () => { calSel = i.date; const d = parseKey(i.date); calMonth = new Date(d.getFullYear(), d.getMonth(), 1); render(); })));
+      sb.append(n);
+    } else if (tab === 'notes') {
+      sb.append(btn('btn primary wide', ['file-plus', '新しいノート'], () => newNote({ day: t })));
+      const all = el('nav', 'navCard');
+      all.append(nav('notebook-text', 'すべてのノート', Object.keys(S.files).length, !noteDay && !noteTag && !noteFolder && !note, () => { noteDay = noteTag = noteFolder = null; note = null; render(); }));
+      sb.append(all);
+      const days = [...new Set([...dayOf.values()])].sort().reverse().slice(0, 7);
+      if (days.length) {
+        sb.append(sideTitle('日付ごと'));
+        const dn = el('nav', 'navCard');
+        days.forEach(k => dn.append(nav('calendar-days', relDay(k) === md(k) ? md(k) : `${relDay(k)}　${sd(k)}`, dayFiles(k).length, noteDay === k && !note, () => { noteDay = k; noteTag = noteFolder = null; note = null; render(); })));
+        sb.append(dn);
+      }
+      const tagCount = new Map();
+      for (const p of Object.keys(S.files)) for (const g of noteTags.get(p) || []) tagCount.set(g, (tagCount.get(g) || 0) + 1);
+      if (tagCount.size) {
+        sb.append(sideTitle('タグ'));
+        const tn = el('nav', 'navCard');
+        [...tagCount.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja')).forEach(([g, c]) =>
+          tn.append(nav('tag', '#' + g, c, noteTag === g && !note, () => { noteTag = g; noteDay = noteFolder = null; note = null; render(); })));
+        sb.append(tn);
+      }
+      const fc = new Map();
+      for (const p of Object.keys(S.files)) if (!dayOf.has(p)) { const f = folderOf(p) || '（いちばん上）'; fc.set(f, (fc.get(f) || 0) + 1); }
+      if (fc.size) {
+        sb.append(sideTitle('フォルダ'));
+        const fn = el('nav', 'navCard');
+        [...fc.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ja')).forEach(([f, c]) =>
+          fn.append(nav('folder', f, c, noteFolder === f && !note, () => { noteFolder = f; noteDay = noteTag = null; note = null; render(); })));
+        sb.append(fn);
+      }
+    } else if (tab === 'sync') {
+      const sc = el('div', 'summaryCard');
+      sc.append(el('div', 'sumLabel', desk ? 'ノートのフォルダ' : 'GitHub のリポジトリ'));
+      sc.querySelector('.sumLabel').style.margin = '0 0 4px';
+      sc.append(el('b', 'sideSrc', connected() ? (desk ? sourceName() : `${cfg.owner}/${cfg.repo}`) : 'まだつないでいません'));
+      sb.append(sc);
+      const n = el('nav', 'navCard gpInfo');
+      const line = (ic, tx) => { const d = el('div'); d.innerHTML = icon(ic); d.append(tx); return d; };
+      n.append(line('notebook-text', `ノート ${Object.keys(S.files).length}件`), line('list-todo', `やること ${todos.length}件`), line('calendar-clock', `予定 ${items.filter(i => i.type === 'event').length}件`), line('folder-kanban', `プロジェクト ${projects.length}件`));
+      sb.append(n);
+    }
+    const foot = el('div', 'sideFoot', connected() ? `${desk ? sourceName() : cfg.owner + '/' + cfg.repo}${S.syncedAt ? ` ・ ${new Date(S.syncedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })} に読み込み` : ''}` : 'お試しのノートを表示中');
+    sb.append(foot);
+  }
+  function focusSearch() {
+    if (editing && note && draft !== (S.files[note]?.text ?? '') && !confirm('保存していない変更があります。破棄しますか？')) return;
+    editing = false; note = null; noteDay = noteTag = noteFolder = null; tab = 'notes'; render();
+    const q = document.querySelector('#view .search'); if (q) q.focus();
+  }
+  $('#sideSearch').addEventListener('click', focusSearch);
+  document.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); focusSearch(); } });
+
   const TITLES = { home: 'ホーム', todo: 'やること', proj: 'プロジェクト', cal: 'カレンダー', notes: 'ノート', sync: '同期' };
   function switchTab(t) {
     if (editing && note && draft !== (S.files[note]?.text ?? '') && !confirm('保存していない変更があります。破棄しますか？')) return;
@@ -1403,7 +1664,7 @@
     if (t !== 'notes') editing = false;
     tab = t;
     render();
-    window.scrollTo(0, 0);
+    window.scrollTo(0, 0); $('#view').scrollTop = 0;
   }
   // 同期のタブの印：つながらない・ぶつかった（!）、Mac 版でまだ送っていない変更の数
   function updateBadge() {
@@ -1429,6 +1690,21 @@
       acts.append(sb);
     }
     updateBadge();
+    if (isWide()) {
+      renderRail(); renderSide();
+      // ツールバーの右のボタン（Mac と同じ）・見出しの横の説明
+      const ey = $('#eyebrow');
+      if (tab === 'home') ey.textContent = '';
+      if (tab === 'proj' && proj) ey.textContent = 'メモ・リンク・タスク';
+      if (tab === 'notes' && note) ey.textContent = folderOf(note) || '';
+      if (tab === 'home') acts.prepend(btn('btn white', ['file-plus', 'ノートを書く'], () => newNote({ day: todayKey() })));
+      if (tab === 'proj' && proj && projByPath(proj)) {
+        acts.prepend(btn('btn white', ['chart-gantt', 'ガントで見る'], () => { proj = null; projView = 'gantt'; render(); }),
+          btn('btn white', ['palette', '色'], () => openProjectSheet(projByPath(proj))),
+          btn('btn white', ['file-text', 'ノート'], () => openNote(proj)),
+          btn('btn primary', ['plus', 'タスクを追加'], () => { const i = document.querySelector('.ptAdd .inp'); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } }));
+      }
+    }
     const main = $('#view');
     main.innerHTML = '';
     if (!connected() && tab !== 'sync') {
