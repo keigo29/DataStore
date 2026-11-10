@@ -884,6 +884,7 @@
     const show = () => {
       const r = parseQuickEvent(inp.value, k);
       pv.innerHTML = '';
+      pv.classList.toggle('idle', !inp.value.trim());
       if (!inp.value.trim()) { pv.append('日付・時刻・タイトルを1行で書けます（日付を書かなければ ' + md(k) + '）'); return; }
       pv.innerHTML = icon('calendar-clock');
       pv.append(`${md(r.date)}  ${r.start ? r.start + (r.end ? '–' + r.end : '') : '終日'}  `, el('b', '', r.title || '（タイトルを入れてください）'));
@@ -1201,6 +1202,7 @@
     const seg = el('div', 'seg calSeg');
     (isWide() ? [['day', '日'], ['week', '週'], ['month', '月']] : [['month', '月'], ['day', '日']])
       .forEach(([k, l]) => seg.append(btn(calV() === k ? 'on' : '', l, () => setCalView(k))));
+    if (!isWide()) bar.classList.add('m');
     bar.append(nv, seg);
     return bar;
   }
@@ -1289,7 +1291,18 @@
       inner.append(col);
     });
     body.append(inner);
-    wrap.append(head, all, body);
+    if (days.length === 1 && !isWide()) wrap.classList.add('mDay');
+    wrap.append(...(days.length === 1 && !isWide() ? [] : [head]), all, body);
+    // スマホ：左右にスワイプで前の日・次の日
+    if (!isWide()) {
+      let sx = null, sy = 0;
+      body.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+      body.addEventListener('touchend', e => {
+        if (sx == null) return;
+        const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+        if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) calStep(dx < 0 ? 1 : -1);
+      }, { passive: true });
+    }
     // はじめは今（今日をふくむとき）か、最初の予定か、8時のあたりを見せる
     // 今日をふくむときは「今」の少し前、ただしそれより早い予定があればそこから
     const nowStart = days.includes(today) ? new Date().getHours() * 60 - 90 : null;
@@ -1372,7 +1385,7 @@
       main.append(monthGrid(!W));
       if (!W) main.append(dayAgenda(calSel));
     } else {
-      if (!W) main.append(quickEventBox(calSel));
+      if (!W) { const q = quickEventBox(calSel); q.classList.add('slim'); main.append(q); }
       const ws = weekStart(calSel);
       main.append(timeGrid(v === 'week' ? Array.from({ length: 7 }, (_, i) => addDays(ws, i)) : [calSel]));
       if (!W && v === 'day') {

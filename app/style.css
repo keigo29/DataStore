@@ -866,3 +866,18 @@ main:not(.calMode) .cg + .dayPanel { margin-top: 12px; }
 .calSideQ .qEvRow .btn .lbl, .calSideQ .qEvRow .btn { font-size: 12px; }
 .calSideQ .qEvRow .btn { display: none; }
 .calSideQ .qEvRow .inp { font-size: 13px; }
+/* スマホのカレンダーの上の行：1行にまとめる */
+.calBar.m { flex-wrap: nowrap; gap: 6px; }
+.calBar.m .calNav { gap: 2px; flex: 1; min-width: 0; }
+.calBar.m .calNav .btn { margin-right: 2px; padding: 0 10px; }
+.calBar.m .calNav .iconBtn { width: 32px; height: 32px; }
+.calBar.m .calTtl { font-size: 16px; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; }
+.calBar.m .calSeg button { min-width: 36px; padding: 0 10px; }
+/* スマホの日：時間の表を大きく */
+.cg.mDay { --gut: 46px; }
+.cg.mDay .cgAll { border-top: 0; }
+.cg.mDay .cgAllCell { padding: 5px 6px; }
+.cg.mDay .calChip { height: 24px; font-size: 12.5px; }
+main:not(.calMode) .cg.mDay { height: calc(100dvh - 270px - env(safe-area-inset-bottom)); }
+main:not(.calMode) .calBar.m + .qEv { margin-top: 0; }
+.qEv.slim .qEvPv.idle { display: none; }
