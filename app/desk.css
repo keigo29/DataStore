@@ -523,3 +523,6 @@ html.wide #sideNotes .nt-tree .nav .name { flex: 1; min-width: 0; overflow: hidd
 html.wide #sideNotes .nt-tree .nav > .lc, html.wide #sideNotes .nt-tree .nav > svg { flex-shrink: 0; }
 /* とても広い画面：中央が端まで伸びすぎないように（ノートは書く場所を広く使うのでそのまま） */
 html.wide body:not([data-app="notes"]) .center { width: 100%; max-width: 1720px; }
+/* プロジェクトのフォルダのカード：画面に合わせて伸ばさず、同じ大きさで並べて折り返す */
+html.wide .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 260px)); gap: 12px; }
+html.wide .pgrid .pcard, html.wide .pgrid .pcAdd { max-width: none; width: auto; min-width: 0; }
