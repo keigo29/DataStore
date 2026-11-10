@@ -362,7 +362,7 @@ html.wide .db-head h3 { white-space: nowrap; }
 html.wide .nt-home { overflow-y: auto; flex: 1; min-height: 0; }
 html.wide .nt-homeHead { margin: 2px 4px 10px; font-size: 13px; font-weight: 700; color: var(--sub); }
 html.wide .nt-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-html.wide .nt-card { display: flex; flex-direction: column; gap: 6px; text-align: left; border: 0; border-radius: var(--r); background: var(--card); box-shadow: var(--shadow); padding: 14px 16px; color: var(--text); font: inherit; cursor: pointer; min-height: 120px; }
+html.wide .nt-card { display: flex; flex-direction: column; gap: 6px; text-align: left; border: 0; border-radius: var(--r); background: var(--card); box-shadow: var(--shadow); padding: 14px 16px; color: var(--text); font: inherit; cursor: pointer; }
 html.wide .nt-card:hover { box-shadow: var(--shadow-lg); }
 html.wide .nt-card b { font-size: 15px; }
 html.wide .nt-card p { margin: 0; flex: 1; font-size: 12.5px; color: var(--sub); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -396,8 +396,6 @@ html.wide .nt-sideTop .btn.white { flex: 0 0 40px; width: 40px; padding: 0; just
 html.wide .nt-sideTop .btn.primary { flex: 1 1 auto; min-width: 0; padding: 0 12px; white-space: nowrap; overflow: hidden; }
 html.wide .nt-sideTop .lbl-short { display: none; }
 html.wide .nt-tree { overflow-x: auto; overflow-y: visible; }
-html.wide .nt-tree .nav, html.wide .nt-tree .nt-kids { width: max-content; min-width: 100%; }
-html.wide .nt-tree .nav .name { white-space: nowrap; overflow: visible; text-overflow: clip; }
 html.wide .nt-tree .nav small, html.wide .nt-rowActs { margin-left: auto; padding-left: 10px; }
 html.wide .nt-tree::-webkit-scrollbar { height: 6px; }
 html.wide .nt-tree::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 18%, transparent); border-radius: 9px; }
@@ -406,7 +404,6 @@ html.wide #sideNotes .nt-tree .nav { height: 34px; min-height: 34px; max-height:
 html.wide #sideNotes .nt-folder:hover .nt-rowActs, html.wide #sideNotes .nt-folder:focus-within .nt-rowActs { opacity: 1; pointer-events: auto; }
 html.wide #sideNotes .nt-folder:hover small { display: inline; visibility: hidden; }
 html.wide #sideNotes .nt-tree .nav small { padding-left: 8px; }
-html.wide #sideNotes .nt-tree .nt-kids { width: max-content; min-width: calc(100% - 17px); }
 html.wide .nt-treeScroll { flex: 1; min-height: 0; overflow-x: auto; overflow-y: hidden; border-radius: 12px; padding-bottom: 6px; }
 html.wide .nt-treeScroll::-webkit-scrollbar { width: 6px; height: 6px; }
 html.wide .nt-treeScroll::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 18%, transparent); border-radius: 9px; }
@@ -427,7 +424,7 @@ html.wide .nt-sideSeg .lbl { overflow: hidden; text-overflow: ellipsis; white-sp
 html.wide .nt-sideSeg button { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 32px; padding: 0 8px; font-family: var(--nt-font); }
 html.wide .nt-sideSeg button .lc { width: 14px; height: 14px; }
 html.wide .nt-sideSeg button small { font-size: 10.5px; font-weight: 600; color: var(--sub); }
-html.wide #sideNotes .nt-tree { position: relative; display: flex; flex-direction: column; flex: 1; min-height: 140px; height: auto; padding-bottom: 8px; }
+html.wide #sideNotes .nt-tree { position: relative; display: flex; flex-direction: column; flex: 1; height: auto; padding-bottom: 8px; }
 html.wide #sideNotes .nt-treeScroll { overflow-y: auto; }
 html.wide .noteChip { display: inline-flex; align-items: center; gap: 5px; height: 26px; max-width: 100%; padding: 0 10px; border: 0; border-radius: 99px; background: var(--soft); color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 html.wide .noteChip span { overflow: hidden; text-overflow: ellipsis; }

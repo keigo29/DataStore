@@ -265,7 +265,7 @@
 .nt-home { overflow-y: auto; flex: 1; min-height: 0; }
 .nt-homeHead { margin: 2px 4px 10px; font-size: 13px; font-weight: 700; color: var(--sub); }
 .nt-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.nt-card { display: flex; flex-direction: column; gap: 6px; text-align: left; border: 0; border-radius: var(--r); background: var(--card); box-shadow: var(--shadow); padding: 14px 16px; color: var(--text); font: inherit; cursor: pointer; min-height: 120px; }
+.nt-card { display: flex; flex-direction: column; gap: 6px; text-align: left; border: 0; border-radius: var(--r); background: var(--card); box-shadow: var(--shadow); padding: 14px 16px; color: var(--text); font: inherit; cursor: pointer; }
 .nt-card:hover { box-shadow: var(--shadow-lg); }
 .nt-card b { font-size: 15px; }
 .nt-card p { margin: 0; flex: 1; font-size: 12.5px; color: var(--sub); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -364,8 +364,6 @@ body[data-app="notes"] #viewTitle, body[data-app="notes"] #viewSub, .nt-sug, .nt
 body[data-app="notes"] .nt-resizer { display: block; }
 body.nt-resizing, body.nt-resizing * { cursor: col-resize !important; user-select: none !important; }
 .nt-tree { overflow-x: auto; overflow-y: visible; }
-.nt-tree .nav, .nt-tree .nt-kids { width: max-content; min-width: 100%; }
-.nt-tree .nav .name { white-space: nowrap; overflow: visible; text-overflow: clip; }
 .nt-tree .nav small, .nt-rowActs { margin-left: auto; padding-left: 10px; }
 .nt-tree::-webkit-scrollbar { height: 6px; }
 .nt-tree::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 18%, transparent); border-radius: 9px; }
@@ -422,7 +420,6 @@ body.nt-resizing, body.nt-resizing * { cursor: col-resize !important; user-selec
 #sideNotes .nt-folder:hover .nt-rowActs, #sideNotes .nt-folder:focus-within .nt-rowActs { opacity: 1; pointer-events: auto; }
 #sideNotes .nt-folder:hover small { display: inline; visibility: hidden; }
 #sideNotes .nt-tree .nav small { padding-left: 8px; }
-#sideNotes .nt-tree .nt-kids { width: max-content; min-width: calc(100% - 17px); }
 .nt-pRow .k { gap: 2px; }
 .nt-pType { width: 24px; height: 24px; border: 0; border-radius: 6px; background: none; color: var(--nt-muted); display: grid; place-items: center; padding: 0; cursor: pointer; flex-shrink: 0; }
 .nt-pType .lc { width: 14px; height: 14px; }
@@ -521,7 +518,7 @@ dialog.ntFill { width: min(480px, calc(100vw - 40px)); padding: 22px; font-famil
 .nt-sideSeg button .lc { width: 14px; height: 14px; }
 .nt-sideSeg button small { font-size: 10.5px; font-weight: 600; color: var(--sub); }
 .nt-sidePane { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px; }
-#sideNotes .nt-tree { position: relative; display: flex; flex-direction: column; flex: 1; min-height: 140px; height: auto; padding-bottom: 8px; }
+#sideNotes .nt-tree { position: relative; display: flex; flex-direction: column; flex: 1; height: auto; padding-bottom: 8px; }
 #sideNotes .nt-treeScroll { overflow-y: auto; }
 .nt-tagList { flex: 1; min-height: 0; overflow-y: auto; font-family: var(--nt-font); }
 .nt-tagList .nav { height: 34px; gap: 8px; cursor: pointer; font-size: 13px; }
