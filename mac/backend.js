@@ -7,6 +7,8 @@ const path = require('path');
 const { execFile } = require('child_process');
 
 const MAX_FILES = 8000;
+const ATTACH_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif|pdf)$/i;
+const OBS_CFG = ['daily-notes.json', 'app.json', 'templates.json', 'appearance.json'];
 const skipDir = name => name.startsWith('.') || name === 'node_modules';
 
 class Vault {
@@ -20,15 +22,26 @@ class Vault {
     return p;
   }
   static shaOf(st) { return `${Math.round(st.mtimeMs)}-${st.size}`; }
+  // 画像など（.md 以外）も入れられる場所。フォルダの外・. で始まる場所は断る
+  absAny(rel) {
+    const clean = String(rel || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!clean || clean.split('/').some(s => s === '..' || s === '' || s.startsWith('.'))) throw new Error('この場所は使えません');
+    const p = path.resolve(this.root, clean);
+    if (!p.startsWith(this.root + path.sep)) throw new Error('フォルダの外には書けません');
+    return p;
+  }
   async list() {
     const out = [];
+    this._bins = [];
+    this._dirs = [];
     const walk = async dir => {
       let ents = [];
       try { ents = await fsp.readdir(dir, { withFileTypes: true }); } catch { return; }
       for (const e of ents) {
         if (out.length >= MAX_FILES) return;
-        if (e.isDirectory()) { if (!skipDir(e.name)) await walk(path.join(dir, e.name)); }
+        if (e.isDirectory()) { if (!skipDir(e.name)) { this._dirs.push(path.relative(this.root, path.join(dir, e.name)).split(path.sep).join('/')); await walk(path.join(dir, e.name)); } }
         else if (e.isFile() && /\.md$/i.test(e.name)) out.push(path.relative(this.root, path.join(dir, e.name)).split(path.sep).join('/'));
+        else if (e.isFile() && ATTACH_EXT.test(e.name) && !e.name.startsWith('.')) this._bins.push(path.relative(this.root, path.join(dir, e.name)).split(path.sep).join('/'));
       }
     };
     await walk(this.root);
@@ -48,9 +61,12 @@ class Vault {
         } catch {}
       }));
     }
-    let dailyJson = null;
-    try { dailyJson = await fsp.readFile(path.join(this.root, '.obsidian', 'daily-notes.json'), 'utf8'); } catch {}
-    return { files, dailyJson, truncated: rels.length >= MAX_FILES };
+    // Obsidian の設定（デイリーノート・添付ファイルの場所・テンプレート・見た目）
+    const cfg = {};
+    for (const f of OBS_CFG) { try { cfg[f] = await fsp.readFile(path.join(this.root, '.obsidian', f), 'utf8'); } catch {} }
+    const bins = {};
+    for (const b of this._bins) { try { bins[b] = { sha: Vault.shaOf(await fsp.stat(path.join(this.root, b))) }; } catch {} }
+    return { files, dailyJson: cfg['daily-notes.json'] || null, cfg, bins, dirs: this._dirs, isVault: fs.existsSync(path.join(this.root, '.obsidian')), truncated: rels.length >= MAX_FILES };
   }
   // expectSha：読んだときの印。ほかで書きかえられていたら書かない（409）
   async write(rel, text, expectSha) {
@@ -139,5 +155,25 @@ class Git {
     });
   }
 }
+
+// ---------- ノートの画面（旧 Workstation のノート）用の操作 ----------
+Vault.prototype.remove = async function (rel) { await fsp.unlink(this.absAny(rel)); return true; };
+Vault.prototype.move = async function (from, to) {
+  const a = this.absAny(from), b = this.absAny(to);
+  if (fs.existsSync(b) && a.toLowerCase() !== b.toLowerCase()) { const e = new Error('同じ名前のものがもうあります'); e.status = 422; throw e; }
+  await fsp.mkdir(path.dirname(b), { recursive: true });
+  await fsp.rename(a, b);
+  return true;
+};
+Vault.prototype.mkdir = async function (rel) { await fsp.mkdir(this.absAny(rel), { recursive: true }); return true; };
+Vault.prototype.rmdir = async function (rel) { await fsp.rm(this.absAny(rel), { recursive: true, force: true }); return true; };
+Vault.prototype.writeBin = async function (rel, b64) {
+  const p = this.absAny(rel);
+  if (!ATTACH_EXT.test(p)) throw new Error('画像だけ入れられます');
+  await fsp.mkdir(path.dirname(p), { recursive: true });
+  await fsp.writeFile(p, Buffer.from(b64, 'base64'));
+  return Vault.shaOf(await fsp.stat(p));
+};
+Vault.prototype.readBin = async function (rel) { return (await fsp.readFile(this.absAny(rel))).toString('base64'); };
 
 module.exports = { Vault, Git, run };

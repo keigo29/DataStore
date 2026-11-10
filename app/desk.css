@@ -484,3 +484,16 @@ html.wide .nt-sideTop { display: flex; gap: 6px; }
 html.wide .nt-sideTop .btn.primary { flex: 1; }
 html.wide .nt-sideTop .lbl-short { display: none; }
 html.wide .list.flat { box-shadow: none; padding: 0; background: none; margin: 0; }
+
+/* ---- PC の幅のノート：旧 Workstation のノートの画面（ws/notes.js・ws/notes.css） ---- */
+html.wide body[data-app="notes"] .app { grid-template-columns: 84px var(--nt-side, 252px) minmax(0, 1fr); }
+html.wide aside.side { position: relative; }
+html.wide main#view.ntMode { overflow: hidden; display: flex; flex-direction: column; padding: 0; }
+html.wide main#view.ntMode > .nt-view { flex: 1; min-height: 0; }
+html.wide body[data-app="notes"] #sideBody { display: flex; flex-direction: column; min-height: 0; }
+html.wide #sideNotes { flex: 1; min-height: 0; }
+html.wide body[data-app="notes"] #title { font-family: var(--nt-font); }
+html.wide .sideApp { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+html.wide .side .nav { position: relative; }
+html.wide #sideNotes .nt-sideHead { margin: 0; }
+html.wide #sideNotes .nt-sideHead .sideTitle { margin: 0 6px 6px; }

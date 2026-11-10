@@ -117,6 +117,19 @@ ipcMain.handle('mdws:sync', async () => {
   return { ok: p.ok || p.skipped, error: p.error, ...(await status()) };
 });
 ipcMain.handle('mdws:openFolder', () => { if (conf.folder) shell.openPath(conf.folder); });
+// ノートの画面（旧 Workstation のノート）用：消す・移す・フォルダ・画像・Finder・Obsidian
+const fileOp = (name, fn) => ipcMain.handle('mdws:' + name, async (e, ...a) => {
+  if (!vault) return { error: 'フォルダを選んでください', status: 400 };
+  try { ownWrite = Date.now(); const r = await fn(...a); return { ok: true, value: r }; } catch (err) { return { error: err.message, status: err.status || 500 }; }
+});
+fileOp('remove', async (rel, msg) => { await vault.remove(rel); delete last[rel]; scheduleCommit(msg || `削除: ${rel}`); });
+fileOp('move', async (from, to, msg) => { await vault.move(from, to); if (last[from]) { last[to] = last[from]; delete last[from]; } scheduleCommit(msg || `移動: ${from} → ${to}`); });
+fileOp('mkdir', rel => vault.mkdir(rel));
+fileOp('rmdir', async (rel, msg) => { await vault.rmdir(rel); scheduleCommit(msg || `フォルダを削除: ${rel}`); });
+fileOp('writeBin', async (rel, b64, msg) => { const s = await vault.writeBin(rel, b64); scheduleCommit(msg || `画像: ${rel}`); return s; });
+fileOp('readBin', rel => vault.readBin(rel));
+ipcMain.handle('mdws:reveal', (e, rel) => { if (!conf.folder) return; try { if (rel) shell.showItemInFolder(vault.absAny(rel)); else shell.openPath(conf.folder); } catch {} });
+ipcMain.handle('mdws:openInObsidian', (e, rel) => { if (!conf.folder) return; try { shell.openExternal('obsidian://open?path=' + encodeURIComponent(vault.abs(rel))); } catch {} });
 ipcMain.handle('mdws:openExternal', (e, url) => { if (/^https?:/i.test(url)) shell.openExternal(url); });
 
 // ---------- はじめ・おわり ----------

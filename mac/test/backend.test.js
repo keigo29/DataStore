@@ -86,3 +86,27 @@ const ok = (name, fn) => fn().then(() => console.log('✓', name)).catch(e => { 
     assert.ok((await g2.commitPush('x')).skipped);
   });
 })();
+
+// ---------- ノートの画面用の操作 ----------
+(async () => {
+  await new Promise(r => setTimeout(r, 1500));   // 上のテストのあと
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mdws-ops-'));
+  const v = new Vault(root);
+  await v.write('A.md', '# A', null);
+  await ok('画像を書いて読む・一覧に出る', async () => {
+    await v.writeBin('画像/x.png', Buffer.from('PNG').toString('base64'));
+    assert.strictEqual(await v.readBin('画像/x.png'), Buffer.from('PNG').toString('base64'));
+    const r = await v.scan();
+    assert.ok(r.bins['画像/x.png']); assert.ok(r.dirs.includes('画像'));
+    await assert.rejects(v.writeBin('x.exe', 'AA'));
+  });
+  await ok('移す・消す・フォルダ', async () => {
+    await v.mkdir('B'); await v.move('A.md', 'B/A2.md');
+    assert.ok(fs.existsSync(path.join(root, 'B', 'A2.md')));
+    await v.write('C.md', 'c', null);
+    await assert.rejects(v.move('C.md', 'B/A2.md'), e => e.status === 422);
+    await v.remove('C.md'); assert.ok(!fs.existsSync(path.join(root, 'C.md')));
+    await v.rmdir('B'); assert.ok(!fs.existsSync(path.join(root, 'B')));
+    assert.throws(() => v.absAny('../x.png')); assert.throws(() => v.absAny('.git/config'));
+  });
+})();
