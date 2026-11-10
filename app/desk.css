@@ -538,3 +538,7 @@ html.wide main#view.gMode .demoBar { flex-shrink: 0; }
 .ngSide .ngItem small { color: var(--sub); font-size: 12px; font-variant-numeric: tabular-nums; }
 .ngSide .ngItem .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .ngHelp { margin: 0 6px; }
+/* ---- カレンダー（PC・タブレット）：画面の高さいっぱい ---- */
+html.wide main#view.calMode { overflow: hidden; display: flex; flex-direction: column; padding: 0 4px 18px; }
+html.wide main#view.calMode > .cg, html.wide main#view.calMode > .cm { flex: 1; min-height: 0; }
+html.wide main#view.calMode > .demoBar { flex-shrink: 0; }

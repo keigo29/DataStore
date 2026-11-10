@@ -765,3 +765,104 @@ main#view.gMode .ng { height: calc(100dvh - 300px - env(safe-area-inset-bottom))
   .ngPanel { bottom: 54px; }
   .ngCount { display: none; }
 }
+
+/* ---------- カレンダー（日・週・月） ---------- */
+:root { --ev: #2f6fe4; --ev-soft: color-mix(in srgb, #2f6fe4 13%, var(--card)); --cal-line: color-mix(in srgb, var(--text) 9%, transparent); }
+.calBar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; flex-wrap: wrap; }
+.calNav { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.calNav .btn { margin-right: 4px; }
+.calTtl { margin: 0 0 0 6px; font-size: 19px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.calSeg button { min-width: 44px; }
+/* チップ（月のマス・終日の段） */
+.calChip { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; height: 20px; padding: 0 6px; border: 0; border-radius: 5px; background: none; color: var(--text); font: inherit; font-size: 11.5px; text-align: left; cursor: pointer; }
+.calChip:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.calChip span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.calChip time { color: var(--sub); font-size: 10.5px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.calChip .dt { width: 7px; height: 7px; border-radius: 50%; background: var(--ev); flex-shrink: 0; }
+.calChip.allday { background: var(--ev); color: #fff; }
+.calChip.allday:hover { background: color-mix(in srgb, var(--ev) 85%, #000); }
+.calChip.todo { color: var(--sub); }
+.calChip .ck { width: 9px; height: 9px; border-radius: 3px; border: 1.5px solid currentColor; flex-shrink: 0; }
+.calMore { border: 0; background: none; padding: 0 6px; height: 18px; font: inherit; font-size: 11px; font-weight: 600; color: var(--sub); text-align: left; cursor: pointer; }
+.calMore:hover { color: var(--text); }
+/* 週・日 */
+.cg { display: flex; flex-direction: column; background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; --gut: 52px; }
+.cgHead, .cgAll { display: grid; grid-template-columns: var(--gut) repeat(var(--n), minmax(0, 1fr)); border-bottom: 1px solid var(--cal-line); flex-shrink: 0; }
+.cgGut { font-size: 10.5px; color: var(--sub); text-align: right; padding: 4px 8px 0 0; }
+.cgDay { border: 0; background: none; padding: 8px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text); cursor: pointer; font: inherit; }
+.cgDay small { font-size: 11px; color: var(--sub); font-weight: 600; }
+.cgDay b { font-size: 20px; font-weight: 600; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.cgDay:hover b { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.cgDay.today small { color: var(--ev); }
+.cgDay.today b { background: var(--ev); color: #fff; }
+.cgDay.we:not(.today) small, .cgDay.we:not(.today) b { color: var(--sub); }
+.cg.one .cgHead { grid-template-columns: var(--gut) auto 1fr; }
+.cg.one .cgDay { flex-direction: row; gap: 8px; padding: 8px 10px; justify-content: flex-start; }
+.cgAll { min-height: 28px; }
+.cgAll.empty { min-height: 22px; }
+.cgAllCell { border-left: 1px solid var(--cal-line); padding: 3px 3px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cgBody { flex: 1; min-height: 0; overflow-y: auto; position: relative; overscroll-behavior: contain; }
+.cgIn { position: relative; display: grid; grid-template-columns: var(--gut) repeat(var(--n), minmax(0, 1fr));
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hp) - 1px), var(--cal-line) calc(var(--hp) - 1px), var(--cal-line) var(--hp)); }
+.cgHours { position: relative; padding: 0; }
+.cgHours span { position: absolute; right: 8px; transform: translateY(-50%); font-size: 10.5px; color: var(--sub); font-variant-numeric: tabular-nums; background: var(--card); padding: 0 2px; }
+.cgCol { position: relative; border-left: 1px solid var(--cal-line); cursor: copy; touch-action: pan-y; }
+.cgCol.we { background: color-mix(in srgb, var(--text) 1.8%, transparent); }
+.cgEv { position: absolute; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 3px 6px; border: 0; border-left: 3px solid var(--ev); border-radius: 6px;
+  background: var(--ev-soft); color: var(--text); text-align: left; overflow: hidden; cursor: pointer; font: inherit; }
+.cgEv:hover { background: color-mix(in srgb, var(--ev) 22%, var(--card)); }
+.cgEv b { font-size: 12px; font-weight: 700; line-height: 1.3; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cgEv small { font-size: 10.5px; color: var(--sub); font-variant-numeric: tabular-nums; }
+.cgEv.short { flex-direction: row; align-items: center; gap: 6px; padding-top: 0; padding-bottom: 0; }
+.cgEv.todo { border-left-color: var(--ok, #00c230); background: color-mix(in srgb, #00c230 11%, var(--card)); }
+.cgEv.done b { text-decoration: line-through; color: var(--sub); }
+.cgNow { position: absolute; left: -1px; right: 0; height: 2px; background: #ea4335; z-index: 3; pointer-events: none; }
+.cgNow::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: #ea4335; }
+.cgGhost { position: absolute; left: 2px; right: 3px; z-index: 1; border-radius: 6px; background: var(--ev); color: #fff; opacity: .85; font-size: 11px; font-weight: 700; padding: 3px 6px; pointer-events: none; overflow: hidden; }
+/* 月 */
+.cm { display: flex; flex-direction: column; background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.cmWd { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-bottom: 1px solid var(--cal-line); }
+.cmWd span { text-align: center; font-size: 11px; font-weight: 600; color: var(--sub); padding: 7px 0; }
+.cmGrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); flex: 1; min-height: 0; }
+.cmCell { border-right: 1px solid var(--cal-line); border-bottom: 1px solid var(--cal-line); min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; align-items: stretch; padding: 4px 3px 3px; cursor: pointer; }
+.cmCell:nth-child(7n) { border-right: 0; }
+.cmCell.we { background: color-mix(in srgb, var(--text) 1.8%, transparent); }
+.cmCell.out .cmNum { color: color-mix(in srgb, var(--sub) 60%, transparent); }
+.cmNum { align-self: center; width: 26px; height: 26px; border-radius: 50%; border: 0; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text); display: grid; place-items: center; cursor: pointer; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.cmNum:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.cmCell.today .cmNum { background: var(--ev); color: #fff; }
+.cmList { display: flex; flex-direction: column; gap: 1px; min-height: 0; overflow: hidden; margin-top: 2px; }
+/* スマホの月：点 */
+.cm.compact .cmGrid { grid-template-rows: none !important; grid-auto-rows: 52px; }
+.cm.compact .cmCell { padding: 4px 0 2px; position: relative; }
+.cm.compact .cmCell.sel { background: color-mix(in srgb, var(--ev) 9%, transparent); }
+.cm.compact .cmCell.sel:not(.today) .cmNum { box-shadow: inset 0 0 0 1.5px var(--text); }
+.cmDots { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
+.cmDots i { width: 5px; height: 5px; border-radius: 50%; background: var(--ev); }
+.cmDots i.todo { background: color-mix(in srgb, var(--sub) 70%, transparent); }
+.cmDots i.late { background: #ea4335; }
+.cmNote { position: absolute; top: 5px; right: 5px; width: 5px; height: 5px; border-radius: 50%; background: #00c230; }
+.cm.compact + .dayPanel { margin-top: 12px; }
+/* スマホの日 */
+main:not(.calMode) .cg { height: calc(100dvh - 330px - env(safe-area-inset-bottom)); min-height: 420px; margin-top: 4px; }
+main:not(.calMode) .cg + .dayPanel { margin-top: 12px; }
+/* サイドバー：小さな月のカレンダー */
+.mm { background: var(--card); border-radius: 20px; box-shadow: var(--shadow-sm); padding: 10px 10px 8px; }
+.mmHead { display: flex; align-items: center; gap: 2px; padding: 0 2px 6px 6px; }
+.mmHead b { flex: 1; font-size: 13px; font-weight: 700; }
+.mmHead .iconBtn { width: 26px; height: 26px; }
+.mmGrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px 0; }
+.mmWd { text-align: center; font-size: 10px; font-weight: 600; color: var(--sub); padding: 2px 0 4px; }
+.mmDay { position: relative; height: 28px; border: 0; background: none; font: inherit; font-size: 11.5px; font-weight: 500; color: var(--text); border-radius: 0; cursor: pointer; font-variant-numeric: tabular-nums; }
+.mmDay.out { color: color-mix(in srgb, var(--sub) 60%, transparent); }
+.mmDay.range { background: color-mix(in srgb, var(--ev) 10%, transparent); }
+.mmDay:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.mmDay.today { color: var(--ev); font-weight: 800; }
+.mmDay.sel { background: var(--text); color: var(--card); border-radius: 8px; font-weight: 700; }
+.mmDay.busy::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: var(--ev); }
+.mmDay.sel.busy::after { background: var(--card); }
+.calSideQ { padding: 10px 10px 4px; }
+.calSideQ .qEv { margin: 0; }
+.calSideQ .qEvRow .btn .lbl, .calSideQ .qEvRow .btn { font-size: 12px; }
+.calSideQ .qEvRow .btn { display: none; }
+.calSideQ .qEvRow .inp { font-size: 13px; }
