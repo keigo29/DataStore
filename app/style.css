@@ -881,3 +881,17 @@ main:not(.calMode) .cg + .dayPanel { margin-top: 12px; }
 main:not(.calMode) .cg.mDay { height: calc(100dvh - 270px - env(safe-area-inset-bottom)); }
 main:not(.calMode) .calBar.m + .qEv { margin-top: 0; }
 .qEv.slim .qEvPv.idle { display: none; }
+/* スマホの月：マスを大きく、予定の名前を帯で */
+.cm.compact .cmGrid { grid-auto-rows: minmax(86px, auto); }
+.cm.compact .cmCell { padding: 3px 0 3px; gap: 0; }
+.cm.compact .cmNum { width: 22px; height: 22px; font-size: 12px; }
+.cmMini { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; padding: 0 2px; min-width: 0; }
+.cmMini .mi { display: block; height: 15px; line-height: 15px; padding: 0 3px; border-radius: 3px; font-size: 9.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: clip;
+  background: color-mix(in srgb, var(--ev) 16%, var(--card)); color: color-mix(in srgb, var(--ev) 75%, var(--text)); }
+.cmMini .mi.allday { background: var(--ev); color: #fff; }
+.cmMini .mi.todo { background: none; color: var(--sub); padding-left: 1px; }
+.cmMini .mi.todo::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 2px; border: 1px solid currentColor; margin-right: 2px; vertical-align: -0.5px; }
+.cmMini .mi.late { color: #ea4335; }
+.cmMini .mi.done { text-decoration: line-through; opacity: .55; }
+.cmMini .miMore { font-size: 9.5px; font-weight: 700; color: var(--sub); padding-left: 3px; line-height: 13px; }
+.cm.compact .cmCell.out .cmMini { opacity: .5; }

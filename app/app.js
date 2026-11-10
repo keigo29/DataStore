@@ -1333,9 +1333,15 @@
       const { timed, allDay, todos } = dayItems(k);
       const list = [...allDay, ...timed, ...todos];
       if (compact) {
-        const dots = el('div', 'cmDots');
-        list.slice(0, 4).forEach(i => dots.append(el('i', i.type === 'todo' ? 'todo' + (k < today ? ' late' : '') : '')));
-        cell.append(dots);
+        // スマホ：予定の名前を短い帯で（入りきらない分は +数）
+        const MAXM = 3, ls = el('div', 'cmMini');
+        list.slice(0, MAXM).forEach(i => {
+          const t = el('span', 'mi' + (i.type === 'todo' ? ' todo' + (k < today ? ' late' : '') : !i.time ? ' allday' : '') + (i.done ? ' done' : ''));
+          t.textContent = i.title;
+          ls.append(t);
+        });
+        if (list.length > MAXM) ls.append(el('span', 'miMore', `+${list.length - MAXM}`));
+        cell.append(ls);
         if (dayFiles(k).length) cell.append(el('i', 'cmNote'));
         cell.addEventListener('click', () => { if (calSel === k) newEvent(k); else calGo(k); });
       } else {
