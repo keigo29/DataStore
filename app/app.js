@@ -2995,6 +2995,7 @@
     const d = new Date();
     $('#eyebrow').textContent = tab === 'notes' && note ? (connected() ? sourceName() : 'デモ').toUpperCase() : `${d.getMonth() + 1}月${d.getDate()}日 ${WD[d.getDay()]}曜日`;
     $('#title').textContent = tab === 'notes' && note ? nameOf(note) : tab === 'proj' && proj && projByPath(proj) ? projByPath(proj).name : TITLES[tab];
+    $('#title').classList.toggle('long', $('#title').textContent.length > 12);
     if (tab === 'proj' && proj) $('#eyebrow').textContent = 'プロジェクト';
     const acts = $('#topActs');
     acts.innerHTML = '';

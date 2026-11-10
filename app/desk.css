@@ -556,3 +556,6 @@ html.wide.noSide .app, html.wide.noSide body[data-app="notes"] .app { grid-templ
 html.wide.noSide .sideShow { display: grid; order: -1; width: 38px; height: 38px; flex-shrink: 0; }
 html.wide.noSide .sideShow .lc { width: 18px; height: 18px; }
 html.wide.noSide .center { padding-left: 14px; }
+/* ノートの右のタグ：長いタグは1行で … */
+html.wide #notesView .nt-tagCloud > * { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+html.wide #notesView .nt-doc { --tblbg: var(--nt-bg); }
