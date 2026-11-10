@@ -268,7 +268,13 @@
         await pull();
       } else { await pull(); await persist(); if (!quiet) toast('同期しました'); }
     } catch (e) {
-      S.error = e.status === 401 ? 'トークンが使えません' : e.status === 404 ? 'リポジトリかブランチが見つかりません' : 'つながりませんでした（オフライン？）';
+      // 404 は「リポジトリが見えない（トークンに入っていない・名前違い）」と「ブランチがない」を見分ける
+      let why404 = 'リポジトリかブランチが見つかりません';
+      if (e.status === 404 && !desk) {
+        try { await gh(repoBase()); why404 = `ブランチ「${branch()}」が見つかりません。ブランチの名前を確かめてください`; }
+        catch (e2) { if (e2.status === 404) why404 = `${cfg.owner}/${cfg.repo} が見えません。名前が合っているか、トークンの Repository access にこのリポジトリが入っているか（Contents は Read and write）を確かめてください`; }
+      }
+      S.error = e.status === 401 ? 'トークンが使えません（期限切れ・消した・貼り間違い）。トークンを作り直して貼ってください' : e.status === 403 ? 'トークンに読み書きの許可がありません（Contents を Read and write に）' : e.status === 404 ? why404 : 'つながりませんでした（オフライン？）';
       if (!quiet || e.status) toast(S.error, 'warn');
       console.error(e);
     } finally { syncing = false; recompute(); render(); Bridge.notify(null); }
