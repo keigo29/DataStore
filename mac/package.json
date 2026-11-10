@@ -1,0 +1,30 @@
+{
+  "name": "md-workstation",
+  "productName": "MD Workstation",
+  "version": "1.0.0",
+  "description": "Markdown のノートから、やること・予定・今日のノートを出す。git で GitHub と自動同期（画面は PWA と同じ）",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "copy-app": "node scripts/copy-app.js",
+    "start": "npm run copy-app && electron .",
+    "test": "node test/backend.test.js",
+    "dist": "npm run copy-app && electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^44.6.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "local.md-workstation",
+    "productName": "MD Workstation",
+    "files": ["main.js", "preload.js", "backend.js", "app/**/*", "package.json"],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }]
+    }
+  }
+}
