@@ -542,3 +542,17 @@ html.wide main#view.gMode .demoBar { flex-shrink: 0; }
 html.wide main#view.calMode { overflow: hidden; display: flex; flex-direction: column; padding: 0 4px 18px; }
 html.wide main#view.calMode > .cg, html.wide main#view.calMode > .cm { flex: 1; min-height: 0; }
 html.wide main#view.calMode > .demoBar { flex-shrink: 0; }
+/* ---- サイドバーを隠す（タブごと） ---- */
+.sideShow { display: none; }
+html.wide .sideHead { position: relative; padding-right: 30px; }
+html.wide .sideHide { position: absolute; right: -4px; bottom: 0; width: 30px; height: 30px; color: var(--sub); }
+html.wide .sideHide:hover { color: var(--text); background: color-mix(in srgb, var(--text) 7%, transparent); }
+html.wide .sideHide .lc { width: 18px; height: 18px; }
+html.wide.noSide .side { display: none; }
+html.wide.noSide .app, html.wide.noSide body[data-app="notes"] .app { grid-template-columns: 84px minmax(0, 1fr); }
+@media (max-width: 1320px) { html.wide.noSide .app, html.wide.noSide body[data-app="notes"] .app { grid-template-columns: 80px minmax(0, 1fr); } }
+@media (max-width: 1080px) { html.wide.noSide .app, html.wide.noSide body[data-app="notes"] .app { grid-template-columns: 76px minmax(0, 1fr); } }
+@media (max-width: 960px) { html.wide.noSide .app, html.wide.noSide body[data-app="notes"] .app { grid-template-columns: 70px minmax(0, 1fr); } }
+html.wide.noSide .sideShow { display: grid; order: -1; width: 38px; height: 38px; flex-shrink: 0; }
+html.wide.noSide .sideShow .lc { width: 18px; height: 18px; }
+html.wide.noSide .center { padding-left: 14px; }

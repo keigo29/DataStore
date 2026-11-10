@@ -1949,6 +1949,7 @@
     const g = graphView();
     g.setData(graphData());
     if (isWide()) { const st = g.stats(); $('#eyebrow').textContent = `${st.notes} ノート・${st.links} リンク・${st.groups} カテゴリ`; }
+    if (isWide() && sideHidden()) g.listInto(null);
     if (!isWide()) { const top = el('div', 'ngMTop'); top.append(btn('btn white small', ['chevron-left', 'ノート'], () => switchTab('notes')), graphBySeg()); main.append(top); g.listInto(null); }
     main.append(g.el);
   }
@@ -2903,6 +2904,16 @@
     ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, sync: renderSync })[tab](main);
   }
   $('#sideSearch').addEventListener('click', focusSearch);
+  // サイドバーを隠す・出す（タブごとに覚える）
+  const sideHidden = () => isWide() && !!(prefs.sideHidden || {})[tab];
+  function setSideHidden(h) {
+    prefs.sideHidden = { ...(prefs.sideHidden || {}), [tab]: h };
+    if (!h) delete prefs.sideHidden[tab];
+    savePrefs();
+    render();
+  }
+  $('#sideHide').addEventListener('click', () => setSideHidden(true));
+  $('#sideShow').addEventListener('click', () => setSideHidden(false));
   document.addEventListener('keydown', e => {
     if (ntOn() && NotesApp.onKey(e)) return;
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); focusSearch(); }
@@ -2989,6 +3000,7 @@
       acts.append(sb);
     }
     updateBadge();
+    document.documentElement.classList.toggle('noSide', sideHidden());
     if (isWide()) {
       renderRail(); renderSide();
       // ツールバーの右のボタン（Mac と同じ）・見出しの横の説明
