@@ -10,7 +10,8 @@
   const ic = n => (window.svgIcon ? window.svgIcon(n) : '');
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   // カテゴリの色（暗い背景で光って見える、やわらかい色）
-  const COLORS = ['#ff8fd0', '#9aa8ff', '#7fe3ff', '#b58cff', '#7ff0c0', '#ffc27a', '#ff9a8a', '#c6f07a', '#8fd0ff', '#f0a8ff'];
+  const COLORS = ['#6ab0de', '#7ccf6a', '#e2c15c', '#a565dc', '#5fd2b5', '#e0605e', '#5a5ad6', '#d8d8d8', '#e89a5c', '#c77fd6'];
+  const GRAY = '#6e7075', BG = '#1e1f22', ACCENT = '#a882ff';
   const NONE = '（なし）';
 
   function create(opts = {}) {
@@ -30,22 +31,22 @@
     let W = 0, H = 0, DPR = 1;
     const cam = { x: 0, y: 0, k: 1 };
     let alpha = 0, raf = 0, hover = null, sel = null, selGroup = null, query = '';
-    let mode = 'glow';   // soft（やわらか）/ glow（光る）/ focus（しぼる：選んだものだけ）
+    let mode = 'all';   // all（すべて）/ focus（しぼる：選んだものだけ）
     let listHost = null, fitted = false, settled = false, userMoved = false;
-    const stars = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.1 + .2, a: Math.random() * .5 + .1 }));
-    const sprites = new Map();
+    let labels = false;   // 名前をいつも出す
 
     // ---------- データ ----------
     function setData(d) {
       const old = new Map(nodes.map(n => [n.id, n]));
-      groups = d.groups.map((g, i) => ({ ...g, color: COLORS[i % COLORS.length] }));
+      let ci = 0;
+      groups = d.groups.map(g => ({ ...g, color: g.id === NONE ? GRAY : COLORS[ci++ % COLORS.length] }));
       const gc = new Map(groups.map(g => [g.id, g.color]));
       const R = 140 + groups.length * 22;
       nodes = [];
       groups.forEach((g, i) => {
         const a = (i / Math.max(1, groups.length)) * Math.PI * 2;
         const o = old.get('g:' + g.id);
-        nodes.push({ id: 'g:' + g.id, hub: true, group: g.id, name: g.name, color: g.color, count: g.count, r: 9 + Math.sqrt(g.count) * 3.2,
+        nodes.push({ id: 'g:' + g.id, hub: true, group: g.id, name: g.name, color: g.color, count: g.count, r: 4.5 + Math.min(6, Math.sqrt(g.count) * 1.4),
           x: o ? o.x : Math.cos(a) * R, y: o ? o.y : Math.sin(a) * R, vx: 0, vy: 0 });
       });
       const hubPos = new Map(nodes.map(n => [n.group, n]));
@@ -65,7 +66,7 @@
       }
       adj = new Map(nodes.map(n => [n.id, new Set()]));
       for (const e of edges) { adj.get(e.a.id).add(e.b.id); adj.get(e.b.id).add(e.a.id); }
-      for (const n of nodes) if (!n.hub) n.r = 3 + Math.min(4, Math.sqrt(edges.filter(e => !e.hub && (e.a === n || e.b === n)).length) * 1.2);
+      for (const n of nodes) if (!n.hub) n.r = 2.6 + Math.min(4, Math.sqrt(edges.filter(e => !e.hub && (e.a === n || e.b === n)).length) * 1.1);
       if (sel && !byId.has(sel)) sel = null;
       if (selGroup && !groups.some(g => g.id === selGroup)) selGroup = null;
       alpha = old.size ? Math.max(alpha, .35) : 1;
@@ -118,13 +119,6 @@
     }
 
     // ---------- 描く ----------
-    function sprite(color) {
-      if (sprites.has(color)) return sprites.get(color);
-      const s = el('canvas'); s.width = s.height = 64; const c = s.getContext('2d');
-      const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0, color); g.addColorStop(.25, color + 'aa'); g.addColorStop(1, color + '00');
-      c.fillStyle = g; c.fillRect(0, 0, 64, 64); sprites.set(color, s); return s;
-    }
     const toScreen = (x, y) => [(x - cam.x) * cam.k + W / 2, (y - cam.y) * cam.k + H / 2];
     const toWorld = (sx, sy) => [(sx - W / 2) / cam.k + cam.x, (sy - H / 2) / cam.k + cam.y];
     function lit() {
@@ -137,22 +131,10 @@
     }
     function draw() {
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      const bg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * .75);
-      bg.addColorStop(0, '#141a3e'); bg.addColorStop(1, '#05060f');
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-      for (const s of stars) { ctx.globalAlpha = s.a; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, 7); ctx.fill(); }
-      ctx.globalAlpha = 1;
+      ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
       const L = lit(), focus = mode === 'focus' && L;
-      const glow = mode === 'soft' ? .45 : 1;
-      // カテゴリのまわりの星雲
-      ctx.globalCompositeOperation = 'lighter';
-      for (const n of nodes) if (n.hub) {
-        if (focus && !L.has(n.id)) continue;
-        const [x, y] = toScreen(n.x, n.y), r = (90 + Math.sqrt(n.count) * 26) * cam.k;
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, n.color + (L && !L.has(n.id) ? '0c' : mode === 'soft' ? '18' : '2c')); g.addColorStop(1, n.color + '00');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-      }
+      const hl = !!(hover || sel);   // マウス・選んだ点のつながりは紫の線で
+      const sz = Math.max(.75, Math.min(1.8, Math.sqrt(cam.k)));
       // 線
       ctx.lineCap = 'round';
       for (const e of edges) {
@@ -160,9 +142,9 @@
         if (focus && !on) continue;
         const [x1, y1] = toScreen(e.a.x, e.a.y), [x2, y2] = toScreen(e.b.x, e.b.y);
         if ((x1 < -50 && x2 < -50) || (x1 > W + 50 && x2 > W + 50) || (y1 < -50 && y2 < -50) || (y1 > H + 50 && y2 > H + 50)) continue;
-        ctx.strokeStyle = e.hub ? (e.b.color || '#fff') : '#ffffff';
-        ctx.globalAlpha = (e.hub ? (e.primary ? .22 : .08) : .42) * (L ? (on ? 2 : .25) : 1);
-        ctx.lineWidth = e.hub ? .8 : 1.1;
+        const key = (hover || byId.get(sel))?.id;
+        if (hl && on && key && (e.a.id === key || e.b.id === key)) { ctx.strokeStyle = ACCENT; ctx.globalAlpha = .9; ctx.lineWidth = 1.2; }
+        else { ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = (e.hub ? (e.primary ? .14 : .06) : .2) * (L ? (on ? 1.6 : .35) : 1); ctx.lineWidth = .8; }
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
       }
       ctx.globalAlpha = 1;
@@ -171,38 +153,29 @@
         const on = L ? L.has(n.id) : true;
         if (focus && !on) continue;
         const [x, y] = toScreen(n.x, n.y);
-        if (x < -60 || x > W + 60 || y < -60 || y > H + 60) continue;
-        const r = n.r * Math.max(.7, Math.min(1.6, cam.k));
-        ctx.globalAlpha = on ? 1 : .22;
-        const gs = r * (n.hub ? 4.2 : 3.6) * glow;
-        ctx.drawImage(sprite(n.color), x - gs, y - gs, gs * 2, gs * 2);
-        ctx.fillStyle = n.hub ? '#ffffff' : n.color;
-        ctx.beginPath(); ctx.arc(x, y, n.hub ? r * .62 : r * .7, 0, 7); ctx.fill();
-        if (n.hub) {
-          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
-          ctx.globalAlpha = (on ? .55 : .15); ctx.beginPath(); ctx.arc(x, y, r * 1.05, 0, 7); ctx.stroke();
-          ctx.globalAlpha = (on ? .25 : .08); ctx.beginPath(); ctx.arc(x, y, r * 1.45, 0, 7); ctx.stroke();
-        }
-        if (n.id === sel || (hover && n.id === hover.id)) { ctx.globalAlpha = 1; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r + 4, 0, 7); ctx.stroke(); }
+        if (x < -40 || x > W + 40 || y < -40 || y > H + 40) continue;
+        const r = n.r * sz;
+        ctx.globalAlpha = on ? 1 : .2;
+        ctx.fillStyle = n.id === sel || (hover && n.id === hover.id) ? ACCENT : n.color;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
       }
-      ctx.globalCompositeOperation = 'source-over';
-      // 名前
+      // 名前（マウスを乗せた・選んだ・つながり／拡大したとき／ノートが少ないとき）
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.font = '500 11px system-ui, -apple-system, "Hiragino Sans", sans-serif';
+      const fade = labels ? 1 : Math.max(0, Math.min(1, (cam.k - 1.7) / .8));
       for (const n of nodes) {
         const on = L ? L.has(n.id) : true;
         if (focus && !on) continue;
-        const show = n.hub || (L && on) || cam.k > 1.35 || nodes.length < 45;
-        if (!show) continue;
+        const strong = (L && on) || nodes.length < 30;
+        let a = strong ? .9 : n.hub ? Math.max(fade, .55) : fade * .75;
+        if (L && !on) continue;   // 乗せている・選んでいるときは、つながっていない名前は出さない
+        if (a < .04) continue;
         const [x, y] = toScreen(n.x, n.y);
-        if (x < -100 || x > W + 100 || y < -40 || y > H + 40) continue;
-        const r = n.r * Math.max(.7, Math.min(1.6, cam.k));
-        ctx.font = n.hub ? '600 13px system-ui, -apple-system, "Hiragino Sans", sans-serif' : '500 11px system-ui, -apple-system, "Hiragino Sans", sans-serif';
-        ctx.globalAlpha = on ? (n.hub ? .95 : .78) : .3;
-        ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 4;
-        ctx.fillStyle = '#fff';
-        const label = n.hub && n.name.length > 18 ? n.name.slice(0, 17) + '…' : !n.hub && n.name.length > 22 ? n.name.slice(0, 21) + '…' : n.name;
-        ctx.fillText(label, x, y + r + (n.hub ? 8 : 4));
-        ctx.shadowBlur = 0;
+        if (x < -100 || x > W + 100 || y < -30 || y > H + 30) continue;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#dcddde';
+        const label = n.name.length > 22 ? n.name.slice(0, 21) + '…' : n.name;
+        ctx.fillText(label, x, y + n.r * sz + 4);
       }
       ctx.globalAlpha = 1;
     }
@@ -288,7 +261,7 @@
       if (e.pointerType === 'mouse') {
         const n = pick(...p);
         if (n !== hover) { hover = n; cv.style.cursor = n ? 'pointer' : 'grab'; kick(); }
-        if (n) { tip.hidden = false; tip.textContent = n.hub ? `${n.name}（${n.count}件）` : n.name; tip.style.left = p[0] + 14 + 'px'; tip.style.top = p[1] + 14 + 'px'; } else tip.hidden = true;
+
       }
     });
     const up = e => {
@@ -350,7 +323,7 @@
       for (const g of groups) {
         const b = el('button', 'ngItem' + (selGroup === g.id ? ' on' : ''));
         b.type = 'button';
-        const dot = el('i', 'dot'); dot.style.background = g.color; dot.style.boxShadow = `0 0 8px ${g.color}`;
+        const dot = el('i', 'dot'); dot.style.background = g.color; 
         b.append(dot, el('span', 'nm', g.name), el('small', '', String(g.count)));
         b.addEventListener('click', () => selectGroup(selGroup === g.id ? null : g.id));
         host.append(b);
@@ -359,15 +332,16 @@
     function renderBar() {
       bar.innerHTML = '';
       const seg = el('div', 'ngSeg');
-      for (const [k, l] of [['soft', 'やわらか'], ['glow', '光る'], ['focus', 'しぼる']]) {
-        const b = el('button', mode === k ? 'on' : '', l); b.type = 'button';
-        b.title = k === 'focus' ? '選んだカテゴリ・ノートのつながりだけを出す' : '';
+      for (const [k, l, t] of [['all', 'すべて', 'すべてのノートを出す'], ['focus', 'しぼる', '選んだカテゴリ・ノートのつながりだけを出す']]) {
+        const b = el('button', mode === k ? 'on' : '', l); b.type = 'button'; b.title = t;
         b.addEventListener('click', () => { mode = k; renderBar(); kick(); });
         seg.append(b);
       }
+      const lb = el('button', 'ngLbl2' + (labels ? ' on' : ''), '名前'); lb.type = 'button'; lb.title = 'ノートの名前をいつも出す';
+      lb.addEventListener('click', () => { labels = !labels; renderBar(); kick(); });
       const fitB = el('button', 'ngFit'); fitB.type = 'button'; fitB.innerHTML = ic('scan'); fitB.title = '全体を見る';
       fitB.addEventListener('click', () => fit(true));
-      bar.append(seg, el('span', 'ngCount', `${nodes.filter(n => !n.hub).length} ノート・${noteLinks()} リンク`), fitB);
+      bar.append(seg, lb, el('span', 'ngCount', `${nodes.filter(n => !n.hub).length} ノート・${noteLinks()} リンク`), fitB);
     }
     function noteRow(n, sub) {
       const r = el('button', 'ngRow'); r.type = 'button';
@@ -382,7 +356,7 @@
       panel.innerHTML = '';
       const head = (color, kind, close = true) => {
         const h = el('div', 'ngPHead');
-        const dot = el('i', 'dot'); dot.style.background = color; dot.style.boxShadow = `0 0 8px ${color}`;
+        const dot = el('i', 'dot'); dot.style.background = color; 
         h.append(dot, el('span', 'kind', kind));
         if (close) { const x = el('button', 'ngClose', '閉じる'); x.type = 'button'; x.addEventListener('click', () => { sel = null; selGroup = null; renderPanel(); renderList(); kick(); }); h.append(x); }
         return h;
