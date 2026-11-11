@@ -90,8 +90,8 @@
   }
   let svgId = 0;
   // 小さな線のグラフ（下を色でうすくぬる）
-  function spark(vals, color, w = 120, h = 56) {
-    const id = 'sg' + ++svgId, max = Math.max(1, ...vals), min = Math.min(0, ...vals);
+  function spark(vals, color, w = 120, h = 56, fromZero = true) {
+    const id = 'sg' + ++svgId, max = fromZero ? Math.max(1, ...vals) : Math.max(...vals), min = fromZero ? Math.min(0, ...vals) : Math.min(...vals);
     const pts = vals.map((v, i) => [vals.length < 2 ? w : (i / (vals.length - 1)) * w, h - 3 - ((v - min) / (max - min || 1)) * (h - 8)]);
     const line = smoothPath(pts);
     return `<svg class="fSpark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">

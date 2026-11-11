@@ -5,7 +5,7 @@
   const isWide = () => mq.matches;
   document.documentElement.classList.toggle('wide', mq.matches);
   mq.addEventListener('change', () => { if (window.NotesApp) NotesApp.flush(); document.documentElement.classList.toggle('wide', mq.matches); render(); });
-  const TAB_ICON = { home: 'house', todo: 'list-todo', proj: 'folder-kanban', cal: 'calendar-days', notes: 'notebook-text', graph: 'orbit', money: 'wallet', sync: 'refresh-cw' };
+  const TAB_ICON = { home: 'house', todo: 'list-todo', proj: 'folder-kanban', cal: 'calendar-days', notes: 'notebook-text', graph: 'orbit', money: 'wallet', health: 'heart-pulse', sync: 'refresh-cw' };
   let noteDay = null, noteFolder = null;   // ノート一覧の絞り込み（サイドバーから）
 
   function railBtn(t) {
@@ -17,7 +17,7 @@
   }
   function renderRail() {
     const a = $('#railApps'); a.innerHTML = '';
-    ['home', 'todo', 'proj', 'cal', 'notes', 'graph', 'money'].forEach(t => a.append(railBtn(t)));
+    ['home', 'todo', 'proj', 'cal', 'notes', 'graph', 'money', 'health'].forEach(t => a.append(railBtn(t)));
     const bt = $('#railBottom'); bt.innerHTML = '';
     bt.append(railBtn('sync'));
   }
@@ -151,6 +151,26 @@
       const h = el('div', 'navCard fHelp');
       h.innerHTML = '<p>家計のデータは <code>Data/kakei.json</code>（マネーフォワードから作る）を読みます</p><p>ノートに書いた分も足されます：<code>- 💸 1,200 ランチ #食費</code>（出費）・<code>- 💰 250,000 給料</code>（収入）・<code>- 🏦 30,000 [[引越し貯金]]</code>（目標へ）</p><p>目標：ノートの先頭に <code>target: 400000</code>・<code>saved: 170000</code>・<code>due: 2027-04-30</code></p>';
       sb.append(h);
+    } else if (tab === 'health') {
+      const H = healthData();
+      sb.append(btn('btn primary wide', ['scale', '体重を書く'], () => weightSheet()));
+      if (H.goal) {
+        sb.append(sideTitle('目標'));
+        const n = el('nav', 'navCard');
+        n.append(nav('target', nameOf(H.goal.path), `${H.goal.weight}kg${H.goal.due ? '・' + sd(H.goal.due) : ''}`, false, () => openNote(H.goal.path)));
+        sb.append(n);
+      }
+      const notes = ['体の記録', '筋トレの記録', '筋トレの計画', 'ヘルスケア連携', '筋トレ連携'].map(nm => Object.keys(S.files).find(p => nameOf(p) === nm)).filter(Boolean);
+      if (notes.length) {
+        sb.append(sideTitle('ノート'));
+        const n = el('nav', 'navCard');
+        notes.forEach(p => n.append(nav('notebook-text', nameOf(p), '', false, () => openNote(p))));
+        sb.append(n);
+      }
+      sb.append(sideTitle('読むもの・書き方'));
+      const h = el('div', 'navCard fHelp');
+      h.innerHTML = '<p>体重はデイリーノートの「メモ」に <code>- 体重 70.5kg</code>（体脂肪は <code>- 体脂肪 18%</code>）</p><p>睡眠・歩数・心拍は iPhone のヘルスケア（<code>Data/health/health.csv</code>）、筋トレは筋トレメモ（<code>Data/kintore/sets.csv</code>）から読みます</p><p>目標：ノートの先頭に <code>goal_weight: 67</code>・<code>goal_due: 2027-02-28</code>（本文の「目標：67kg（2027-02-28）」も読みます）</p>';
+      sb.append(h);
     } else if (tab === 'graph') {
       sb.append(sideTitle('カテゴリ'));
       const ls = el('nav', 'navCard ngSide');
@@ -211,7 +231,7 @@
   // 中央だけ描き直す（サイドバーの入力欄のフォーカスを残すため）
   function redrawMain() {
     const main = $('#view'); main.innerHTML = '';
-    ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, money: renderMoney, sync: renderSync })[tab](main);
+    ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, money: renderMoney, health: renderHealth, sync: renderSync })[tab](main);
   }
   $('#sideSearch').addEventListener('click', focusSearch);
   // サイドバーを隠す・出す（タブごとに覚える）
@@ -230,7 +250,7 @@
     if (ntOn() && (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'n') { e.preventDefault(); NotesApp.newNote(); }
   });
 
-  const TITLES = { home: 'ホーム', todo: 'やること', proj: 'プロジェクト', cal: 'カレンダー', notes: 'ノート', graph: 'つながり', money: 'お金', sync: '同期' };
+  const TITLES = { home: 'ホーム', todo: 'やること', proj: 'プロジェクト', cal: 'カレンダー', notes: 'ノート', graph: 'つながり', money: 'お金', health: 'ヘルス', sync: '同期' };
   function switchTab(t) {
     if (editing && note && draft !== (S.files[note]?.text ?? '') && !confirm('保存していない変更があります。破棄しますか？')) return;
     if (t === 'notes' && tab === 'notes') { note = null; noteQuery = ''; }
@@ -361,7 +381,7 @@
       b.append(desk ? 'お試しのノートを表示中。「同期」からノートのフォルダを選ぶと、自分のノートになります' : 'お試しのノートを表示中。「同期」から GitHub につなぐと、自分のノートになります');
       main.append(b);
     }
-    ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, money: renderMoney, sync: renderSync })[tab](main);
+    ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, money: renderMoney, health: renderHealth, sync: renderSync })[tab](main);
   }
   document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
   // 下のメニュー：入りきらないときは左右にスライド。続きがある側の端をうすくする

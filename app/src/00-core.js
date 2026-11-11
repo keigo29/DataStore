@@ -104,7 +104,9 @@
   let editing = false, draft = '';
   let syncing = false;
 
+  let filesVersion = 0;           // recompute のたびに増える（作り直しのいらない計算の目印）
   function recompute() {
+    filesVersion++;
     dailyCfg = Daily.config(S.dailyJson);
     // daily-notes.json がないときは、「2026-11-10.md」のような名前のノートがいちばん多いフォルダをデイリーノートの場所にする
     if (!S.dailyJson) {
@@ -178,10 +180,11 @@
         'Projects/ほのぼの書店.md': f(`---\ncolor: "#005cff"\nlinks:\n  - GitLab https://gitlab.com/\n  - 設計書 https://example.com/design\n---\nSpring Boot のグループ開発。EC2（Tomcat・MySQL）にデプロイする。\n\n## タスク\n- [x] 要件のまとめ 🛫 ${d(-9)} 📅 ${d(-6)}\n- [x] 画面設計 🛫 ${d(-5)} 📅 ${d(-2)}\n- [ ] 注文画面の実装 🛫 ${d(-1)} 📅 ${d(4)}\n- [ ] テスト 🛫 ${d(5)} 📅 ${d(9)}\n- [ ] 発表 📅 ${d(12)} #節目\n`),
         'Projects/資格の勉強.md': f(`---\ncolor: "#00c230"\n---\n基本情報技術者試験。\n\n## タスク\n- [x] 1章 🛫 ${d(-12)} 📅 ${d(-8)}\n- [ ] 2章 🛫 ${d(-7)} 📅 ${d(-1)}\n- [ ] 3章 🛫 ${d(0)} 📅 ${d(6)}\n- [ ] 試験日 📅 ${d(20)} #節目\n`),
         'Projects/引越し貯金.md': f(`---\ncolor: "#1a9e5c"\ntags: [お金]\ntarget: 400000\nsaved: 170000\ndue: ${d(170)}\n---\n引越しのための貯金。\n\n## タスク\n- [ ] 毎月の積立額を決める 📅 ${d(9)}\n- [ ] 貯金 20万円\n- [ ] 引越し 📅 ${d(190)} #節目\n`),
+        'Projects/減量.md': f(`---\ncolor: "#ff7a1a"\ntags: [筋トレ]\ngoal_weight: 67\ngoal_due: ${d(110)}\n---\n筋肉を落とさずに、体脂肪を落とす。\n\n## タスク\n- [ ] 毎朝体重をはかってデイリーに書く\n`),
         'Spring Boot メモ.md': f(`---\nproject: 研修\ntags: [java, spring]\n---\n## よく使うアノテーション\n- \`@RestController\` … JSON を返す\n- \`@Transactional\` … まとめてコミット／ロールバック\n\n## 予定\n### ${d(5)}\n- 13:00 Spring 勉強会（社内）\n- [ ] 勉強会の資料を準備 #仕事\n\n> [!tip] ==大事==\n> Bean のスコープは基本シングルトン\n`),
       },
       dailyJson: JSON.stringify({ folder: '', format: 'YYYY/MM/DD/[デイリー]' }),
-      cfg: { 'Data/kakei.json': demoKakei(t) },
+      cfg: { 'Data/kakei.json': demoKakei(t), ...demoHealth(t) },
     };
   }
   // お試しの家計データ（家計アプリのバックアップと同じ形）
@@ -203,6 +206,29 @@
       if (rnd() < .05) add('expense', Math.round((2000 + rnd() * 5000) / 10) * 10, k, 'hobby', 'a2', '本・ゲーム');
     }
     return JSON.stringify({ version: 1, settings: { budget: 120000 }, accounts: [{ id: 'a1', name: '楽天銀行', type: 'bank', initial: 120000, order: 1 }, { id: 'a2', name: 'PayPay銀行', type: 'bank', initial: 30000, order: 2 }], txs });
+  }
+
+  // お試しの体の記録（ヘルスケアの CSV・筋トレメモの CSV と同じ形）
+  function demoHealth(t) {
+    let seed = 11; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    const h = ['date,weight_kg,body_fat_pct,sleep_min,steps,resting_hr,active_kcal'];
+    const s = ['date,start,session_id,effort,exercise,muscle_group,bodyweight,set_no,kind,weight_kg,reps,rir,assisted,e1rm_kg,volume_kg,note'];
+    const menu = [[['ベンチプレス', '胸', 72.5, 5], ['懸垂', '背中', 0, 8], ['ショルダープレス', '肩', 30, 8]], [['スクワット', '脚', 90, 5], ['ルーマニアンデッドリフト', '脚', 80, 8], ['プランク', '体幹', 0, 1]]];
+    let n = 0;
+    for (let i = -44; i <= 0; i++) {
+      const k = addDays(t, i), w = 70.2 - i * 0.032 + (rnd() - .5) * .8;
+      if (rnd() < .85) h.push([k, w.toFixed(1), (19.0 - i * 0.02 + (rnd() - .5)).toFixed(1), Math.round(330 + rnd() * 140), Math.round(5000 + rnd() * 6000), Math.round(56 + rnd() * 6), Math.round(250 + rnd() * 250)].join(','));
+      const wd = parseKey(k).getDay();
+      if (i < 0 && (wd === 1 || wd === 3 || wd === 5)) {
+        const m = menu[n++ % 2], prog = (44 + i) / 44;
+        m.forEach(([ex, g, kg0, reps]) => [1, 2, 3].forEach(no => {
+          const wt = kg0 ? Math.round((kg0 + prog * 2.5) / 2.5) * 2.5 : 0, r = reps + (kg0 ? 0 : Math.round(prog * 3));
+          const e1 = wt ? (wt * (1 + r / 30)).toFixed(1) : '';
+          s.push([k, '19:00', 'demo' + n, '', ex, g, kg0 ? 0 : 70, no, 'normal', wt, r, '', 0, e1, wt * r, ''].join(','));
+        }));
+      }
+    }
+    return { 'Data/health/health.csv': h.join('\n') + '\n', 'Data/kintore/sets.csv': s.join('\n') + '\n' };
   }
 
   // ---------- GitHub ----------
@@ -270,7 +296,7 @@
     S = { files: next, dailyJson: cfgFiles['daily-notes.json'] || null, cfg: cfgFiles, bins, dirs: [...new Set([...dirs, ...(S.dirs || []).filter(d => Bridge.virtualDir(d))])], isVault, syncedAt: Date.now(), error: null };
     if (tree.truncated) toast('ファイルが多すぎて、一部しか読めていません', 'warn');
   }
-  const DATA_FILES = ['Data/kakei.json'];
+  const DATA_FILES = ['Data/kakei.json', 'Data/health/health.csv', 'Data/kintore/sets.csv'];
   const fullPath = rel => ((cfg.prefix || '').replace(/^\/+|\/+$/g, '') ? cfg.prefix.replace(/^\/+|\/+$/g, '') + '/' : '') + rel;
   async function putFile(rel, text, sha, message) {
     if (desk) {

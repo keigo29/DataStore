@@ -105,7 +105,9 @@
   let editing = false, draft = '';
   let syncing = false;
 
+  let filesVersion = 0;           // recompute のたびに増える（作り直しのいらない計算の目印）
   function recompute() {
+    filesVersion++;
     dailyCfg = Daily.config(S.dailyJson);
     // daily-notes.json がないときは、「2026-11-10.md」のような名前のノートがいちばん多いフォルダをデイリーノートの場所にする
     if (!S.dailyJson) {
@@ -179,10 +181,11 @@
         'Projects/ほのぼの書店.md': f(`---\ncolor: "#005cff"\nlinks:\n  - GitLab https://gitlab.com/\n  - 設計書 https://example.com/design\n---\nSpring Boot のグループ開発。EC2（Tomcat・MySQL）にデプロイする。\n\n## タスク\n- [x] 要件のまとめ 🛫 ${d(-9)} 📅 ${d(-6)}\n- [x] 画面設計 🛫 ${d(-5)} 📅 ${d(-2)}\n- [ ] 注文画面の実装 🛫 ${d(-1)} 📅 ${d(4)}\n- [ ] テスト 🛫 ${d(5)} 📅 ${d(9)}\n- [ ] 発表 📅 ${d(12)} #節目\n`),
         'Projects/資格の勉強.md': f(`---\ncolor: "#00c230"\n---\n基本情報技術者試験。\n\n## タスク\n- [x] 1章 🛫 ${d(-12)} 📅 ${d(-8)}\n- [ ] 2章 🛫 ${d(-7)} 📅 ${d(-1)}\n- [ ] 3章 🛫 ${d(0)} 📅 ${d(6)}\n- [ ] 試験日 📅 ${d(20)} #節目\n`),
         'Projects/引越し貯金.md': f(`---\ncolor: "#1a9e5c"\ntags: [お金]\ntarget: 400000\nsaved: 170000\ndue: ${d(170)}\n---\n引越しのための貯金。\n\n## タスク\n- [ ] 毎月の積立額を決める 📅 ${d(9)}\n- [ ] 貯金 20万円\n- [ ] 引越し 📅 ${d(190)} #節目\n`),
+        'Projects/減量.md': f(`---\ncolor: "#ff7a1a"\ntags: [筋トレ]\ngoal_weight: 67\ngoal_due: ${d(110)}\n---\n筋肉を落とさずに、体脂肪を落とす。\n\n## タスク\n- [ ] 毎朝体重をはかってデイリーに書く\n`),
         'Spring Boot メモ.md': f(`---\nproject: 研修\ntags: [java, spring]\n---\n## よく使うアノテーション\n- \`@RestController\` … JSON を返す\n- \`@Transactional\` … まとめてコミット／ロールバック\n\n## 予定\n### ${d(5)}\n- 13:00 Spring 勉強会（社内）\n- [ ] 勉強会の資料を準備 #仕事\n\n> [!tip] ==大事==\n> Bean のスコープは基本シングルトン\n`),
       },
       dailyJson: JSON.stringify({ folder: '', format: 'YYYY/MM/DD/[デイリー]' }),
-      cfg: { 'Data/kakei.json': demoKakei(t) },
+      cfg: { 'Data/kakei.json': demoKakei(t), ...demoHealth(t) },
     };
   }
   // お試しの家計データ（家計アプリのバックアップと同じ形）
@@ -204,6 +207,29 @@
       if (rnd() < .05) add('expense', Math.round((2000 + rnd() * 5000) / 10) * 10, k, 'hobby', 'a2', '本・ゲーム');
     }
     return JSON.stringify({ version: 1, settings: { budget: 120000 }, accounts: [{ id: 'a1', name: '楽天銀行', type: 'bank', initial: 120000, order: 1 }, { id: 'a2', name: 'PayPay銀行', type: 'bank', initial: 30000, order: 2 }], txs });
+  }
+
+  // お試しの体の記録（ヘルスケアの CSV・筋トレメモの CSV と同じ形）
+  function demoHealth(t) {
+    let seed = 11; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    const h = ['date,weight_kg,body_fat_pct,sleep_min,steps,resting_hr,active_kcal'];
+    const s = ['date,start,session_id,effort,exercise,muscle_group,bodyweight,set_no,kind,weight_kg,reps,rir,assisted,e1rm_kg,volume_kg,note'];
+    const menu = [[['ベンチプレス', '胸', 72.5, 5], ['懸垂', '背中', 0, 8], ['ショルダープレス', '肩', 30, 8]], [['スクワット', '脚', 90, 5], ['ルーマニアンデッドリフト', '脚', 80, 8], ['プランク', '体幹', 0, 1]]];
+    let n = 0;
+    for (let i = -44; i <= 0; i++) {
+      const k = addDays(t, i), w = 70.2 - i * 0.032 + (rnd() - .5) * .8;
+      if (rnd() < .85) h.push([k, w.toFixed(1), (19.0 - i * 0.02 + (rnd() - .5)).toFixed(1), Math.round(330 + rnd() * 140), Math.round(5000 + rnd() * 6000), Math.round(56 + rnd() * 6), Math.round(250 + rnd() * 250)].join(','));
+      const wd = parseKey(k).getDay();
+      if (i < 0 && (wd === 1 || wd === 3 || wd === 5)) {
+        const m = menu[n++ % 2], prog = (44 + i) / 44;
+        m.forEach(([ex, g, kg0, reps]) => [1, 2, 3].forEach(no => {
+          const wt = kg0 ? Math.round((kg0 + prog * 2.5) / 2.5) * 2.5 : 0, r = reps + (kg0 ? 0 : Math.round(prog * 3));
+          const e1 = wt ? (wt * (1 + r / 30)).toFixed(1) : '';
+          s.push([k, '19:00', 'demo' + n, '', ex, g, kg0 ? 0 : 70, no, 'normal', wt, r, '', 0, e1, wt * r, ''].join(','));
+        }));
+      }
+    }
+    return { 'Data/health/health.csv': h.join('\n') + '\n', 'Data/kintore/sets.csv': s.join('\n') + '\n' };
   }
 
   // ---------- GitHub ----------
@@ -271,7 +297,7 @@
     S = { files: next, dailyJson: cfgFiles['daily-notes.json'] || null, cfg: cfgFiles, bins, dirs: [...new Set([...dirs, ...(S.dirs || []).filter(d => Bridge.virtualDir(d))])], isVault, syncedAt: Date.now(), error: null };
     if (tree.truncated) toast('ファイルが多すぎて、一部しか読めていません', 'warn');
   }
-  const DATA_FILES = ['Data/kakei.json'];
+  const DATA_FILES = ['Data/kakei.json', 'Data/health/health.csv', 'Data/kintore/sets.csv'];
   const fullPath = rel => ((cfg.prefix || '').replace(/^\/+|\/+$/g, '') ? cfg.prefix.replace(/^\/+|\/+$/g, '') + '/' : '') + rel;
   async function putFile(rel, text, sha, message) {
     if (desk) {
@@ -2359,8 +2385,8 @@
   }
   let svgId = 0;
   // 小さな線のグラフ（下を色でうすくぬる）
-  function spark(vals, color, w = 120, h = 56) {
-    const id = 'sg' + ++svgId, max = Math.max(1, ...vals), min = Math.min(0, ...vals);
+  function spark(vals, color, w = 120, h = 56, fromZero = true) {
+    const id = 'sg' + ++svgId, max = fromZero ? Math.max(1, ...vals) : Math.max(...vals), min = fromZero ? Math.min(0, ...vals) : Math.min(...vals);
     const pts = vals.map((v, i) => [vals.length < 2 ? w : (i / (vals.length - 1)) * w, h - 3 - ((v - min) / (max - min || 1)) * (h - 8)]);
     const line = smoothPath(pts);
     return `<svg class="fSpark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
@@ -2568,6 +2594,339 @@
     setTimeout(() => nm.focus(), 50);
   }
 
+  // ================= ヘルス（体重・睡眠・歩数・筋トレ） =================
+  // 読むもの：
+  //   Data/health/health.csv  … iPhone のヘルスケア（ショートカット → Cmd の Actions が作る）。date,weight_kg,body_fat_pct,sleep_min,steps,resting_hr,active_kcal
+  //   Data/kintore/sets.csv   … 筋トレメモの全セット（date,start,session_id,exercise,muscle_group,kind,weight_kg,reps,e1rm_kg,volume_kg …）
+  //   デイリーノートの「- 体重 70.5kg」「- 体脂肪 18%」の行（ヘルスケアにない日をうめる）
+  //   目標：ノートの先頭の goal_weight: 67・goal_due: 2027-02-28、または本文の「目標：67kg（2027-02-28）」
+  let healthRange = 30;          // 見る日数（0 は全部）
+  const HC = { weight: '#38bdf8', avg: '#a78bfa', sleep: '#818cf8', steps: '#4ade80', lift: '#fb923c', goal: '#f472b6' };
+
+  // CSV を読む（"..." の中のカンマ・改行もそのまま）
+  function parseCSV(text) {
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; continue; }
+      if (c === '"') q = true;
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); cell = ''; if (row.some(x => x !== '')) rows.push(row); row = []; }
+      else cell += c;
+    }
+    row.push(cell); if (row.some(x => x !== '')) rows.push(row);
+    const head = (rows.shift() || []).map(h => h.trim());
+    return rows.map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? '').trim()])));
+  }
+  const num = v => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
+
+  let healthCache = { key: null, v: null };
+  function healthData() {
+    const hcsv = S.cfg?.['Data/health/health.csv'] || '', scsv = S.cfg?.['Data/kintore/sets.csv'] || '';
+    const key = hcsv.length + ':' + scsv.length + ':' + hcsv.slice(-80) + scsv.slice(-80) + ':' + filesVersion;
+    if (healthCache.key === key) return healthCache.v;
+    // 日ごとの体の数字
+    const days = new Map();
+    const put = (d, k, v) => { if (v == null || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return; const o = days.get(d) || { date: d }; if (o[k] == null) o[k] = v; days.set(d, o); };
+    for (const r of parseCSV(hcsv)) {
+      put(r.date, 'weight', num(r.weight_kg)); put(r.date, 'fat', num(r.body_fat_pct));
+      put(r.date, 'sleep', num(r.sleep_min) ?? (num(r.sleep_h) != null ? num(r.sleep_h) * 60 : null));
+      put(r.date, 'steps', num(r.steps)); put(r.date, 'rhr', num(r.resting_hr)); put(r.date, 'kcal', num(r.active_kcal));
+    }
+    // デイリーノートの「- 体重 70.5kg」
+    for (const [p, f] of Object.entries(S.files)) {
+      if (!/体重|体脂肪/.test(f.text)) continue;
+      const d = Daily.dateOf(p, dailyCfg);   // デイリーノートだけ（調べもののノートの「体重 70kg の人は…」は数えない）
+      if (!d) continue;
+      for (const m of f.text.matchAll(/^\s*[-*]\s+体重\s*[:：]?\s*(\d{2,3}(?:\.\d+)?)\s*kg/gim)) put(d, 'weight', +m[1]);
+      for (const m of f.text.matchAll(/^\s*[-*]\s+体脂肪率?\s*[:：]?\s*(\d{1,2}(?:\.\d+)?)\s*%/gim)) put(d, 'fat', +m[1]);
+    }
+    const list = [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
+    // 筋トレ（セッションごと）
+    const ses = new Map();
+    for (const r of parseCSV(scsv)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date)) continue;
+      const id = r.session_id || r.date + r.start;
+      const s = ses.get(id) || { id, date: r.date, start: r.start || '', volume: 0, sets: 0, ex: new Map(), groups: new Set() };
+      if (r.kind && !/normal|本番/.test(r.kind)) { ses.set(id, s); continue; }   // ウォームアップは数えない
+      s.sets++; s.volume += num(r.volume_kg) || 0;
+      if (r.muscle_group) s.groups.add(r.muscle_group);
+      const e = s.ex.get(r.exercise) || { name: r.exercise, group: r.muscle_group, best: 0, e1rm: 0, reps: 0 };
+      e.best = Math.max(e.best, num(r.weight_kg) || 0); e.e1rm = Math.max(e.e1rm, num(r.e1rm_kg) || 0); e.reps += num(r.reps) || 0;
+      s.ex.set(r.exercise, e); ses.set(id, s);
+    }
+    const sessions = [...ses.values()].filter(s => s.sets).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    const v = { days: list, sessions, goal: weightGoal(), hasHealth: !!hcsv.trim(), hasLift: !!scsv.trim() };
+    healthCache = { key, v };
+    return v;
+  }
+  // 減量の目標
+  function weightGoal() {
+    for (const [p, f] of Object.entries(S.files)) {
+      const { props } = splitFrontmatter(f.text);
+      const get = k => (props || []).find(x => x.k.toLowerCase() === k)?.v[0];
+      const w = num(get('goal_weight') || get('目標体重'));
+      if (w) { const due = get('goal_due') || get('due'); return { weight: w, due: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, path: p }; }
+    }
+    for (const [p, f] of Object.entries(S.files)) {
+      if (!/減量|ダイエット|体重/.test(p)) continue;
+      const m = f.text.match(/目標[^\n：:]*[：:]\s*\**\s*(\d{2,3}(?:\.\d+)?)\s*kg\s*[（(]\s*(\d{4}-\d{2}-\d{2})/);
+      if (m) return { weight: +m[1], due: m[2], path: p };
+    }
+    return null;
+  }
+  // 7日の平均（その日までの7日で、記録のある日）
+  function avg7(list, k, date) {
+    const from = addDays(date, -6);
+    const v = list.filter(x => x.date >= from && x.date <= date && x[k] != null).map(x => x[k]);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  }
+  const kg = n => n == null ? '—' : n.toFixed(1);
+  const hm = m => m == null ? '—' : `${Math.floor(m / 60)}時間${String(Math.round(m % 60)).padStart(2, '0')}分`;
+
+  // 体重のグラフ：日ごとの点・7日平均の線・目標の線。押す・乗せると、その日の数字
+  function weightChart(pts, goal) {
+    const W = 600, H = 220, n = pts.length;
+    const vals = pts.flatMap(p => [p.weight, p.avg]).filter(v => v != null);
+    if (goal) vals.push(goal.weight);
+    let lo = Math.min(...vals), hi = Math.max(...vals); const pad = Math.max(0.4, (hi - lo) * 0.12); lo -= pad; hi += pad;
+    const X = i => (n < 2 ? W / 2 : (i / (n - 1)) * W), Y = v => H - 8 - ((v - lo) / (hi - lo || 1)) * (H - 22);
+    const avgPts = pts.map((p, i) => p.avg != null ? [X(i), Y(p.avg)] : null).filter(Boolean);
+    const id = 'wg' + ++svgId;
+    const box = el('div', 'fBig hW');
+    const ticks = [0.25, 0.5, 0.75].map(r => lo + (hi - lo) * (1 - r));
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${HC.avg}" stop-opacity=".28"/><stop offset="1" stop-color="${HC.avg}" stop-opacity="0"/></linearGradient></defs>
+      <g class="fGrid">${ticks.map(t => `<line x1="0" x2="${W}" y1="${Y(t)}" y2="${Y(t)}"/>`).join('')}</g>
+      ${goal ? `<line class="hGoalLine" x1="0" x2="${W}" y1="${Y(goal.weight)}" y2="${Y(goal.weight)}" stroke="${HC.goal}" vector-effect="non-scaling-stroke"/>` : ''}
+      ${avgPts.length > 1 ? `<path d="${smoothPath(avgPts)} L${avgPts[avgPts.length - 1][0]},${H} L${avgPts[0][0]},${H} Z" fill="url(#${id})"/><path d="${smoothPath(avgPts)}" fill="none" stroke="${HC.avg}" stroke-width="2.4" vector-effect="non-scaling-stroke" class="fGlow" style="--g:${HC.avg}"/>` : ''}
+    </svg>`;
+    // 点は丸のまま見せたいので、SVG の上に重ねる
+    const dots = el('div', 'hDots');
+    pts.forEach((p, i) => { if (p.weight == null) return; const d = el('i'); d.style.left = (X(i) / W) * 100 + '%'; d.style.top = (Y(p.weight) / H) * 100 + '%'; dots.append(d); });
+    box.append(dots);
+    if (goal) { const g = el('span', 'hGoalTag', `目標 ${kg(goal.weight)}kg`); g.style.top = (Y(goal.weight) / H) * 100 + '%'; box.append(g); }
+    const ax = el('div', 'hAxis'); ticks.forEach(t => { const s = el('span', '', t.toFixed(1)); s.style.top = (Y(t) / H) * 100 + '%'; ax.append(s); }); box.append(ax);
+    const tip = el('div', 'fTip'); tip.hidden = true;
+    const vl = el('i', 'fVline'); vl.hidden = true;
+    box.append(vl, tip);
+    let raf = 0, lastX = 0;
+    const at = () => {
+      raf = 0;
+      const r = box.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.round(((lastX - r.left) / r.width) * (n - 1))));
+      const p = pts[i], px = (X(i) / W) * r.width, v = p.weight ?? p.avg;
+      if (v == null) return;
+      const py = (Y(v) / H) * r.height;
+      tip.hidden = vl.hidden = false;
+      vl.style.left = px + 'px'; vl.style.top = py + 'px';
+      tip.textContent = `${md(p.date)}  ${p.weight != null ? kg(p.weight) + 'kg' : '記録なし'}${p.avg != null ? `（平均 ${kg(p.avg)}）` : ''}`;
+      tip.style.left = Math.max(80, Math.min(r.width - 80, px)) + 'px'; tip.style.top = Math.max(0, py - 40) + 'px';
+    };
+    const move = e => { lastX = e.clientX; if (!raf) raf = requestAnimationFrame(at); };
+    box.addEventListener('pointermove', move);
+    box.addEventListener('pointerdown', move);
+    box.addEventListener('pointerleave', () => { tip.hidden = vl.hidden = true; });
+    return box;
+  }
+  // 棒のグラフ（睡眠・歩数・週の挙上量）
+  function bars(vals, labels, color, fmt, goalLine) {
+    const TH = 84;   // 棒の高さ（px）
+    const box = el('div', 'hBars');
+    const max = Math.max(1, goalLine || 0, ...vals.map(v => v || 0)) * 1.08;
+    const every = Math.ceil(vals.length / 7);
+    vals.forEach((v, i) => {
+      const c = el('div', 'hBar' + (v == null ? ' none' : ''));
+      c.title = `${labels[i]}  ${v == null ? '記録なし' : fmt(v)}`;
+      const t = el('span', 't'); const b2 = el('i'); b2.style.height = v == null ? '3px' : Math.max(3, (v / max) * TH) + 'px'; b2.style.setProperty('--g', color); t.append(b2);
+      c.append(t, el('small', '', (vals.length - 1 - i) % every === 0 ? labels[i] : ''));
+      box.append(c);
+    });
+    if (goalLine) { const g = el('span', 'hBarGoal'); g.style.bottom = `calc(18px + ${(goalLine / max) * TH}px)`; g.title = '目安 ' + fmt(goalLine); box.append(g); }
+    return box;
+  }
+
+  function renderHealth(main) {
+    const H = healthData(), tk = todayKey();
+    const wrap = el('div', 'fin hl');
+    const bar = el('div', 'fBar');
+    const seg = el('div', 'seg hSeg');
+    [[30, '30日'], [90, '90日'], [0, '全部']].forEach(([v, l]) => seg.append(btn(healthRange === v ? 'on' : '', l, () => { healthRange = v; render(); })));
+    bar.append(seg, btn('btn small white', ['scale', '体重を書く'], () => weightSheet()));
+    const lastH = H.days.length ? H.days[H.days.length - 1].date : '';
+    if (lastH) bar.append(el('span', 'fSub fLast', `体の記録：${md(lastH)} まで`));
+    wrap.append(bar);
+    if (!H.days.length && !H.sessions.length) {
+      const c = el('div', 'fCard fEmptyCard');
+      c.append(el('h3', '', '体の記録がまだありません'));
+      c.insertAdjacentHTML('beforeend', '<p class="fSub">デイリーノートに <code>- 体重 70.5kg</code> と書くか、上の「体重を書く」で入れます。iPhone のヘルスケアの数字は <code>Data/health/health.csv</code>、筋トレメモの記録は <code>Data/kintore/sets.csv</code> から読みます。</p>');
+      wrap.append(c); main.append(wrap); return;
+    }
+    const from = healthRange ? addDays(tk, -(healthRange - 1)) : (H.days[0]?.date || tk);
+    const range = []; for (let k = from; k <= tk; k = addDays(k, 1)) range.push(k);
+    const byDate = new Map(H.days.map(d => [d.date, d]));
+    const wdays = H.days.filter(d => d.weight != null);
+    const lastW = wdays[wdays.length - 1];
+    const curAvg = lastW ? avg7(H.days, 'weight', lastW.date) : null, weekAgo = lastW ? avg7(H.days, 'weight', addDays(lastW.date, -7)) : null;
+    const goal = H.goal;
+
+    // 上の数字のカード
+    const kpi = (title, sub, big, unit, color, vals, delta, fromZero = true) => {
+      const c = el('div', 'fCard fKpi'); c.style.setProperty('--k', color);
+      c.append(el('h3', '', title), el('p', 'fSub', sub));
+      const v = el('div', 'fVal'); v.append(big); if (unit) v.append(el('small', '', ' ' + unit)); c.append(v);
+      if (delta) c.append(delta);
+      const ok = vals.filter(x => x != null);
+      if (new Set(ok.map(x => x.toFixed(2))).size > 1) { const sp = el('div', 'fSpk'); sp.innerHTML = spark(ok, color, 120, 56, fromZero); c.append(sp); }
+      return c;
+    };
+    const dl = (txt, good) => { const s = el('span', 'fDelta'); if (txt) s.append(el('b', good == null ? '' : good ? 'g' : 'r', txt[0]), txt[1]); return s; };
+    const last14 = Array.from({ length: 14 }, (_, i) => addDays(tk, i - 13));
+    const ks = el('div', 'fKpis hKpis');
+    const wd = curAvg != null && weekAgo != null ? curAvg - weekAgo : null;
+    ks.append(kpi('体重', lastW ? `7日平均（${sd(lastW.date)} は ${kg(lastW.weight)}kg）` : 'まだ記録がありません', kg(curAvg), 'kg', HC.weight,
+      range.map(k => avg7(H.days, 'weight', k)), wd == null ? null : dl([`${wd > 0 ? '+' : wd < 0 ? '−' : '±'}${Math.abs(wd).toFixed(2)}kg`, ' 1週間で'], wd <= 0), false));
+    if (goal) {
+      const rest = curAvg != null ? curAvg - goal.weight : null;
+      let sub = `目標 ${kg(goal.weight)}kg${goal.due ? `・${sd(goal.due)} まで` : ''}`, d2 = null;
+      if (rest != null && goal.due) {
+        const weeks = Math.max(0.1, (parseKey(goal.due) - parseKey(tk)) / 864e5 / 7), need = rest / weeks;
+        d2 = rest <= 0 ? dl(['達成', ' おめでとう'], true) : dl([`週 ${need.toFixed(2)}kg`, ` 落とせば間に合う${wd != null ? `（いまは週 ${(-wd).toFixed(2)}kg）` : ''}`], wd != null ? -wd >= need * 0.9 : null);
+      }
+      ks.append(kpi('目標まで', sub, rest == null ? '—' : rest <= 0 ? '0.0' : kg(rest), 'kg', HC.goal, [], d2));
+    }
+    const sl = last14.map(k => byDate.get(k)?.sleep ?? null), sAvg = avg7(H.days, 'sleep', tk);
+    ks.append(kpi('睡眠', '7日平均', sAvg == null ? '—' : `${Math.floor(sAvg / 60)}:${String(Math.round(sAvg % 60)).padStart(2, '0')}`, sAvg == null ? '' : '時間', HC.sleep, sl, sAvg == null ? dl(['', 'ヘルスケアから入ります'], null) : dl([sAvg >= 420 ? 'よく寝ています' : '7時間より短め', ''], sAvg >= 420)));
+    const st = last14.map(k => byDate.get(k)?.steps ?? null), stAvg = avg7(H.days, 'steps', tk);
+    ks.append(kpi('歩数', '7日平均', stAvg == null ? '—' : Math.round(stAvg).toLocaleString('ja-JP'), stAvg == null ? '' : '歩', HC.steps, st, stAvg == null ? dl(['', 'ヘルスケアから入ります'], null) : null));
+    const wk0 = addDays(tk, -((parseKey(tk).getDay() + 6) % 7));   // 今週の月曜
+    const thisWeek = H.sessions.filter(s => s.date >= wk0);
+    const wkVol = Array.from({ length: 8 }, (_, i) => { const a = addDays(wk0, (i - 7) * 7), b = addDays(a, 6); return H.sessions.filter(s => s.date >= a && s.date <= b).reduce((x, s) => x + s.volume, 0); });
+    ks.append(kpi('筋トレ', '今週（月曜から）', String(thisWeek.length), '回', HC.lift, wkVol,
+      dl([`${Math.round(thisWeek.reduce((a, s) => a + s.volume, 0)).toLocaleString('ja-JP')}kg`, ' 今週の総挙上量'], null)));
+    wrap.append(ks);
+
+    // 体重の流れ ＋ 体の数字
+    const row = el('div', 'fRow');
+    const ch = el('div', 'fCard fChart');
+    ch.append(el('h3', '', '体重の流れ'), el('p', 'fSub', '点：その日の体重・線：7日平均' + (goal ? '・ピンク：目標' : '')));
+    const pts = range.map(k => ({ date: k, weight: byDate.get(k)?.weight ?? null, avg: avg7(H.days, 'weight', k) }));
+    ch.append(pts.some(p => p.weight != null) ? weightChart(pts, goal) : el('div', 'fEmpty', 'この期間の体重はまだありません。デイリーノートに「- 体重 70.5kg」と書くと出ます'));
+    const inR = wdays.filter(d => d.date >= from);
+    const ft = el('div', 'fFoot');
+    const f1 = el('div'); f1.append(el('small', '', 'この期間'), el('b', '', inR.length > 1 ? `${(inR[inR.length - 1].weight - inR[0].weight > 0 ? '+' : '')}${(inR[inR.length - 1].weight - inR[0].weight).toFixed(1)}kg` : '—'));
+    const f2 = el('div', 'r'); f2.append(el('small', '', '記録した日'), el('span', '', `${inR.length}日 / ${range.length}日`));
+    ft.append(f1, f2); ch.append(ft);
+    row.append(ch);
+    const side = el('div', 'fCard hSide');
+    side.append(el('h3', '', '睡眠と歩数'), el('p', 'fSub', '直近14日（ヘルスケアから）'));
+    if (sl.some(v => v != null) || st.some(v => v != null)) {
+      side.append(el('p', 'hLbl', '睡眠'), bars(sl, last14.map(sd), HC.sleep, hm, 420));
+      side.append(el('p', 'hLbl', '歩数'), bars(st, last14.map(sd), HC.steps, v => Math.round(v).toLocaleString('ja-JP') + '歩', 8000));
+    } else {
+      side.append(el('div', 'fEmpty', 'まだありません。iPhone のショートカットで毎朝ヘルスケアの数字を送ると入ります'));
+      const hn = Object.keys(S.files).find(p => nameOf(p) === 'ヘルスケア連携');
+      if (hn) side.append(btn('btn small white', ['book-open', '作り方を見る'], () => openNote(hn)));
+    }
+    const rows2 = [['安静時心拍', 'rhr', 'bpm'], ['体脂肪率', 'fat', '%'], ['活動カロリー', 'kcal', 'kcal']];
+    const mini = el('div', 'hMini');
+    for (const [l, k, u] of rows2) { const a = avg7(H.days, k, tk); if (a == null) continue; const d = el('div'); d.append(el('small', '', l), el('b', '', `${k === 'fat' ? a.toFixed(1) : Math.round(a).toLocaleString('ja-JP')} ${u}`)); mini.append(d); }
+    if (mini.childElementCount) side.append(mini);
+    row.append(side);
+    wrap.append(row);
+
+    // 筋トレ：種目ごとの重さ ＋ 週の挙上量
+    if (H.sessions.length) {
+      const row2 = el('div', 'fRow');
+      const lc = el('div', 'fCard fCats');
+      lc.append(el('h3', '', '種目ごとの重さ'), el('p', 'fSub', '推定1RM の流れ（減量中も重さを落とさない）'));
+      const byEx = new Map();
+      for (const s of H.sessions) for (const e of s.ex.values()) { const a = byEx.get(e.name) || { name: e.name, group: e.group, list: [] }; a.list.push({ date: s.date, best: e.best, e1rm: e.e1rm, reps: e.reps }); byEx.set(e.name, a); }
+      const top = [...byEx.values()].sort((a, b) => b.list.length - a.list.length).slice(0, 6);
+      for (const e of top) {
+        const r = el('div', 'fCat');
+        const ic = el('span', 'fIc', (e.group || e.name).slice(0, 1)); ic.style.background = HC.lift;
+        const lst = e.list[e.list.length - 1], prev = e.list[e.list.length - 2];
+        const key = lst.e1rm || lst.best ? 'e1rm' : 'reps';
+        const val = x => (key === 'e1rm' ? x.e1rm || x.best : x.reps);
+        const diff = prev ? val(lst) - val(prev) : 0;
+        const nm = el('span', 'fNm');
+        nm.append(el('b', '', e.name), el('small', '', key === 'e1rm' ? `${sd(lst.date)}・最高 ${lst.best}kg・1RM ${(lst.e1rm || lst.best).toFixed(1)}kg${prev ? `（${diff >= 0 ? '+' : ''}${diff.toFixed(1)}）` : ''}` : `${sd(lst.date)}・${lst.reps}回（自重）${prev ? `（${diff >= 0 ? '+' : ''}${diff}）` : ''}`));
+        const sp = el('span', 'fCs'); sp.innerHTML = spark(e.list.map(val), HC.lift, 90, 26, false);
+        r.append(ic, nm, sp); lc.append(r);
+      }
+      row2.append(lc);
+      const vc = el('div', 'fCard hSide');
+      vc.append(el('h3', '', '週ごとの総挙上量'), el('p', 'fSub', '直近8週（本番セットの 重さ×回数）'));
+      vc.append(bars(wkVol, Array.from({ length: 8 }, (_, i) => sd(addDays(wk0, (i - 7) * 7))), HC.lift, v => Math.round(v).toLocaleString('ja-JP') + 'kg'));
+      const cnt = Array.from({ length: 8 }, (_, i) => { const a = addDays(wk0, (i - 7) * 7), b = addDays(a, 6); return H.sessions.filter(s => s.date >= a && s.date <= b).length; });
+      const ft2 = el('div', 'fFoot'); const a1 = el('div'); a1.append(el('small', '', '8週の回数'), el('b', '', `${cnt.reduce((a, b) => a + b, 0)}回`));
+      const a2 = el('div', 'r'); a2.append(el('small', '', '1週あたり'), el('span', '', `${(cnt.reduce((a, b) => a + b, 0) / 8).toFixed(1)}回`));
+      ft2.append(a1, a2); vc.append(ft2);
+      row2.append(vc);
+      wrap.append(row2);
+
+      // 最近のトレーニング
+      const lc2 = el('div', 'fCard fList');
+      const lh = el('div', 'fHead'); lh.append(el('h3', '', '最近のトレーニング'));
+      const kn = Object.keys(S.files).find(p => nameOf(p) === '筋トレの記録');
+      if (kn) lh.append(btn('btn small white', ['book-open', '筋トレの記録'], () => openNote(kn)));
+      lc2.append(lh);
+      for (const s of H.sessions.slice(-8).reverse()) {
+        const np = Object.keys(S.files).find(p => p.startsWith(s.date.replace(/-/g, '/') + '/') && /筋トレ/.test(nameOf(p)));
+        const r = el(np ? 'button' : 'div', 'fRec');
+        if (np) { r.type = 'button'; r.addEventListener('click', () => openNote(np)); }
+        const ic = el('span', 'fIc sm', [...s.groups][0]?.slice(0, 1) || '筋'); ic.style.background = HC.lift;
+        const nm = el('span', 'fRn'); nm.append(el('b', '', [...s.ex.keys()].join('・')), el('small', '', [md(s.date), s.start, `${s.sets}セット`, [...s.groups].join('・')].filter(Boolean).join('・')));
+        r.append(ic, nm, el('span', 'fRa', `${Math.round(s.volume).toLocaleString('ja-JP')}kg`));
+        lc2.append(r);
+      }
+      wrap.append(lc2);
+    }
+    main.append(wrap);
+  }
+
+  // 体重を今日のデイリーノートの「メモ」に書く（- 体重 70.5kg [[減量]]）
+  function weightSheet() {
+    const inn = $('#sheetIn');
+    sheetHead(inn, '体重を書く');
+    const tk = todayKey();
+    const fld = (label, input) => { const l = el('label', 'fld'); l.append(el('span', '', label), input); return l; };
+    const w = el('input', 'inp'); w.inputMode = 'decimal'; w.placeholder = '例：70.5';
+    const lastW = healthData().days.filter(d => d.weight != null).pop();
+    if (lastW) w.placeholder = `例：${kg(lastW.weight)}（${sd(lastW.date)}）`;
+    const ft = el('input', 'inp'); ft.inputMode = 'decimal'; ft.placeholder = 'なくても可';
+    const goal = healthData().goal;
+    inn.append(fld('体重（kg）', w), fld('体脂肪率（%）', ft), el('div', 'hint sub', `${relDay(tk)}のデイリーノートの「メモ」に書きます`));
+    const bs = el('div', 'shBtns');
+    const save = async () => {
+      const v = parseFloat(w.value.replace(/[^\d.]/g, ''));
+      if (!(v > 20 && v < 300)) { w.focus(); return; }
+      const f = parseFloat(ft.value.replace(/[^\d.]/g, ''));
+      const link = goal ? ` [[${nameOf(goal.path)}]]` : '';
+      const lines = [`- 体重 ${v}kg${link}`]; if (f > 0 && f < 70) lines.push(`- 体脂肪 ${f}%`);
+      sheet.close();
+      const rel = dailyPathOf(tk);
+      const ok = await edit(rel, t => addToMemo(t == null ? newDailyText(tk) : t, lines), `体重: ${v}kg`);
+      if (ok) toast(`${relDay(tk)}のノートに体重を書きました`);
+    };
+    bs.append(btn('btn primary', ['check', '書く'], save));
+    [w, ft].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) save(); }));
+    inn.append(bs);
+    sheet.showModal();
+    setTimeout(() => w.focus(), 50);
+  }
+  // 「## メモ」の見出しのすぐ下に入れる。もう同じ日に体重があれば、その行を書きかえる
+  function addToMemo(text, lines) {
+    const L = text.split('\n');
+    const wi = L.findIndex(l => /^\s*[-*]\s+体重\s*[:：]?\s*\d/.test(l));
+    if (wi >= 0) { L.splice(wi, 1, lines[0]); const fi = L.findIndex(l => /^\s*[-*]\s+体脂肪/.test(l)); if (lines[1]) { if (fi >= 0) L.splice(fi, 1, lines[1]); else L.splice(wi + 1, 0, lines[1]); } return L.join('\n'); }
+    const h = L.findIndex(l => /^#{1,6}\s+メモ\s*$/.test(l));
+    if (h < 0) return text.replace(/\n*$/, '') + '\n\n## メモ\n' + lines.join('\n') + '\n';
+    let at = h + 1;
+    if (L[at] != null && /^\s*-\s*$/.test(L[at])) L.splice(at, 1);   // テンプレートの空の「- 」
+    L.splice(at, 0, ...lines);
+    return L.join('\n');
+  }
   // ================= ノートのつながり（graph.js で描く） =================
   // カテゴリ：タグ（先頭の tags・本文の #タグ）か、いちばん上のフォルダ。線：[[リンク]]・[名前](ノート.md)
   let graphBy = (() => { try { return localStorage.getItem('ws-notes.graphBy') || 'tag'; } catch { return 'tag'; } })();
@@ -3510,7 +3869,7 @@
   const isWide = () => mq.matches;
   document.documentElement.classList.toggle('wide', mq.matches);
   mq.addEventListener('change', () => { if (window.NotesApp) NotesApp.flush(); document.documentElement.classList.toggle('wide', mq.matches); render(); });
-  const TAB_ICON = { home: 'house', todo: 'list-todo', proj: 'folder-kanban', cal: 'calendar-days', notes: 'notebook-text', graph: 'orbit', money: 'wallet', sync: 'refresh-cw' };
+  const TAB_ICON = { home: 'house', todo: 'list-todo', proj: 'folder-kanban', cal: 'calendar-days', notes: 'notebook-text', graph: 'orbit', money: 'wallet', health: 'heart-pulse', sync: 'refresh-cw' };
   let noteDay = null, noteFolder = null;   // ノート一覧の絞り込み（サイドバーから）
 
   function railBtn(t) {
@@ -3522,7 +3881,7 @@
   }
   function renderRail() {
     const a = $('#railApps'); a.innerHTML = '';
-    ['home', 'todo', 'proj', 'cal', 'notes', 'graph', 'money'].forEach(t => a.append(railBtn(t)));
+    ['home', 'todo', 'proj', 'cal', 'notes', 'graph', 'money', 'health'].forEach(t => a.append(railBtn(t)));
     const bt = $('#railBottom'); bt.innerHTML = '';
     bt.append(railBtn('sync'));
   }
@@ -3656,6 +4015,26 @@
       const h = el('div', 'navCard fHelp');
       h.innerHTML = '<p>家計のデータは <code>Data/kakei.json</code>（マネーフォワードから作る）を読みます</p><p>ノートに書いた分も足されます：<code>- 💸 1,200 ランチ #食費</code>（出費）・<code>- 💰 250,000 給料</code>（収入）・<code>- 🏦 30,000 [[引越し貯金]]</code>（目標へ）</p><p>目標：ノートの先頭に <code>target: 400000</code>・<code>saved: 170000</code>・<code>due: 2027-04-30</code></p>';
       sb.append(h);
+    } else if (tab === 'health') {
+      const H = healthData();
+      sb.append(btn('btn primary wide', ['scale', '体重を書く'], () => weightSheet()));
+      if (H.goal) {
+        sb.append(sideTitle('目標'));
+        const n = el('nav', 'navCard');
+        n.append(nav('target', nameOf(H.goal.path), `${H.goal.weight}kg${H.goal.due ? '・' + sd(H.goal.due) : ''}`, false, () => openNote(H.goal.path)));
+        sb.append(n);
+      }
+      const notes = ['体の記録', '筋トレの記録', '筋トレの計画', 'ヘルスケア連携', '筋トレ連携'].map(nm => Object.keys(S.files).find(p => nameOf(p) === nm)).filter(Boolean);
+      if (notes.length) {
+        sb.append(sideTitle('ノート'));
+        const n = el('nav', 'navCard');
+        notes.forEach(p => n.append(nav('notebook-text', nameOf(p), '', false, () => openNote(p))));
+        sb.append(n);
+      }
+      sb.append(sideTitle('読むもの・書き方'));
+      const h = el('div', 'navCard fHelp');
+      h.innerHTML = '<p>体重はデイリーノートの「メモ」に <code>- 体重 70.5kg</code>（体脂肪は <code>- 体脂肪 18%</code>）</p><p>睡眠・歩数・心拍は iPhone のヘルスケア（<code>Data/health/health.csv</code>）、筋トレは筋トレメモ（<code>Data/kintore/sets.csv</code>）から読みます</p><p>目標：ノートの先頭に <code>goal_weight: 67</code>・<code>goal_due: 2027-02-28</code>（本文の「目標：67kg（2027-02-28）」も読みます）</p>';
+      sb.append(h);
     } else if (tab === 'graph') {
       sb.append(sideTitle('カテゴリ'));
       const ls = el('nav', 'navCard ngSide');
@@ -3716,7 +4095,7 @@
   // 中央だけ描き直す（サイドバーの入力欄のフォーカスを残すため）
   function redrawMain() {
     const main = $('#view'); main.innerHTML = '';
-    ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, money: renderMoney, sync: renderSync })[tab](main);
+    ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, money: renderMoney, health: renderHealth, sync: renderSync })[tab](main);
   }
   $('#sideSearch').addEventListener('click', focusSearch);
   // サイドバーを隠す・出す（タブごとに覚える）
@@ -3735,7 +4114,7 @@
     if (ntOn() && (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'n') { e.preventDefault(); NotesApp.newNote(); }
   });
 
-  const TITLES = { home: 'ホーム', todo: 'やること', proj: 'プロジェクト', cal: 'カレンダー', notes: 'ノート', graph: 'つながり', money: 'お金', sync: '同期' };
+  const TITLES = { home: 'ホーム', todo: 'やること', proj: 'プロジェクト', cal: 'カレンダー', notes: 'ノート', graph: 'つながり', money: 'お金', health: 'ヘルス', sync: '同期' };
   function switchTab(t) {
     if (editing && note && draft !== (S.files[note]?.text ?? '') && !confirm('保存していない変更があります。破棄しますか？')) return;
     if (t === 'notes' && tab === 'notes') { note = null; noteQuery = ''; }
@@ -3866,7 +4245,7 @@
       b.append(desk ? 'お試しのノートを表示中。「同期」からノートのフォルダを選ぶと、自分のノートになります' : 'お試しのノートを表示中。「同期」から GitHub につなぐと、自分のノートになります');
       main.append(b);
     }
-    ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, money: renderMoney, sync: renderSync })[tab](main);
+    ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, money: renderMoney, health: renderHealth, sync: renderSync })[tab](main);
   }
   document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
   // 下のメニュー：入りきらないときは左右にスライド。続きがある側の端をうすくする

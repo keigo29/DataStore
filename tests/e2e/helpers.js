@@ -57,7 +57,7 @@ async function openApp(page, { connect = false } = {}) {
   await page.waitForTimeout(400);
 }
 // タブを開く（PC は左の列、スマホは下のメニュー）
-const TABS = ['home', 'todo', 'proj', 'cal', 'notes', 'graph', 'money'];
+const TABS = ['home', 'todo', 'proj', 'cal', 'notes', 'graph', 'money', 'health'];
 async function openTab(page, tab) {
   const wide = await page.evaluate(() => document.documentElement.classList.contains('wide'));
   if (wide) await page.click(`#railApps .railBtn:nth-child(${TABS.indexOf(tab) + 1})`);
