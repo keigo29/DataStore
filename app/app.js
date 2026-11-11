@@ -1691,23 +1691,128 @@
   const tasksOf = p => items.filter(i => i.type === 'todo' && i.project === p.path);
   const spanOf = t => { const e = t.date, s = t.start && t.start <= e ? t.start : e; return { s, e }; };
 
+  // ---------- プロジェクトカード（旧 Workstation と同じ：フォルダの形） ----------
+  // 後ろの板＋タブ → はみ出た紙（次の節目・直近のタスク）→ 表面（名前・数・ノート・リンク）の3枚重ね
+  // マウスを乗せると表面が下がって紙が出る（指で使うときは、はじめから出ておく）
+  function projNotes(p) {
+    // このプロジェクトのノート：[[プロジェクト]] とリンクしている・先頭の project: に名前があるノート（新しい順に2件）
+    const out = [];
+    for (const n of Object.keys(S.files)) {
+      if (n === p.path || projByPath(n)) continue;
+      const fm = splitFrontmatter(S.files[n].text).props || [];
+      const pv = (fm.find(x => x.k.toLowerCase() === 'project')?.v || []).map(x => x.replace(/^\[\[|\]\]$/g, ''));
+      if (pv.includes(p.name) || linksOf(n).includes(p.path)) out.push(n);
+    }
+    const t = n => S.files[n].mtime || (dayOf.get(n) ? parseKey(dayOf.get(n)).getTime() : 0);
+    return out.sort((a, b) => t(b) - t(a)).slice(0, 2);
+  }
   function projCard(p) {
-    const today = todayKey();
-    const all = tasksOf(p), done = all.filter(t => t.done).length;
-    const next = all.filter(t => !t.done && t.date).sort(byDate)[0];
-    const c = btn('pcard', [], () => { proj = p.path; render(); window.scrollTo(0, 0); }, p.name);
-    c.style.setProperty('--c', p.color);
-    const f = el('div', 'pcFront');
-    f.append(el('div', 'pcName', p.name));
+    const tk = todayKey();
+    const all = tasksOf(p), open = all.filter(t => !t.done);
+    const isLate = t => !t.done && t.date && t.date < tk;
+    const late = open.filter(isLate).length;
+    const card = el('article', 'pcard');
+    card.style.setProperty('--c', p.color);
+    const goProj = () => { proj = p.path; tab = 'proj'; render(); window.scrollTo(0, 0); };
+
+    // はみ出た紙：次の節目＋期限の近い順のタスク（合わせて2行まで）
+    const paper = el('div', 'pcPaper');
+    const next = open.filter(t => t.milestone && t.date && t.date >= tk).sort(byDate)[0];
+    if (next) {
+      const n = Math.round((parseKey(next.date) - parseKey(tk)) / 864e5);
+      const r = btn('pcLine pcNext', ['flag', el('span', 'nm', next.title)], () => openItem(next));
+      r.title = '節目を開く';
+      const sm = el('small'); sm.append(el('span', 'pcDate', `${sd(next.date)}・`), n === 0 ? '今日' : `あと${n}日`); r.append(sm);
+      paper.append(r);
+    }
+    const soon = open.filter(t => !t.milestone).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+    for (const t of soon.slice(0, next ? 1 : 2)) {
+      const r = el('div', 'pcLine' + (isLate(t) ? ' late' : ''));
+      const chk = btn('pcChk', 'check', () => setDone(t, true), '完了にする');
+      chk.title = '完了にする';
+      const nm = btn('pcTask', t.title, () => openItem(t));
+      nm.title = 'タスクを開く';
+      r.append(chk, nm);
+      if (t.date) r.append(el('small', '', isLate(t) ? '期限切れ' : t.date === tk ? '今日' : sd(t.date)));
+      paper.append(r);
+    }
+    if (!paper.children.length) {
+      const r = btn('pcLine pcEmpty', ['plus', open.length ? '期限のあるタスクはありません' : 'タスクを追加'], () => { proj = p.path; tab = 'proj'; render(); });
+      paper.append(r);
+    }
+    card.append(paper);
+
+    // 表面：名前（押すとプロジェクトのページ）・数・ノート・リンク。編集はマウスを乗せたときだけ
+    const front = el('div', 'pcFront');
+    const head = el('div', 'pcHead');
+    const nm = btn('pcName', el('span', 'nm', p.name), goProj);
+    nm.title = 'メモ・リンク・タスクを開く';
+    const acts = el('span', 'pcActs');
+    const eb = btn('iconBtn', 'pencil', () => openProjectSheet(p), 'リンク・メモを編集'); eb.title = 'リンク・メモを編集';
+    acts.append(eb);
+    head.append(nm, acts);
+    front.append(head);
     const meta = el('div', 'pcMeta');
-    meta.append(el('span', '', `残り ${all.length - done}件`), el('span', '', `完了 ${done}/${all.length}`));
-    if (next) { const s = el('span'); s.innerHTML = icon('clock'); s.append(next.date === today ? '今日' : next.date < today ? '期限切れ' : sd(next.date)); meta.append(s); }
-    f.append(meta);
-    const pr = el('div', 'pcBar'); const pf = el('i');
-    pf.style.width = (all.length ? Math.round(done / all.length * 100) : 0) + '%';
-    pr.append(pf); f.append(pr);
-    c.append(f);
-    return c;
+    meta.append(el('span', '', all.length ? `残り ${open.length}件` : 'タスクなし'));
+    if (late) { const s2 = el('span', 'late'); s2.innerHTML = icon('triangle-alert'); s2.append(`期限切れ ${late}`); meta.append(s2); }
+    if (all.length) meta.append(el('span', '', `完了 ${all.length - open.length}/${all.length}`));
+    front.append(meta);
+    // 最近のノート（2件まで）とリンクを1行に
+    const recent = projNotes(p);
+    if (p.links.length || recent.length) {
+      const links = el('div', 'pcLinks');
+      for (const n of recent) {
+        const a = btn('pcLink pcNote', ['file-text', el('span', '', nameOf(n))], () => openNote(n));
+        a.title = `ノート「${nameOf(n)}」を開く`;
+        links.append(a);
+      }
+      for (const l of p.links) {
+        let host = l.url; try { host = new URL(l.url).hostname.replace(/^www\./, ''); } catch {}
+        const a = btn('pcLink', ['link', el('span', '', l.title || host)], () => Bridge.api.app.openUrl(l.url));
+        a.title = l.url;
+        links.append(a);
+      }
+      front.append(links);
+    }
+    card.append(front);
+    // 表面の空いているところを押しても、プロジェクトのページへ
+    front.addEventListener('click', e => { if (!e.target.closest('button')) goProj(); });
+    return card;
+  }
+  // カードを並べる。limit：1行に入るぶんだけ出して、残りは「ほか N件」（ガントの上）
+  let cardsAll = false;
+  function projCards(limit) {
+    const box = el('div', 'pcards' + (limit ? '' : ' pgrid'));
+    projects.forEach(p => box.append(projCard(p)));
+    const add = btn('pcTile pcAdd', ['folder-plus', 'プロジェクトを追加'], () => openProjectSheet(null));
+    box.append(add);
+    if (!limit) return box;
+    const more = btn('pcTile pcMore', [], () => { cardsAll = more.dataset.expanded !== '1'; layout(); });
+    box.append(more);
+    const layout = () => {
+      const cards = [...box.querySelectorAll('.pcard')];
+      if (!box.clientWidth) return;
+      const min = parseFloat(getComputedStyle(box).getPropertyValue('--pc-min')) || 230, gap = 12;
+      const cols = Math.max(1, Math.floor((box.clientWidth + gap) / (min + gap)));
+      const fits = cards.length <= cols, expanded = cardsAll && !fits;
+      const shown = fits || expanded ? cards.length : Math.max(1, cols - 1);
+      cards.forEach((c, i) => { c.hidden = i >= shown; });
+      add.hidden = !expanded && cards.length + 1 > cols;
+      more.hidden = fits;
+      more.dataset.expanded = expanded ? '1' : '';
+      more.innerHTML = '';
+      const lbl = el('span', 'lbl');
+      lbl.innerHTML = icon(expanded ? 'chevron-up' : 'chevron-down');
+      lbl.append(expanded ? 'たたむ' : `ほか ${cards.length - shown}件`);
+      more.append(lbl);
+      if (!expanded) {
+        const names = el('span', 'names');
+        projects.slice(shown, shown + 3).forEach(p => { const n = el('span', 'nm'); const d = el('i', 'dot'); d.style.background = p.color; n.append(d, el('span', '', p.name)); names.append(n); });
+        more.append(names);
+      }
+    };
+    new ResizeObserver(() => requestAnimationFrame(layout)).observe(box);
+    return box;
   }
 
   function renderProj(main) {
@@ -1729,10 +1834,7 @@
     main.append(tool);
     if (projView === 'gantt') return renderGantt(main);
 
-    const box = el('div', 'pcards pgrid');
-    projects.forEach(p => box.append(projCard(p)));
-    box.append(btn('pcAdd', ['folder-plus', 'プロジェクトを追加'], () => openProjectSheet(null)));
-    main.append(box);
+    main.append(projCards(false));
     if (!projects.length) {
       const p = panel();
       p.append(panelHead('info', 'プロジェクトの書き方'));
@@ -2753,7 +2855,7 @@
   function renderGanttWide(main) {
     const today = todayKey(), DWW = 34;
     if (prefs.cards !== false && projects.length) {
-      const box = el('div', 'pcards'); projects.forEach(p => box.append(projCard(p))); main.append(box);
+      main.append(projCards(true));
     }
     const tasks = items.filter(i => i.type === 'todo' && i.project && i.date && (prefs.showDone || !i.done));
     const lastDue = tasks.reduce((m, x) => (x.date > m ? x.date : m), today);

@@ -245,27 +245,11 @@ main { padding: 2px 14px calc(var(--tabs-h) + env(safe-area-inset-bottom) + 24px
 .gtool { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 
 /* プロジェクトのフォルダ：横にスクロール */
-.pcards { display: flex; gap: 10px; overflow-x: auto; margin: 0 -14px 12px; padding: 2px 14px 6px; scroll-snap-type: x proximity; scroll-padding-left: 14px; scrollbar-width: none; }
-.pcards::-webkit-scrollbar { display: none; }
-.pcard { position: relative; flex: 0 0 196px; height: 124px; border: 0; padding: 0; background: none; text-align: left; scroll-snap-align: start; }
-.pcard::before, .pcard::after { content: ""; position: absolute; background: color-mix(in srgb, var(--c) 62%, var(--card)); }
-.pcard::before { inset: 10px 0 0; border-radius: 18px; }
-.pcard::after { top: 0; left: 0; width: 46%; height: 24px; border-radius: 12px 4px 0 0; clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%); }
-.pcard:active { transform: scale(.98); }
-.pcFront {
   position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; top: 22px; padding: 12px 14px; border-radius: 18px; display: flex; flex-direction: column; gap: 6px;
   background: var(--gloss), linear-gradient(165deg, color-mix(in srgb, var(--c) 72%, transparent) 0%, color-mix(in srgb, var(--c) 92%, transparent) 100%);
   box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), 0 6px 16px -8px color-mix(in srgb, var(--c) 55%, transparent);
   color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.28);
 }
-.pcName { font-size: 16px; font-weight: 700; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pcMeta { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,.92); font-variant-numeric: tabular-nums; }
-.pcMeta span { display: inline-flex; align-items: center; gap: 3px; }
-.pcMeta .lc { width: 12px; height: 12px; }
-.pcBar { height: 5px; border-radius: 99px; background: rgba(255,255,255,.3); overflow: hidden; }
-.pcBar i { display: block; height: 100%; background: #fff; border-radius: 99px; }
-.pcAdd { flex: 0 0 120px; height: 114px; margin-top: 10px; border: 1.5px dashed var(--g300); border-radius: 18px; background: none; color: var(--sub); font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
-.pcAdd .lc { width: 20px; height: 20px; }
 
 .gwrap { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; margin: 0 -2px 12px; }
 .gscroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -629,10 +613,6 @@ button.plan { width: 100%; border: 0; background: none; padding: 6px 0; text-ali
 .swt:checked::after { transform: translateX(18px); }
 
 /* ---------- プロジェクト ---------- */
-.pgrid { flex-wrap: wrap; overflow: visible; margin: 0 0 12px; padding: 2px 0 6px; }
-.pgrid .pcard { flex: 1 1 170px; max-width: calc(50% - 5px); }
-@media (min-width: 900px) { .pgrid .pcard { max-width: calc(33.333% - 7px); } }
-.pgrid .pcAdd { flex: 1 1 140px; max-width: calc(50% - 5px); }
 .pdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 2px; vertical-align: 0; }
 .projSum .psTop { display: flex; align-items: baseline; gap: 8px; }
 .projSum .psTop .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); align-self: center; }
@@ -986,3 +966,91 @@ html.wide .evBar.shake { animation: none; }
 .cgEv.lift .cgEvH { height: 4px; background: var(--ev); border-radius: 0 0 6px 0; opacity: .6; }
 html.wide .cgEv { cursor: grab; }
 .btn.danger.sure { background: var(--danger); color: #fff; }
+
+
+/* ---------- プロジェクトカード（旧 Workstation と同じ：フォルダの形） ----------
+   後ろの板＋タブ（::before / ::after）→ はみ出た紙（次の節目・直近のタスク）→ 表面（名前・数・リンク）の3枚重ね
+   色はプロジェクトの色を薄く混ぜるだけにして、黄色などでも文字が読めるように（ライト・ダーク共通） */
+.pcards { --pc-min: 230px; --pc-h: 186px; display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--pc-min), 1fr)); gap: 12px; flex-shrink: 0; padding: 2px 0 14px; margin: 0 0 4px; }
+.pcards[hidden] { display: none; }
+.pcard { position: relative; height: var(--pc-h); min-width: 0; --pc-ease: cubic-bezier(.2, .8, .2, 1); }
+.pcard[hidden], .pcTile[hidden] { display: none !important; }
+.pcard::before, .pcard::after { content: ""; position: absolute; background: color-mix(in srgb, var(--c) 62%, var(--card)); }
+.pcard::before { inset: 10px 0 0; border-radius: 18px; }
+.pcard::after { top: 0; left: 0; width: 46%; height: 24px; border-radius: 12px 4px 0 0; clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%); }
+/* はみ出た紙：方眼の点で付箋らしく */
+.pcPaper {
+  position: absolute; z-index: 1; top: 22px; left: 12px; right: 12px; bottom: 8px; padding: 8px 10px 0; border-radius: 12px 12px 8px 8px;
+  transform: translateY(8px); transition: transform .3s var(--pc-ease);
+  background: radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) .8px, transparent 1.2px) 0 0 / 11px 11px, var(--paper);
+  box-shadow: 0 -1px 2px rgba(0,0,0,.06); display: flex; flex-direction: column; gap: 2px;
+}
+.pcLine { display: flex; align-items: center; gap: 7px; min-width: 0; height: 22px; font-size: 12px; font-weight: 600; color: var(--text); }
+button.pcLine { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; width: 100%; }
+.pcLine > .lc, .pcLine > svg { width: 13px; height: 13px; flex-shrink: 0; }
+.pcLine .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcLine small { margin-left: auto; padding-left: 8px; font-size: 11px; font-weight: 600; color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pcLine.late small { color: var(--danger); }
+.pcNext { white-space: nowrap; overflow: hidden; }
+.pcNext > .lc, .pcNext > svg { color: var(--c); }
+.pcChk { flex: 0 0 15px; width: 15px; height: 15px; padding: 0; border-radius: 5px; border: 1.5px solid var(--g350); background: var(--paper); display: grid; place-items: center; color: transparent; cursor: pointer; }
+.pcChk .lc, .pcChk svg { width: 10px; height: 10px; stroke-width: 3.5; }
+.pcChk:hover { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, var(--paper)); color: var(--c); }
+.pcTask { flex: 1; min-width: 0; border: 0; background: none; padding: 0; text-align: left; font: inherit; color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.pcTask:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--g350); }
+.pcEmpty { color: var(--sub); font-weight: 500; }
+.pcEmpty:hover { color: var(--text); }
+/* 表面 */
+.pcFront {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; top: 40px; padding: 12px 14px; border-radius: 18px; display: flex; flex-direction: column; gap: 6px;
+  transition: top .3s var(--pc-ease); cursor: pointer;
+  background: var(--gloss), linear-gradient(165deg, color-mix(in srgb, var(--c) 70%, transparent) 0%, color-mix(in srgb, var(--c) 90%, transparent) 100%);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), 0 6px 16px -8px color-mix(in srgb, var(--c) 55%, transparent);
+  color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.28);
+}
+.pcard:hover .pcFront, .pcard:focus-within .pcFront { top: 84px; }
+.pcard:hover .pcPaper, .pcard:focus-within .pcPaper { transform: none; }
+/* 指で使うとき：はじめから紙が出ておく */
+@media (hover: none) { .pcard .pcFront { top: 84px; } .pcard .pcPaper { transform: none; } .pcActs { opacity: 1 !important; } }
+@media (prefers-reduced-motion: reduce) { .pcFront, .pcPaper { transition: none; } }
+.pcHead { display: flex; align-items: center; gap: 4px; min-height: 24px; }
+.pcName { flex: 1; min-width: 0; border: 0; background: none; padding: 0; text-align: left; font: inherit; font-size: 16px; font-weight: 700; letter-spacing: -.01em; color: inherit; cursor: pointer; }
+.pcName .nm { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcName:hover .nm { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(255,255,255,.6); }
+.pcActs { display: flex; margin: -4px -6px -4px 0; opacity: 0; transition: opacity .15s; }
+.pcard:hover .pcActs, .pcActs:focus-within { opacity: 1; }
+.pcActs .iconBtn { width: 28px; height: 28px; color: rgba(255,255,255,.85); background: none; box-shadow: none; }
+.pcActs .iconBtn:hover { background: rgba(255,255,255,.2); color: #fff; }
+.pcMeta { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.9); font-variant-numeric: tabular-nums; }
+.pcMeta span { display: inline-flex; align-items: center; gap: 4px; }
+.pcMeta .lc, .pcMeta svg { width: 12px; height: 12px; }
+.pcMeta .late { color: var(--danger); background: var(--card); border-radius: 99px; padding: 1px 7px 1px 5px; text-shadow: none; }
+.pcLinks { display: flex; gap: 6px; min-width: 0; overflow: hidden; margin-top: 2px; }
+.pcLink { display: inline-flex; align-items: center; gap: 5px; flex: 0 1 auto; min-width: 46px; height: 24px; padding: 0 9px; border-radius: 99px;
+  border: 0; background: rgba(255,255,255,.2); font: inherit; font-size: 11.5px; font-weight: 600; color: #fff; overflow: hidden; white-space: nowrap; cursor: pointer; text-shadow: inherit; }
+.pcLink span { overflow: hidden; text-overflow: ellipsis; }
+.pcLink:hover { background: rgba(255,255,255,.32); }
+.pcLink .lc, .pcLink svg { width: 12px; height: 12px; flex-shrink: 0; color: rgba(255,255,255,.85); }
+.pcLink.pcNote { background: rgba(255,255,255,.3); }
+/* 追加・ほか N件 */
+.pcTile { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 120px; margin-top: 14px; padding: 0 14px; border-radius: 18px;
+  border: 1.5px dashed color-mix(in srgb, var(--text) 20%, transparent); background: transparent; color: var(--sub); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.pcTile:hover { color: var(--text); border-color: var(--text); }
+.pcTile .lc, .pcTile svg { width: 18px; height: 18px; }
+.pcMore { flex-direction: column; gap: 10px; border-style: solid; background: color-mix(in srgb, var(--card) 60%, transparent); }
+.pcMore .lbl { display: inline-flex; align-items: center; gap: 6px; }
+.pcMore .names { display: flex; flex-direction: column; gap: 4px; max-width: 100%; }
+.pcMore .nm { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--sub); min-width: 0; }
+.pcMore .nm span { overflow: hidden; text-overflow: ellipsis; }
+.pcMore .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+/* スマホ：2列（せまいときは1列） */
+@media (max-width: 699px) { .pcards { --pc-min: 160px; gap: 10px; } .pcards .pcFront { padding: 10px 12px; } .pcName { font-size: 15px; } }
+@media (max-width: 359px) { .pcards { grid-template-columns: 1fr; } }
+.pcNext .nm { flex: 1 1 auto; min-width: 2.5em; }
+@media (max-width: 699px) {
+  .pcNext .pcDate { display: none; }
+  .pcLinks .pcLink:nth-child(n+3) { display: none; }
+  .pcLinks .pcLink { flex: 1 1 0; }
+  .pcards .pcAdd { grid-column: 1 / -1; min-height: 56px; margin-top: 0; }
+}
