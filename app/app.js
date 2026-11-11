@@ -310,6 +310,7 @@
 
   // ファイルを書きかえて commit（失敗したら元に戻す）。fn(今の本文) → 新しい本文（変えないなら null）
   async function edit(rel, fn, message) {
+    await Bridge.settle(rel);   // 同じノートを送っている最中なら、終わってから
     const f = S.files[rel];
     const before = f ? f.text : null;
     const next = fn(before);
@@ -462,29 +463,43 @@
       await pushNow(rel);
     }
     async function flushAll() { await Promise.all([...timers.keys()].map(flush)); }
-    async function pushNow(rel) {
+    // 送るのは1つのノートにつき1つずつ（重なると、古い版の印で送ってしまい「ほかで書きかえられた」になる）
+    const queue = new Map(), busy = new Map(), lastSent = new Map();
+    function enqueue(rel, fn) {
+      busy.set(rel, (busy.get(rel) || 0) + 1);
+      const run = (queue.get(rel) || Promise.resolve()).then(fn);
+      const done = run.catch(() => {}).then(() => { const n = (busy.get(rel) || 1) - 1; if (n) busy.set(rel, n); else { busy.delete(rel); queue.delete(rel); } });
+      queue.set(rel, done);
+      return run;
+    }
+    // 送る：送っているあいだに書き足されていても、返ってきた最新の印（sha）を、いまのノートにつける
+    async function sendNow(rel) {
       const f = S.files[rel];
       if (!f || !connected()) return;
+      const text = f.text;
+      if (lastSent.get(rel) === text + '\u0000' + f.sha) return;   // 同じ中身はもう一度送らない
+      const sha = await putFile(rel, text, f.sha && f.sha !== 'demo' ? f.sha : null, `ノート: ${baseName(rel)}`);
+      if (S.files[rel]) { S.files[rel].sha = sha; if (desk && S.files[rel].text === text) S.files[rel].mtime = parseInt(sha, 10) || S.files[rel].mtime; }
+      lastSent.set(rel, text + '\u0000' + sha);
+    }
+    async function pushNow(rel) {
       try {
-        const sha = await putFile(rel, f.text, f.sha && f.sha !== 'demo' ? f.sha : null, `ノート: ${baseName(rel)}`);
-        if (S.files[rel] === f) f.sha = sha;
+        await enqueue(rel, () => sendNow(rel));
         await persist();
       } catch (e) {
         console.error(e);
-        toast(e.status === 409 || e.status === 422 ? `「${baseName(rel)}」はほかで書きかえられていました。同期してから書き直してください` : `「${baseName(rel)}」を GitHub に送れませんでした`, 'warn');
+        toast(e.status === 409 || e.status === 422 ? `「${baseName(rel)}」はほかで書きかえられていました。同期してから書き直してください` : `「${baseName(rel)}」を送れませんでした`, 'warn');
       }
     }
+    // 送り終わるまで待つ（待っているタイマーもすぐ送る）
+    async function settle(rel) { await flush(rel); try { await queue.get(rel); } catch {} }
     // 書く（新しく作るときも）。now = すぐ送る
     async function putText(rel, text, now) {
       const old = S.files[rel];
       S.files[rel] = { sha: old ? old.sha : null, text, mtime: Date.now() };
       recompute();
       if (!connected()) { S.files[rel].sha = S.files[rel].sha || 'demo'; return; }
-      if (desk) {
-        const sha = await putFile(rel, text, old ? old.sha : null, `ノート: ${baseName(rel)}`);
-        S.files[rel].sha = sha; S.files[rel].mtime = parseInt(sha, 10) || Date.now();
-        return;
-      }
+      if (desk) { await enqueue(rel, () => sendNow(rel)); return; }
       clearTimeout(timers.get(rel));
       if (now || !old) { timers.delete(rel); await pushNow(rel); }
       else timers.set(rel, setTimeout(() => { timers.delete(rel); pushNow(rel); }, WAIT));
@@ -747,10 +762,11 @@
       on: { notes: cb => listeners.push(cb) },
     };
     return {
-      api, fileUrl, flushAll,
+      api, fileUrl, flushAll, settle,
       get settings() { return settings; },
       set onSettings(fn) { onSet = fn; },
-      pending: rel => timers.has(rel),
+      // 送るのを待っている・送っている最中のノートは、同期で上書きしない
+      pending: rel => timers.has(rel) || busy.has(rel),
       virtualDir: d => vdirs.has(d),
       notify: files => { for (const cb of listeners) { try { cb({ files }); } catch (e) { console.error(e); } } },
     };
