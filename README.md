@@ -4,10 +4,25 @@
 そこから「やること」「予定」「今日のノート」を見て、チェック・追加・編集するアプリです。
 
 ```
-md-workstation/
-├── app/   画面（PWA。スマホ・ブラウザ用。Mac 版もこれをそのまま使う）
-└── mac/   Mac 版（Electron）。ローカルのフォルダを直接読み書きし、git で自動同期
+DataStore/
+├── app/        画面（PWA。スマホ・ブラウザ用。Mac 版もこれをそのまま使う）
+│   ├── src/    app.js のもと（タブごとのファイル）。直すのはここ → npm run build
+│   └── app.js  src をつなげて作ったもの（直接は直さない）
+├── mac/        Mac 版（Electron）。ローカルのフォルダを直接読み書きし、git で自動同期
+├── tests/      テスト（unit：計算／e2e：画面／electron：Mac 版の画面）
+└── scripts/    build・check・テスト用のサーバー
 ```
+
+## 開発
+
+```bash
+npm ci
+npm run build      # app/src → app/app.js
+npm test           # まとめてテスト（push すると GitHub Actions でも流れる）
+npm run serve      # http://localhost:8765/ で画面を見る
+```
+
+くわしい決まりは `CLAUDE.md`。
 
 | | スマホ（PWA） | Mac 版 |
 |---|---|---|

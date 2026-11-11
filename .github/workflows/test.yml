@@ -1,0 +1,39 @@
+# push のたびにテストを流す（失敗したら GitHub の Actions に ✗ が出ます）
+name: test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: app.js が app/src と同じか・sw.js の一覧
+        run: npm run check
+      - name: 計算のテスト
+        run: npm run test:unit
+      - name: Mac 版の中身（フォルダ・git）
+        run: npm run test:mac
+        env: { GIT_CONFIG_GLOBAL: /dev/null }
+      - name: 画面のテスト
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: playwright-report, retention-days: 7 }
+  mac-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: '**/package-lock.json' }
+      - run: npm ci
+      - run: cd mac && npm ci
+      - run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Mac 版（Electron）のノート
+        run: xvfb-run -a npm run test:electron
+        env: { GIT_CONFIG_GLOBAL: /dev/null }

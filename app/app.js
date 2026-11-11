@@ -1,3 +1,4 @@
+// ※ このファイルは app/src/ をつなげて作ったもの（npm run build）。直すときは app/src/ のほうを直してください
 // MD Workstation（PWA。Mac 版もこの画面を使う）
 // GitHub の非公開リポジトリに置いたナレッジの Markdown から、
 // やること・予定・今日のノートを出す。画面の部品は Workstation モバイル、ノートの見た目は Mac 版と同じ
