@@ -11,6 +11,8 @@ const MDParser = (() => {
   const LINK_RE = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g;
   const TIME_RE = /^(\d{1,2}:\d{2})(?:\s*[-~〜–]\s*(\d{1,2}:\d{2}))?\s+/;
   const LIST_RE = /^(\s*)(?:[-*+]|\d+[.)])\s+(?:\[( |x|X)\]\s*)?(.*)$/;
+  const MONEY_RE = /^(💸|💰|🏦)\s*[¥￥]?\s*([+-]?\d[\d,]*(?:\.\d+)?)\s*円?\s*(.*)$/u;
+  const MONEY_KIND = { '💸': 'out', '💰': 'in', '🏦': 'save' };
   const TAG_RE = /(^|[\s(（「、。])#([^\s#.,;:!?()[\]{}"'`、。「」（）<>]+)/g;
 
   const isoName = path => { const m = path.split('/').pop().match(/^(\d{4}-\d{2}-\d{2})/); return m ? m[1] : null; };
@@ -74,6 +76,15 @@ const MDParser = (() => {
       const section = stack.length ? stack[stack.length - 1].title : '';
       // start：開始日（🛫 / @start()）。milestone：節目（#節目 / 🏁）。links：[[リンク]]の先（プロジェクトに入れるのに使う）
       const common = { path, line: i, raw: line, title, date, due: explicit, start, milestone: milestone || tags.includes('節目'), links, time, endTime, tags, section };
+      // お金：- 💸 1,200 ランチ #食費（出費）／- 💰 250,000 給料（収入）／- 🏦 30,000 [[引越し資金]]（貯金）
+      if (!isTodo) {
+        const mm = body.match(MONEY_RE);
+        if (mm) {
+          const amount = Math.abs(parseFloat(mm[2].replace(/,/g, '')));
+          if (date && amount) items.push({ type: 'money', kind: MONEY_KIND[mm[1]], amount, ...common, title: clean(mm[3]) || clean(body.replace(MONEY_RE, '$3')) || '' });
+          continue;
+        }
+      }
 
       if (isTodo) { if (title) items.push({ type: 'todo', done: m[2] !== ' ', ...common }); }
       else if (date && title && (time || explicit || tags.includes('予定'))) items.push({ type: 'event', done: false, ...common });
@@ -208,6 +219,30 @@ const MDParser = (() => {
     return ls.join(nl);
   }
 
-  return { parse, toggle, addTodo, addEvent, eventLine, updateEvent, rewriteEvent, removeLine, clean };
+  // お金の行を足す：「お金」の見出しの下（なければノートの最後に作る）
+  function moneyLine(v) {
+    const em = { out: '💸', in: '💰', save: '🏦' }[v.kind] || '💸';
+    return `- ${em} ${Math.round(v.amount).toLocaleString('ja-JP')} ${String(v.title || '').replace(/\s+/g, ' ').trim()}`.trimEnd();
+  }
+  function addMoney(text, v) {
+    const line = moneyLine(v);
+    const nl = text.includes('\r\n') ? '\r\n' : '\n';
+    const ls = text.split(/\r?\n/);
+    const h = ls.findIndex(l => /^#{1,6}\s*(お金|家計|家計簿|money|finance)\s*$/i.test(l));
+    if (h >= 0) {
+      let end = ls.findIndex((l, i) => i > h && /^#{1,6}\s/.test(l));
+      if (end < 0) end = ls.length;
+      const blank = ls.findIndex((l, i) => i > h && i < end && /^\s*[-*+]\s*$/.test(l));
+      if (blank >= 0) { ls[blank] = line; return ls.join(nl); }
+      let last = h;
+      for (let i = h + 1; i < end; i++) if (/^\s*[-*+]\s/.test(ls[i])) last = i;
+      ls.splice(last + 1, 0, line);
+      return ls.join(nl);
+    }
+    const body = text.replace(/\s*$/, '');
+    return (body ? body + nl + nl : '') + `## お金${nl}${line}${nl}`;
+  }
+
+  return { parse, toggle, addTodo, addEvent, eventLine, updateEvent, rewriteEvent, removeLine, addMoney, moneyLine, clean };
 })();
 if (typeof module !== 'undefined') module.exports = MDParser;

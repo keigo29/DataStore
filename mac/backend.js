@@ -9,6 +9,7 @@ const { execFile } = require('child_process');
 const MAX_FILES = 8000;
 const ATTACH_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif|pdf)$/i;
 const OBS_CFG = ['daily-notes.json', 'app.json', 'templates.json', 'appearance.json'];
+const DATA_FILES = ['Data/kakei.json'];
 const skipDir = name => name.startsWith('.') || name === 'node_modules';
 
 class Vault {
@@ -64,6 +65,8 @@ class Vault {
     // Obsidian の設定（デイリーノート・添付ファイルの場所・テンプレート・見た目）
     const cfg = {};
     for (const f of OBS_CFG) { try { cfg[f] = await fsp.readFile(path.join(this.root, '.obsidian', f), 'utf8'); } catch {} }
+    // 家計のデータ（家計アプリのバックアップと同じ形）
+    for (const f of DATA_FILES) { try { cfg[f] = await fsp.readFile(path.join(this.root, f), 'utf8'); } catch {} }
     const bins = {};
     for (const b of this._bins) { try { bins[b] = { sha: Vault.shaOf(await fsp.stat(path.join(this.root, b))) }; } catch {} }
     return { files, dailyJson: cfg['daily-notes.json'] || null, cfg, bins, dirs: this._dirs, isVault: fs.existsSync(path.join(this.root, '.obsidian')), truncated: rels.length >= MAX_FILES };

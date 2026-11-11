@@ -1094,3 +1094,108 @@ body.typing .top { background: none; -webkit-backdrop-filter: none; backdrop-fil
 .tabs.scrolls:not(.atEnd) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
 .tabs.scrolls.atEnd:not(.atStart) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
 .tabs.scrolls:not(.atStart):not(.atEnd) { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+
+/* ---------- お金（finance） ----------
+   ライトはアプリと同じ白いカード。ダークは黒に近いカード＋細いふち＋光る線（ダッシュボードの見た目） */
+.fin { --f-card: var(--card); --f-line: color-mix(in srgb, var(--text) 9%, transparent); --f-text: var(--text); --f-sub: var(--sub); --f-glow: 0;
+  display: flex; flex-direction: column; gap: 14px; }
+:root[data-theme="dark"] .fin { --f-card: #101012; --f-line: #26262b; --f-text: #f2f2f4; --f-sub: #8b8b93; --f-glow: 1; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fin { --f-card: #101012; --f-line: #26262b; --f-text: #f2f2f4; --f-sub: #8b8b93; --f-glow: 1; } }
+:root[data-theme="dark"] body:has(.fin) { --bg: #0a0a0b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body:has(.fin) { --bg: #0a0a0b; } }
+.fBar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fTtl { margin: 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.fPill { font-size: 11.5px; font-weight: 600; color: var(--f-sub); border: 1px solid var(--f-line); border-radius: 7px; padding: 2px 8px; }
+.fLast { margin-left: auto; }
+.fCard { position: relative; background: var(--f-card); color: var(--f-text); border: 1px solid var(--f-line); border-radius: 18px; padding: 16px 18px; overflow: hidden; min-width: 0; box-shadow: var(--shadow-sm); }
+:root[data-theme="dark"] .fCard { box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fCard { box-shadow: none; } }
+.fCard h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.fSub { margin: 2px 0 0; font-size: 12.5px; color: var(--f-sub); }
+.fHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fPlus { width: 34px; height: 34px; border: 1px solid var(--f-line); border-radius: 10px; background: none; color: var(--f-text); box-shadow: none; }
+.fEmpty { padding: 22px 4px; font-size: 13px; color: var(--f-sub); }
+.fEmptyCard p { line-height: 1.7; }
+/* 上の数字のカード */
+.fKpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.fKpi { min-height: 150px; }
+.fVal { margin-top: 18px; font-size: 26px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; position: relative; z-index: 1; }
+.fVal small { font-size: 18px; color: var(--f-sub); font-weight: 500; margin-right: 1px; }
+.fDelta { display: block; margin-top: 6px; font-size: 12.5px; color: var(--f-sub); position: relative; z-index: 1; }
+.fDelta b { font-weight: 600; margin-right: 4px; }
+.fDelta b.g { color: #22c55e; } .fDelta b.r { color: #f97316; }
+:root[data-theme="dark"] .fDelta b.g { color: #4ade80; }
+.fSpk { position: absolute; right: 0; bottom: 0; width: 46%; height: 62%; pointer-events: none; }
+.fSpark { display: block; width: 100%; height: 100%; overflow: visible; }
+.fGlow { filter: drop-shadow(0 0 calc(var(--f-glow) * 6px) var(--g)); }
+.fKpi .fSpk path:last-child { stroke-width: 2.2; }
+.fBudget { position: relative; z-index: 1; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-width: 58%; }
+.fBudget .bar { height: 5px; border-radius: 99px; background: var(--f-line); overflow: hidden; }
+.fBudget .bar i { display: block; height: 100%; background: #fb923c; border-radius: 99px; }
+.fBudget small { font-size: 11px; color: var(--f-sub); }
+.fBudget.over small { color: #ef4444; } .fBudget.over .bar i { background: #ef4444; }
+/* 2列の段 */
+.fRow { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 14px; }
+.fRow > .fCard:only-child { grid-column: 1 / -1; }
+.fBig { position: relative; height: 210px; margin: 14px -4px 4px; touch-action: pan-y; cursor: crosshair; }
+.fBig svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.fGrid line { stroke: var(--f-line); stroke-dasharray: 3 5; }
+.fTip { position: absolute; transform: translateX(-50%); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--f-line); background: var(--f-card); color: var(--f-text); font-size: 11.5px; font-weight: 600; white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+.fDot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--f-card); border: 2.5px solid var(--g); box-shadow: 0 0 calc(var(--f-glow) * 10px) var(--g); pointer-events: none; }
+.fVline { position: absolute; bottom: 0; width: 0; border-left: 1.5px dashed color-mix(in srgb, var(--f-text) 30%, transparent); pointer-events: none; }
+.fFoot { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; margin-top: 10px; }
+.fFoot > div { display: flex; flex-direction: column; gap: 2px; }
+.fFoot > div.r { align-items: flex-end; }
+.fFoot small { font-size: 12px; color: var(--f-sub); }
+.fFoot b { font-size: 21px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fFoot span { font-size: 13px; color: var(--f-sub); font-variant-numeric: tabular-nums; }
+/* カテゴリ・口座の行 */
+.fCats, .fAccts { display: flex; flex-direction: column; }
+.fCats > h3, .fAccts > h3 { margin-bottom: 0; }
+.fCats .fSub, .fAccts .fSub { margin-bottom: 8px; }
+.fCat { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 6px; margin: 0 -6px; border: 0; border-radius: 10px; background: none; color: var(--f-text); font: inherit; text-align: left; }
+button.fCat { cursor: pointer; }
+button.fCat:hover { background: color-mix(in srgb, var(--f-text) 5%, transparent); }
+.fCat.on { background: color-mix(in srgb, var(--f-text) 8%, transparent); }
+.fIc { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.fIc.sm { width: 28px; height: 28px; border-radius: 8px; }
+.fNm { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fNm b { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fNm small { font-size: 11.5px; color: var(--f-sub); font-variant-numeric: tabular-nums; }
+.fCs { width: 34%; max-width: 120px; height: 26px; flex-shrink: 0; }
+.fCats .fFoot, .fAccts .fFoot { margin-top: auto; padding-top: 8px; }
+/* 目標 */
+.fGoals { display: flex; flex-direction: column; gap: 4px; }
+.fGoal { padding: 10px 0 4px; border-top: 1px solid var(--f-line); display: flex; flex-direction: column; gap: 7px; }
+.fGoals .fSub + .fGoal { margin-top: 8px; }
+.fGTop { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fGName { border: 0; background: none; padding: 0; font: inherit; font-size: 15px; font-weight: 600; color: var(--f-text); cursor: pointer; text-align: left; }
+.fGName:hover { text-decoration: underline; text-underline-offset: 3px; }
+.fGPct { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fProg { height: 8px; border-radius: 99px; background: var(--f-line); overflow: hidden; }
+.fProg i { display: block; height: 100%; border-radius: 99px; background: var(--g); box-shadow: 0 0 calc(var(--f-glow) * 10px) var(--g); }
+.fGSub { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--f-sub); font-variant-numeric: tabular-nums; }
+/* 記録の一覧 */
+.fList { display: flex; flex-direction: column; }
+.fList .fHead { margin-bottom: 6px; }
+.fRec { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 8px; margin: 0 -8px; border: 0; border-bottom: 1px solid var(--f-line); border-radius: 0; background: none; color: var(--f-text); font: inherit; text-align: left; }
+.fRec:last-child { border-bottom: 0; }
+button.fRec { cursor: pointer; } button.fRec:hover { background: color-mix(in srgb, var(--f-text) 4%, transparent); }
+.fRn { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.fRn b { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fRn small { font-size: 11.5px; color: var(--f-sub); }
+.fRa { font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fRa.in { color: #22c55e; } :root[data-theme="dark"] .fRa.in { color: #4ade80; }
+.fRa.save { color: #8b5cf6; }
+.fHelp { padding: 12px 14px; font-size: 12.5px; line-height: 1.7; color: var(--sub); }
+.fHelp p { margin: 0 0 6px; } .fHelp code { font-size: 11.5px; word-break: break-all; }
+/* スマホ：数字のカードは横にスライド、ほかは1列 */
+@media (max-width: 899px) {
+  .fKpis { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 14px; scrollbar-width: none; margin: 0 -14px; padding: 0 14px; gap: 10px; }
+  .fKpis::after { content: ''; flex: 0 0 4px; }
+  .fKpis::-webkit-scrollbar { display: none; }
+  .fKpi { flex: 0 0 78%; scroll-snap-align: start; min-height: 140px; }
+  .fRow { grid-template-columns: 1fr; }
+  .fBig { height: 180px; }
+  .fLast { margin-left: 0; width: 100%; }
+}

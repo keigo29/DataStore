@@ -556,3 +556,5 @@ html.wide.noSide .center { padding-left: 14px; }
 /* ノートの右のタグ：長いタグは1行で … */
 html.wide #notesView .nt-tagCloud > * { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
 html.wide #notesView .nt-doc { --tblbg: var(--nt-bg); }
+/* お金：広い画面でも読みやすい幅まで */
+html.wide main#view .fin { max-width: 1400px; }
