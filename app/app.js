@@ -2447,6 +2447,142 @@
     render(); window.scrollTo(0, 0); $('#view').scrollTop = 0;
   }
   function startEdit() { editing = true; draft = S.files[note]?.text ?? ''; render(); }
+  // ---------- スマホ：キーボードの上の Markdown のボタン ----------
+  // 押しても入力欄から外れない（キーボードが閉じない）。行の頭につけるもの（見出し・チェックなど）は、もう一度押すと外れる
+  // 書きかえは execCommand('insertText') で行う（「元に戻す」が効くように）
+  const MDK_ICONS = {
+    indent: '<path d="M3 5h18"/><path d="M11 12h10"/><path d="M11 19h10"/><path d="m3 9 4 3-4 3"/>',
+    outdent: '<path d="M3 5h18"/><path d="M11 12h10"/><path d="M11 19h10"/><path d="m7 9-4 3 4 3"/>',
+    'keyboard-off': '<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>',
+  };
+  Object.entries(MDK_ICONS).forEach(([k, v]) => { window.ICONS[k] ||= v; });
+  let mdTa = null;
+  function mdKeys(ta) {
+    mdTa = ta;
+    let bar = $('#mdBar');
+    if (!bar) {
+      bar = el('div', 'mdBar'); bar.id = 'mdBar'; bar.hidden = true;
+      const row = el('div', 'mdRow');
+      const B = (ic, label, fn, txt) => {
+        const b = el('button', 'mdK' + (txt ? ' txt' : '')); b.type = 'button'; b.setAttribute('aria-label', label); b.title = label;
+        if (txt) b.textContent = txt; else b.innerHTML = icon(ic);
+        let p0 = null;
+        // 押した瞬間に入力欄から外れないように。横にスクロールしたときは押したことにしない
+        b.addEventListener('pointerdown', e => { e.preventDefault(); p0 = [e.clientX, e.clientY]; });
+        b.addEventListener('pointerup', e => { if (p0 && Math.hypot(e.clientX - p0[0], e.clientY - p0[1]) < 10 && mdTa) { fn(mdTa); navigator.vibrate?.(5); } p0 = null; });
+        b.addEventListener('pointercancel', () => { p0 = null; });
+        b.addEventListener('click', e => e.preventDefault());
+        return b;
+      };
+      const today = () => todayKey();
+      const nextHour = () => { const h = Math.min(new Date().getHours() + 1, 23); return `${String(h).padStart(2, '0')}:00`; };
+      row.append(
+        B('square-check', 'チェック（やること）', t => mdLine(t, 'check')),
+        B('list', '箇条書き', t => mdLine(t, 'bullet')),
+        B('heading-1', '見出し（押すたびに # → ## → ### → なし）', t => mdLine(t, 'heading')),
+        B('bold', '太字', t => mdWrap(t, '**', '**')),
+        B('link', 'ノートへのリンク [[ ]]', t => mdWrap(t, '[[', ']]')),
+        B('hash', 'タグ', t => mdInsert(t, '#', true)),
+        B('clock', '予定の時刻（- 10:00 ）', t => mdLine(t, 'time', nextHour())),
+        B('calendar', '期限 📅 今日', t => mdInsert(t, ` 📅 ${today()}`, false, true)),
+        B('quote', '引用', t => mdLine(t, 'quote')),
+        B('code', 'コード', t => mdWrap(t, '`', '`')),
+        B('outdent', '字下げを戻す', t => mdIndent(t, -1)),
+        B('indent', '字下げ', t => mdIndent(t, 1)),
+        B('undo-2', '元に戻す', t => document.execCommand('undo')),
+        B('redo-2', 'やり直す', t => document.execCommand('redo')),
+      );
+      const close = B('keyboard-off', 'キーボードを閉じる', t => t.blur());
+      close.classList.add('close');
+      bar.append(row, close);
+      document.body.append(bar);
+      // キーボードの上に付いてくる
+      const vv = window.visualViewport;
+      const place = () => {
+        if (bar.hidden) return;
+        const h = bar.offsetHeight;
+        const bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+        bar.style.transform = `translateY(${Math.round(bottom - h)}px)`;
+      };
+      if (vv) { vv.addEventListener('resize', place); vv.addEventListener('scroll', place); }
+      window.addEventListener('resize', place);
+      bar._place = place;
+    }
+    const show = () => { if (isWide()) return; bar.hidden = false; document.body.classList.add('typing'); bar._place(); setTimeout(bar._place, 300); };
+    const hide = () => { setTimeout(() => { if (document.activeElement === mdTa && mdTa?.isConnected) return; bar.hidden = true; document.body.classList.remove('typing'); }, 80); };
+    ta.addEventListener('focus', show);
+    ta.addEventListener('blur', hide);
+    // 入力欄が画面から消えたら（保存・やめる）帯も消す
+    requestAnimationFrame(() => { if (document.activeElement === ta) show(); });
+    new MutationObserver((_, ob) => { if (!ta.isConnected) { ob.disconnect(); if (mdTa === ta) { bar.hidden = true; document.body.classList.remove('typing'); } } }).observe(document.body, { childList: true, subtree: true });
+  }
+  // 範囲を置きかえる（「元に戻す」が効くように）
+  function mdReplace(ta, a, b, text, selA, selB) {
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(a, b);
+    const ok = document.execCommand && document.execCommand('insertText', false, text);
+    if (!ok) { ta.setRangeText(text, a, b, 'end'); ta.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (selA != null) ta.setSelectionRange(selA, selB ?? selA);
+  }
+  function mdLineRange(ta) {
+    const v = ta.value, s1 = ta.selectionStart, s2 = ta.selectionEnd;
+    const a = v.lastIndexOf('\n', s1 - 1) + 1;
+    let b = v.indexOf('\n', s2 > s1 && v[s2 - 1] === '\n' ? s2 - 1 : s2); if (b < 0) b = v.length;
+    return [a, b];
+  }
+  // 行の頭につけるもの（つけ外し）
+  function mdLine(ta, kind, arg) {
+    const [a, b] = mdLineRange(ta);
+    const s1 = ta.selectionStart, s2 = ta.selectionEnd;
+    const lines = ta.value.slice(a, b).split('\n');
+    const LIST = /^(\s*)(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/;
+    let delta0 = 0;
+    const out = lines.map((l, i) => {
+      const ind = l.match(/^\s*/)[0];
+      let body = l.slice(ind.length), nx;
+      if (kind === 'check') nx = /^[-*+]\s+\[[ xX]\]\s?/.test(body) ? body.replace(/^[-*+]\s+\[[ xX]\]\s?/, '') : '- [ ] ' + body.replace(/^(?:[-*+]|\d+[.)])\s+/, '');
+      else if (kind === 'bullet') nx = /^[-*+]\s+(?!\[)/.test(body) ? body.replace(/^[-*+]\s+/, '') : '- ' + body.replace(/^(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/, '');
+      else if (kind === 'quote') nx = /^>\s?/.test(body) ? body.replace(/^>\s?/, '') : '> ' + body;
+      else if (kind === 'heading') { const m = body.match(/^(#{1,6})\s+/); const lv = m ? m[1].length : 0; body = body.replace(/^#{1,6}\s+/, ''); nx = lv >= 3 ? body : '#'.repeat(lv + 1) + ' ' + body; }
+      else if (kind === 'time') {
+        const rest = body.replace(/^(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/, '');
+        nx = /^\d{1,2}:\d{2}(?:\s*[-~〜–]\s*\d{1,2}:\d{2})?\s/.test(rest) ? '- ' + rest.replace(/^\d{1,2}:\d{2}(?:\s*[-~〜–]\s*\d{1,2}:\d{2})?\s+/, '') : `- ${arg} ` + rest;
+      }
+      const r = ind + nx;
+      if (i === 0) delta0 = r.length - l.length;
+      return r;
+    });
+    const text = out.join('\n');
+    const one = lines.length === 1;
+    // 1行のときは、カーソルを行の中の同じ文字の位置に（行の頭より前には戻さない）
+    const ns1 = a + Math.max(0, s1 - a + delta0);
+    mdReplace(ta, a, b, text, one ? Math.min(ns1, a + text.length) : a, one ? Math.min(Math.max(s2 - a + delta0, 0) + a, a + text.length) : a + text.length);
+  }
+  // 選んだ文字を囲む（選んでいなければ、間にカーソル）
+  function mdWrap(ta, l, r) {
+    const a = ta.selectionStart, b = ta.selectionEnd, sel = ta.value.slice(a, b);
+    if (sel && sel.startsWith(l) && sel.endsWith(r) && sel.length >= l.length + r.length) return mdReplace(ta, a, b, sel.slice(l.length, sel.length - r.length), a, b - l.length - r.length);
+    mdReplace(ta, a, b, l + sel + r, a + l.length, a + l.length + sel.length);
+  }
+  // 文字を入れる。space：前が空白でなければ空白を足す。atEnd：行の終わりに入れる
+  function mdInsert(ta, text, space, atEnd) {
+    let a = ta.selectionStart, b = ta.selectionEnd;
+    if (atEnd) { const [, e] = mdLineRange(ta); a = b = e; }
+    const prev = ta.value[a - 1];
+    const t = space && prev && !/\s/.test(prev) ? ' ' + text : text;
+    mdReplace(ta, a, b, t, a + t.length);
+  }
+  function mdIndent(ta, dir) {
+    const [a, b] = mdLineRange(ta);
+    const s1 = ta.selectionStart;
+    const lines = ta.value.slice(a, b).split('\n');
+    let d0 = 0;
+    const out = lines.map((l, i) => { const r = dir > 0 ? '  ' + l : l.replace(/^( {1,2}|\t)/, ''); if (i === 0) d0 = r.length - l.length; return r; });
+    const text = out.join('\n');
+    if (text === lines.join('\n')) return;
+    mdReplace(ta, a, b, text, lines.length === 1 ? Math.max(a, s1 + d0) : a, lines.length === 1 ? Math.max(a, s1 + d0) : a + text.length);
+  }
+
   function renderNote(main) {
     const f = S.files[note];
     if (!f) { note = null; return renderNotes(main); }
@@ -2481,6 +2617,7 @@
         return;
       }
       main.append(ta);
+      mdKeys(ta);
       main.append(el('div', 'sub edHint', !connected() ? 'デモ表示中：保存はこの画面の中だけです' : desk ? (deskSt?.git?.repo && deskSt.autoGit ? '保存すると、少しあとで自動で commit・push します' : '保存すると、フォルダのファイルに書きます') : '保存すると、このノートを GitHub に commit します'));
       requestAnimationFrame(() => { ta.style.height = Math.max(window.innerHeight * 0.6, ta.scrollHeight) + 'px'; });
       return;

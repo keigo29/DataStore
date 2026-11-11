@@ -1054,3 +1054,20 @@ button.pcLine { border: 0; background: none; padding: 0; text-align: left; curso
   .pcLinks .pcLink { flex: 1 1 0; }
   .pcards .pcAdd { grid-column: 1 / -1; min-height: 56px; margin-top: 0; }
 }
+
+/* ---------- スマホ：キーボードの上の Markdown のボタン ---------- */
+.mdBar { position: fixed; z-index: 70; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 4px; padding: 6px 6px 6px 8px;
+  background: color-mix(in srgb, var(--card) 94%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); will-change: transform; }
+.mdBar[hidden] { display: none; }
+.mdRow { flex: 1; min-width: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent); padding-right: 16px; }
+.mdRow::-webkit-scrollbar { display: none; }
+.mdK { flex-shrink: 0; width: 40px; height: 38px; border: 0; border-radius: 10px; background: var(--soft, color-mix(in srgb, var(--text) 6%, transparent)); color: var(--text);
+  display: grid; place-items: center; -webkit-tap-highlight-color: transparent; touch-action: pan-x; user-select: none; -webkit-user-select: none; }
+.mdK:active { background: color-mix(in srgb, var(--text) 16%, transparent); }
+.mdK .lc, .mdK svg { width: 19px; height: 19px; }
+.mdK.close { background: none; color: var(--sub); width: 38px; border-left: 1px solid color-mix(in srgb, var(--text) 10%, transparent); border-radius: 0; }
+/* 書いているあいだは下のタブをかくす（Android でキーボードの上にのらないように）・帯のぶん下をあける */
+body.typing #tabs { display: none; }
+body.typing main { padding-bottom: 80px; }
