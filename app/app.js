@@ -2481,6 +2481,7 @@
         B('list', '箇条書き', t => mdLine(t, 'bullet')),
         B('heading-1', '見出し（押すたびに # → ## → ### → なし）', t => mdLine(t, 'heading')),
         B('bold', '太字', t => mdWrap(t, '**', '**')),
+        B('highlighter', 'マーカー（==  ==）', t => mdWrap(t, '==', '==')),
         B('link', 'ノートへのリンク [[ ]]', t => mdWrap(t, '[[', ']]')),
         B('hash', 'タグ', t => mdInsert(t, '#', true)),
         B('clock', '予定の時刻（- 10:00 ）', t => mdLine(t, 'time', nextHour())),

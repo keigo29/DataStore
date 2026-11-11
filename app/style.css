@@ -1074,3 +1074,7 @@ body.typing #tabs { display: none; }
 /* 書いているあいだは、上の見出しの場所に帯を重ねる（見出しはかくす。場所はそのままなので画面がずれない） */
 body.typing .top > * { visibility: hidden; }
 body.typing .top { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; pointer-events: none; }
+/* マーカー（==文字==）の色：スマホも旧 Workstation（PC のノート）と同じ。黒地に白、ダークでは白地に黒 */
+:root { --nt-mark-bg: #000; --nt-mark-fg: #fff; }
+:root[data-theme="dark"] { --nt-mark-bg: #E8E8E8; --nt-mark-fg: #111; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nt-mark-bg: #E8E8E8; --nt-mark-fg: #111; } }
