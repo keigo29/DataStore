@@ -2447,7 +2447,7 @@
     render(); window.scrollTo(0, 0); $('#view').scrollTop = 0;
   }
   function startEdit() { editing = true; draft = S.files[note]?.text ?? ''; render(); }
-  // ---------- スマホ：キーボードの上の Markdown のボタン ----------
+  // ---------- スマホ：ノートを書くときの Markdown のボタン（画面の上に固定） ----------
   // 押しても入力欄から外れない（キーボードが閉じない）。行の頭につけるもの（見出し・チェックなど）は、もう一度押すと外れる
   // 書きかえは execCommand('insertText') で行う（「元に戻す」が効くように）
   const MDK_ICONS = {
@@ -2498,11 +2498,10 @@
       document.body.append(bar);
       // キーボードの上に付いてくる
       const vv = window.visualViewport;
+      // 見えている画面のいちばん上に付ける（キーボードが出て画面がずれても）
       const place = () => {
         if (bar.hidden) return;
-        const h = bar.offsetHeight;
-        const bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
-        bar.style.transform = `translateY(${Math.round(bottom - h)}px)`;
+        bar.style.transform = `translateY(${Math.round(vv ? vv.offsetTop : 0)}px)`;
       };
       if (vv) { vv.addEventListener('resize', place); vv.addEventListener('scroll', place); }
       window.addEventListener('resize', place);
