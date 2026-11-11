@@ -1,6 +1,6 @@
 // オフラインでも開けるように、アプリのファイルを取っておく（ノートの中身はアプリ側の IndexedDB）
 // ファイルを変えたら VERSION を上げる
-const VERSION = 'ws-notes-v40';
+const VERSION = 'ws-notes-v41';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'parser.js', 'daily.js', 'icons.js', 'manifest.webmanifest',
   'vendor/marked.js', 'vendor/purify.js', 'vendor/fonts/fonts.css', 'desk.css', 'ws/notes.css', 'ws/ui.js', 'ws/keys.js', 'ws/notes.js', 'graph.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

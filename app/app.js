@@ -3443,7 +3443,16 @@
     if (!ntOn()) { $('#view').classList.remove('ntMode'); delete document.body.dataset.app; }
     $('#view').classList.toggle('gMode', tab === 'graph');
     $('#view').classList.remove('calMode');
-    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === (tab === 'graph' ? 'notes' : tab)));
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+    // 下のメニューが入りきらないとき：選んでいるタブが見えるようにスライド
+    if (!isWide()) {
+      const on = $('#tabs button.on'), tb = $('#tabs');
+      if (on) requestAnimationFrame(() => {
+        const l = on.offsetLeft, r = l + on.offsetWidth, pad = 28;
+        if (l - pad < tb.scrollLeft) tb.scrollTo({ left: Math.max(0, l - pad), behavior: 'smooth' });
+        else if (r + pad > tb.scrollLeft + tb.clientWidth) tb.scrollTo({ left: r + pad - tb.clientWidth, behavior: 'smooth' });
+      });
+    }
     const d = new Date();
     $('#eyebrow').textContent = tab === 'notes' && note ? (connected() ? sourceName() : 'デモ').toUpperCase() : `${d.getMonth() + 1}月${d.getDate()}日 ${WD[d.getDay()]}曜日`;
     $('#title').textContent = tab === 'notes' && note ? nameOf(note) : tab === 'proj' && proj && projByPath(proj) ? projByPath(proj).name : TITLES[tab];
@@ -3502,6 +3511,19 @@
     ({ home: renderHome, todo: renderTodo, proj: renderProj, cal: renderCal, notes: renderNotes, graph: renderGraph, sync: renderSync })[tab](main);
   }
   document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+  // 下のメニュー：入りきらないときは左右にスライド。続きがある側の端をうすくする
+  {
+    const tb = $('#tabs');
+    const edge = () => {
+      const more = tb.scrollWidth > tb.clientWidth + 2;
+      tb.classList.toggle('scrolls', more);
+      tb.classList.toggle('atStart', tb.scrollLeft < 4);
+      tb.classList.toggle('atEnd', tb.scrollLeft > tb.scrollWidth - tb.clientWidth - 4);
+    };
+    tb.addEventListener('scroll', edge, { passive: true });
+    new ResizeObserver(edge).observe(tb);
+    edge();
+  }
   document.querySelectorAll('[data-icon]').forEach(e => e.insertAdjacentHTML('afterbegin', icon(e.dataset.icon)));
 
   // アプリに戻ってきたとき：日付が変わっていれば今日に、1分以上たっていれば読み直す

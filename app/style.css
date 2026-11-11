@@ -1087,3 +1087,10 @@ body.typing .top { background: none; -webkit-backdrop-filter: none; backdrop-fil
 .tabs .ric { width: 52px; height: 52px; border-radius: 17px; }
 .tabs .ric .lc, .tabs .ric svg { width: 25px; height: 25px; }
 .tabs .ric .badge { top: 2px; right: 2px; }
+/* 下のメニュー：入りきらないときは左右にスライド */
+.tabs { display: flex; gap: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scrollbar-width: none; overscroll-behavior-x: contain; padding-left: 4px; padding-right: 4px; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button { flex: 1 0 60px; scroll-snap-align: center; }
+.tabs.scrolls:not(.atEnd) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.tabs.scrolls.atEnd:not(.atStart) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+.tabs.scrolls:not(.atStart):not(.atEnd) { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
