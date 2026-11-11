@@ -1078,3 +1078,12 @@ body.typing .top { background: none; -webkit-backdrop-filter: none; backdrop-fil
 :root { --nt-mark-bg: #000; --nt-mark-fg: #fff; }
 :root[data-theme="dark"] { --nt-mark-bg: #E8E8E8; --nt-mark-fg: #111; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nt-mark-bg: #E8E8E8; --nt-mark-fg: #111; } }
+
+/* ---------- スマホの下のメニュー：アイコンだけ・少し大きく ---------- */
+:root { --tabs-h: 68px; }
+.tabs { padding-top: 8px; }
+.tabs b { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* 名前は読み上げ用だけ */
+.tabs button { justify-content: flex-start; gap: 0; -webkit-tap-highlight-color: transparent; }
+.tabs .ric { width: 52px; height: 52px; border-radius: 17px; }
+.tabs .ric .lc, .tabs .ric svg { width: 25px; height: 25px; }
+.tabs .ric .badge { top: 2px; right: 2px; }
