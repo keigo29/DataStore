@@ -66,3 +66,12 @@ test('removeLine：その行だけ消す。行が変わっていたら消さな�
   assert.equal(P.removeLine('a\n- 10:00 x\nb\n', 1, '- 10:00 x'), 'a\nb\n');
   assert.equal(P.removeLine('a\n- 10:00 x\nb\n', 1, '- 11:00 x'), null);
 });
+
+test('出費の予定：- [ ] 💸 のやることに金額がつく（お金の記録にはならない）', () => {
+  const it = parse('- [ ] 💸 68,000 家賃 #住まい 📅 2026-11-25\n- [x] 💸 1,200 本 📅 2026-11-08\n- [ ] ふつうのやること\n');
+  assert.equal(it.filter(i => i.type === 'money').length, 0);
+  const [a, b, c] = it;
+  assert.deepEqual([a.type, a.done, a.date, a.money], ['todo', false, '2026-11-25', { kind: 'out', amount: 68000, title: '家賃' }]);
+  assert.deepEqual([b.done, b.money.amount], [true, 1200]);
+  assert.equal(c.money, undefined);
+});

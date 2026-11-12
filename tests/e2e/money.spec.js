@@ -32,7 +32,37 @@ test('kakei.json から口座の残高を正しく計算する', async ({ browse
   await openTab(page, 'money');
   await expect(page.locator('.fAcct:has-text("テスト銀行")')).toContainText('103,500');
   await expect(page.locator('.fAcct:has-text("テスト財布")')).toContainText('300');
-  await expect(page.locator('.fRec:has-text("ランチ")')).toHaveCount(1);
+  await expect(page.locator('.fList .fRec:has-text("ランチ")')).toHaveCount(1);
+  expect(errs).toEqual([]);
+  await ctx.close();
+});
+
+test('お金のカレンダー：使った額と出費の予定。予定を足す・払ったにする', async ({ browser }) => {
+  const ctx = await browser.newContext(PC); const page = await ctx.newPage();
+  const d = today();
+  const later = d;   // 今日（月末でもその月に入るように）
+  const kakei = { accounts: [{ id: 'b', name: '銀行', type: 'bank', initial: 0, order: 1 }], txs: [{ date: d, type: 'expense', amount: 1200, accountId: 'b', category: 'food', memo: 'ランチ' }] };
+  const gh = await mockGitHub(ctx, { 'Inbox.md': `# Inbox\n\n- [ ] 💸 4,980 スマホ代 #通信 📅 ${later}\n`, 'Data/kakei.json': JSON.stringify(kakei) });
+  const errs = watchErrors(page);
+  await openApp(page, { connect: true });
+  await page.waitForTimeout(800);
+  await openTab(page, 'money');
+  await expect(page.locator('.mD.today .o')).toHaveText('−1,200');
+  await expect(page.locator('.mD .p').first()).toContainText('4,980');
+  await expect(page.locator('.mCal > .fSub')).toContainText('¥4,980');
+  // 予定を足す
+  await page.click('.mCal button:has-text("出費の予定")');
+  await page.fill('#sheetIn .inp >> nth=0', '家賃');
+  await page.fill('#sheetIn .inp >> nth=1', '68000');
+  await page.fill('#sheetIn .inp >> nth=2', later);
+  await page.click('#sheetIn .shBtns .btn.primary');
+  await expect.poll(() => gh.remote.get('Inbox.md').text).toContain(`- [ ] 💸 68,000 家賃 📅 ${later}`);
+  await expect(page.locator('.mD .p').first()).toContainText('7.3万');
+  // その日を開いて「払った」
+  await expect(page.locator('.mDay .mPlan')).toHaveCount(2);
+  await page.locator('.mDay .mPlan:has-text("家賃") .tchk').click();
+  await expect.poll(() => gh.remote.get('Inbox.md').text).toContain(`- [x] 💸 68,000 家賃 📅 ${later}`);
+  await expect(page.locator('.mD .p').first()).toContainText('4,980');
   expect(errs).toEqual([]);
   await ctx.close();
 });

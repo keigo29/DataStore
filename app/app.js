@@ -177,7 +177,7 @@
         [day(0, 'Docker の調べもの')]: f(`---\ntags: [勉強, docker]\n---\n- \`docker compose up -d\` で裏で動かす\n- ==ボリュームを消すと DB も消える==\n`),
         [day(0, 'デイリー')]: f(`## やること\n- [x] ほのぼの書店のデプロイ確認\n- [ ] プルリクのレビューを返す\n- [ ] [[Spring Boot メモ]]の続きを読む\n- [ ] API のエラー処理を直す [[ほのぼの書店]]\n\n## 予定\n- 10:00 朝会\n- 14:00-15:00 チームMTG #仕事\n\n## メモ\n> [!info] EC2\n> Tomcat が再起動後に上がらなかった → \`systemctl enable tomcat\` で解決\n`),
         [day(-1, 'デイリー')]: f(`## やること\n- [x] 資格の問題集 2章\n- [ ] 筋トレメモにグラフを足す\n`),
-        'Inbox.md': f(`# Inbox\n\n- [ ] 資格の問題集 3章 @due(${d(3)}) #資格\n- [ ] ポートフォリオの README を書く #個人開発\n- [x] AWS の請求を確認 #仕事\n`),
+        'Inbox.md': f(`# Inbox\n\n- [ ] 資格の問題集 3章 @due(${d(3)}) #資格\n- [ ] ポートフォリオの README を書く #個人開発\n- [x] AWS の請求を確認 #仕事\n- [ ] 💸 68,000 家賃 #住まい 📅 ${d(13)}\n- [ ] 💸 4,980 スマホ代 #通信 📅 ${d(6)}\n- [ ] 💸 5,000 飲み会 📅 ${d(2)}\n- [x] 💸 1,200 本 #学び 📅 ${d(-2)}\n`),
         'Projects/ほのぼの書店.md': f(`---\ncolor: "#005cff"\nlinks:\n  - GitLab https://gitlab.com/\n  - 設計書 https://example.com/design\n---\nSpring Boot のグループ開発。EC2（Tomcat・MySQL）にデプロイする。\n\n## タスク\n- [x] 要件のまとめ 🛫 ${d(-9)} 📅 ${d(-6)}\n- [x] 画面設計 🛫 ${d(-5)} 📅 ${d(-2)}\n- [ ] 注文画面の実装 🛫 ${d(-1)} 📅 ${d(4)}\n- [ ] テスト 🛫 ${d(5)} 📅 ${d(9)}\n- [ ] 発表 📅 ${d(12)} #節目\n`),
         'Projects/資格の勉強.md': f(`---\ncolor: "#00c230"\n---\n基本情報技術者試験。\n\n## タスク\n- [x] 1章 🛫 ${d(-12)} 📅 ${d(-8)}\n- [ ] 2章 🛫 ${d(-7)} 📅 ${d(-1)}\n- [ ] 3章 🛫 ${d(0)} 📅 ${d(6)}\n- [ ] 試験日 📅 ${d(20)} #節目\n`),
         'Projects/引越し貯金.md': f(`---\ncolor: "#1a9e5c"\ntags: [お金]\ntarget: 400000\nsaved: 170000\ndue: ${d(170)}\n---\n引越しのための貯金。\n\n## タスク\n- [ ] 毎月の積立額を決める 📅 ${d(9)}\n- [ ] 貯金 20万円\n- [ ] 引越し 📅 ${d(190)} #節目\n`),
@@ -2297,7 +2297,8 @@
   // 書き方：- 💸 1,200 ランチ #食費（出費）／- 💰 250,000 給料（収入）／- 🏦 30,000 [[引越し資金]]（貯金目標へ）
   // 貯金目標：ノートの先頭に type: 目標・target: 500000・due: 2027-03-31（Finance/引越し資金.md など）
   let moneyMonth = null;        // 'YYYY-MM'
-  let moneyCat = null;          // 記録の一覧をカテゴリでしぼる
+  let moneyCat = null;
+  let moneyDay = null;          // カレンダーで選んだ日          // 記録の一覧をカテゴリでしぼる
   const yen = n => '¥' + Math.round(n).toLocaleString('ja-JP');
   const ymOf = k => k.slice(0, 7);
   const ymAdd = (ym, n) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
@@ -2441,7 +2442,7 @@
       const c = el('div', 'fCard fEmptyCard');
       c.append(el('h3', '', '家計のデータがまだありません'));
       c.insertAdjacentHTML('beforeend', '<p class="fSub">リポジトリの <code>Data/kakei.json</code>（家計アプリのバックアップと同じ形）を読みます。ノートに <code>- 💸 1,200 ランチ #食費</code>・<code>- 💰 250,000 給料</code> と書いた分も入ります。</p>');
-      wrap.append(c); main.append(wrap); return;
+      wrap.append(c, moneyCalendar(ym, cur, tk)); main.append(wrap); return;
     }
     // 上の数字のカード
     const delta = (a, b, good) => {
@@ -2509,6 +2510,9 @@
     }
     wrap.append(row);
 
+    // お金のカレンダー（使った額と出費の予定）
+    wrap.append(moneyCalendar(ym, cur, tk));
+
     // カテゴリ ＋ 貯金の目標
     const row2 = el('div', 'fRow');
     const cats = el('div', 'fCard fCats');
@@ -2567,6 +2571,105 @@
     }
     wrap.append(lc);
     main.append(wrap);
+  }
+
+  // ---------- お金のカレンダー ----------
+  // 使った額：家計のデータ（kakei.json）とノートの 💸。出費の予定：やることの行の - [ ] 💸 80,000 家賃 📅 2026-11-25
+  const plansOf = ym => items.filter(i => i.type === 'todo' && i.money?.kind === 'out' && i.date && i.date.startsWith(ym));
+  const yenS = n => n >= 100000 ? `${Math.round(n / 10000)}万` : n >= 10000 ? `${(n / 10000).toFixed(1).replace(/\.0$/, '')}万` : Math.round(n).toLocaleString('ja-JP');
+  function moneyCalendar(ym, cur, tk) {
+    const card = el('div', 'fCard mCal');
+    const plans = plansOf(ym);
+    const spent = new Map(), plan = new Map();
+    for (const i of cur.list) if (i.kind === 'out') spent.set(i.date, (spent.get(i.date) || 0) + i.amount);
+    for (const p of plans) { const a = plan.get(p.date) || []; a.push(p); plan.set(p.date, a); }
+    const open = plans.filter(p => !p.done), openSum = open.reduce((a, p) => a + p.money.amount, 0);
+    const later = open.filter(p => p.date >= tk).reduce((a, p) => a + p.money.amount, 0), late = open.filter(p => p.date < tk);
+    const hd = el('div', 'fHead');
+    hd.append(el('h3', '', 'お金のカレンダー'), btn('btn small white', ['plus', '出費の予定'], () => planSheet(moneyDay && moneyDay.startsWith(ym) ? moneyDay : ym === ymOf(tk) ? tk : ym + '-01'), '出費の予定を足す'));
+    card.append(hd);
+    const sub = el('p', 'fSub');
+    sub.append(el('span', 'mLeg out', '使った'), el('span', 'mLeg plan', '出費の予定'), document.createTextNode(plans.length ? `・まだ払っていない予定 ${yen(openSum)}${later !== openSum ? `（今日から先 ${yen(later)}）` : ''}` : '・予定はまだありません'));
+    if (late.length) sub.append(el('b', 'mLate', `・期日をすぎた予定 ${late.length}件`));
+    card.append(sub);
+    const g = el('div', 'mGrid');
+    ['月', '火', '水', '木', '金', '土', '日'].forEach((w, i) => g.append(el('span', 'mW' + (i === 5 ? ' sat' : i === 6 ? ' sun' : ''), w)));
+    const first = ym + '-01', lead = (parseKey(first).getDay() + 6) % 7, n = daysIn(ym);
+    for (let i = 0; i < lead; i++) g.append(el('span', 'mD blank'));
+    const sel = moneyDay && moneyDay.startsWith(ym) ? moneyDay : ym === ymOf(tk) ? tk : null;
+    for (let d = 1; d <= n; d++) {
+      const k = `${ym}-${String(d).padStart(2, '0')}`, wd = (lead + d - 1) % 7;
+      const c = btn('mD' + (k === tk ? ' today' : '') + (k === sel ? ' sel' : '') + (k > tk ? ' fut' : '') + (wd === 5 ? ' sat' : wd === 6 ? ' sun' : ''), [], () => { moneyDay = k; render(); }, `${md(k)}`);
+      c.append(el('span', 'n', String(d)));
+      if (spent.get(k)) c.append(el('span', 'o', '−' + yenS(spent.get(k))));
+      const ps = plan.get(k) || [];
+      const po = ps.filter(p => !p.done), pd = ps.filter(p => p.done);
+      if (po.length) {
+        const sp = el('span', 'p' + (k < tk ? ' late' : ''), yenS(po.reduce((a, p) => a + p.money.amount, 0)));
+        sp.append(el('em', '', po.map(p => p.money.title).join('・')));
+        c.title = `${md(k)}  予定：${po.map(p => `${p.money.title} ${yen(p.money.amount)}`).join('、')}`;
+        c.append(sp);
+      }
+      else if (pd.length) c.append(el('span', 'p done', '払った'));
+      g.append(c);
+    }
+    card.append(g);
+    if (sel) card.append(moneyDayList(sel, cur, plan.get(sel) || []));
+    return card;
+  }
+  // 選んだ日の中身：出費の予定（チェックで「払った」）と使った記録
+  function moneyDayList(k, cur, ps) {
+    const box = el('div', 'mDay');
+    const out = cur.list.filter(i => i.date === k && i.kind === 'out');
+    const hd = el('div', 'mDayHd');
+    hd.append(el('b', '', `${md(k)}${k === todayKey() ? '（今日）' : ''}`), el('span', 'fSub', out.length ? `使った ${yen(out.reduce((a, i) => a + i.amount, 0))}` : '使った記録なし'));
+    box.append(hd);
+    for (const p of ps.sort((a, b) => a.done - b.done)) {
+      const r = el('div', 'fRec mPlan' + (p.done ? ' done' : ''));
+      r.append(btn('tchk' + (p.done ? ' on' : ''), 'check', () => setDone(p, !p.done), p.done ? 'まだ払っていないにする' : '払った'));
+      const nm = el('button', 'fRn'); nm.type = 'button'; nm.addEventListener('click', () => openNote(p.path));
+      nm.append(el('b', '', p.money.title || '出費の予定'), el('small', '', [p.done ? '払った' : k < todayKey() ? '期日をすぎています' : '出費の予定', nameOf(p.path)].join('・')));
+      r.append(nm, el('span', 'fRa plan', yen(p.money.amount)));
+      box.append(r);
+    }
+    for (const i of out) {
+      const r = el(i.src === 'kakei' ? 'div' : 'button', 'fRec');
+      if (i.src !== 'kakei') { r.type = 'button'; r.addEventListener('click', () => openNote(i.path)); }
+      const ic = el('span', 'fIc sm', catOf(i).slice(0, 1)); ic.style.background = i.color || '#8b8b93';
+      const nm = el('span', 'fRn'); nm.append(el('b', '', i.title || catOf(i)), el('small', '', [catOf(i), i.account || (i.src ? '' : 'ノート')].filter(Boolean).join('・')));
+      r.append(ic, nm, el('span', 'fRa out', '−' + yen(i.amount)));
+      box.append(r);
+    }
+    if (!ps.length && !out.length) box.append(el('div', 'fEmpty', 'この日はなにもありません'));
+    return box;
+  }
+  // 出費の予定を足す（Inbox.md に - [ ] 💸 80,000 家賃 📅 2026-11-25）
+  function planSheet(k) {
+    const inn = $('#sheetIn');
+    sheetHead(inn, '出費の予定を足す');
+    const fld = (label, input) => { const l = el('label', 'fld'); l.append(el('span', '', label), input); return l; };
+    const nm = el('input', 'inp'); nm.placeholder = '例：家賃・スマホ代・飲み会';
+    const am = el('input', 'inp'); am.inputMode = 'numeric'; am.placeholder = '例：80000';
+    const du = el('input', 'inp'); du.type = 'date'; du.value = k;
+    const tg = el('input', 'inp'); tg.placeholder = '例：住まい（なくても可）';
+    inn.append(fld('なにに', nm), fld('金額（円）', am), fld('日にち', du), fld('カテゴリ', tg), el('div', 'hint sub', 'Inbox.md に「- [ ] 💸 金額 なにに 📅 日にち」と書きます。払ったらチェックを付けます'));
+    const bs = el('div', 'shBtns');
+    const save = async () => {
+      const name = nm.value.trim(), amount = parseFloat(am.value.replace(/[,¥￥円\s]/g, ''));
+      if (!name) { nm.focus(); return; }
+      if (!(amount > 0)) { am.focus(); return; }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(du.value)) { du.focus(); return; }
+      const tag = tg.value.trim().replace(/^#/, '').replace(/\s+/g, '-');
+      const v = `💸 ${amount.toLocaleString('ja-JP')} ${name}${tag ? ' #' + tag : ''} 📅 ${du.value}`;
+      sheet.close();
+      moneyDay = du.value; moneyMonth = du.value.slice(0, 7) === ymOf(todayKey()) ? null : du.value.slice(0, 7);
+      if (await edit('Inbox.md', t => MDParser.addTodo(t == null ? '# Inbox\n' : t, v), `出費の予定: ${name}`)) toast(`${md(du.value)}に「${name}」の予定を足しました`);
+    };
+    bs.append(btn('btn primary', ['plus', '足す'], save));
+    [nm, am].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) save(); }));
+    inn.append(bs);
+    sheet.showModal();
+    setTimeout(() => nm.focus(), 50);
   }
 
   // 貯金の目標をつくる（Finance/名前.md）
