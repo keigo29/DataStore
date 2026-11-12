@@ -66,3 +66,32 @@ test('お金のカレンダー：使った額と出費の予定。予定を足�
   expect(errs).toEqual([]);
   await ctx.close();
 });
+
+test('出費の予定をホームから直す・消す', async ({ browser }) => {
+  const ctx = await browser.newContext(PHONE); const page = await ctx.newPage();
+  const d = today();
+  const gh = await mockGitHub(ctx, { 'Inbox.md': `# Inbox\n\n- [ ] 💸 4,980 スマホ代 #通信 [[固定費]] 📅 ${d}\n- [ ] 💸 5,000 飲み会 📅 ${d}\n` });
+  const errs = watchErrors(page);
+  await openApp(page, { connect: true });
+  await page.waitForTimeout(800);
+  const w = page.locator('.mWidget');
+  await expect(w.locator('.mPlan')).toHaveCount(2);
+  await expect(w.locator('.mWSub')).toContainText('¥9,980');
+  // 直す：金額と名前。カテゴリ以外のリンクは残る
+  await w.locator('.mPlan:has-text("スマホ代") .fRn').click();
+  await page.fill('#sheetIn .inp >> nth=0', 'スマホ代（11月）');
+  await page.fill('#sheetIn .inp >> nth=1', '5200');
+  await page.click('#sheetIn .shBtns .btn.primary');
+  await expect.poll(() => gh.remote.get('Inbox.md').text).toContain(`- [ ] 💸 5,200 スマホ代（11月） #通信 [[固定費]] 📅 ${d}`);
+  await expect(w.locator('.mWSub')).toContainText('¥10,200');
+  // 消す（2回押す）
+  await w.locator('.mPlan:has-text("飲み会") .fRn').click();
+  await page.click('#sheetIn .btn.danger'); await page.click('#sheetIn .btn.danger');
+  await expect.poll(() => gh.remote.get('Inbox.md').text).not.toContain('飲み会');
+  await expect(w.locator('.mPlan')).toHaveCount(1);
+  // 払った
+  await w.locator('.mPlan .tchk').click();
+  await expect.poll(() => gh.remote.get('Inbox.md').text).toContain('- [x] 💸 5,200');
+  expect(errs).toEqual([]);
+  await ctx.close();
+});

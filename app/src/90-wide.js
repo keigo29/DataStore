@@ -104,7 +104,13 @@
       if (i.date !== last) { cn.append(el('div', 'hb-sep', relDay(i.date))); last = i.date; }
       cn.append(i.type === 'event' ? planRow(i) : dbTask(i));
     }
-    grid.append(cs, cn);
+    if (showPlanWidget()) {
+      // 3つ並べる（今日の予定・これから7日・出費の予定）
+      cs.classList.replace('c3h', 'c3'); cn.classList.replace('c3h', 'c3');
+      const cm = dbCard('c3 db-plans', 'wallet', '出費の予定', 'お金', () => switchTab('money'));
+      cm.querySelector('.db-head').insertBefore(btn('db-more', ['plus', '足す'], () => planSheet(t)), cm.querySelector('.db-more'));
+      grid.append(cs, cn, planWidget(cm));
+    } else grid.append(cs, cn);
     main.append(grid);
   }
 

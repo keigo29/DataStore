@@ -215,6 +215,15 @@ const MDParser = (() => {
     return ls.join(nl);
   }
   // 行を消す（予定の削除・ほかの日へ移すとき）
+  // 1行を書きかえる（行がずれていたら同じ行を探す。見つからなければ null）
+  function replaceLine(text, lineIndex, expectedRaw, newLine) {
+    const nl = text.includes('\r\n') ? '\r\n' : '\n';
+    const ls = text.split(/\r?\n/);
+    const i = findLine(ls, lineIndex, expectedRaw);
+    if (i < 0) return null;
+    ls[i] = newLine;
+    return ls.join(nl);
+  }
   function removeLine(text, lineIndex, expectedRaw) {
     const nl = text.includes('\r\n') ? '\r\n' : '\n';
     const ls = text.split(/\r?\n/);
@@ -248,6 +257,6 @@ const MDParser = (() => {
     return (body ? body + nl + nl : '') + `## お金${nl}${line}${nl}`;
   }
 
-  return { parse, toggle, addTodo, addEvent, eventLine, updateEvent, rewriteEvent, removeLine, addMoney, moneyLine, clean };
+  return { parse, toggle, addTodo, addEvent, eventLine, updateEvent, rewriteEvent, removeLine, replaceLine, addMoney, moneyLine, clean };
 })();
 if (typeof module !== 'undefined') module.exports = MDParser;

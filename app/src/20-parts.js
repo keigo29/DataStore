@@ -51,6 +51,7 @@
   }
   function openItem(it) {
     if (it.type === 'event') return newEvent(it.date, { item: it });
+    if (it.type === 'todo' && it.money?.kind === 'out' && it.date) return planSheet(it);   // 出費の予定は直す画面へ
     const inn = $('#sheetIn');
     sheetHead(inn, it.type === 'todo' ? 'やること' : '予定');
     inn.append(el('div', 'itTitle' + (it.done ? ' done' : ''), it.title));

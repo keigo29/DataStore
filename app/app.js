@@ -876,6 +876,7 @@
   }
   function openItem(it) {
     if (it.type === 'event') return newEvent(it.date, { item: it });
+    if (it.type === 'todo' && it.money?.kind === 'out' && it.date) return planSheet(it);   // 出費の予定は直す画面へ
     const inn = $('#sheetIn');
     sheetHead(inn, it.type === 'todo' ? 'やること' : '予定');
     inn.append(el('div', 'itTitle' + (it.done ? ' done' : ''), it.title));
@@ -1205,6 +1206,11 @@
       pt.append(panelHead('list-todo', 'ほかのノートの今日の分', el('span', '', `${other.length}件`)));
       other.forEach(i => pt.append(todoRow(i, { noDate: true })));
       put('right', pt);
+    }
+    if (showPlanWidget()) {
+      const pm = panel();
+      pm.append(panelHead('wallet', '出費の予定', btn('linkBtn', '＋ 予定', () => planSheet(t))));
+      put('right', planWidget(pm));
     }
     const end = addDays(t, 7);
     const soon = items.filter(i => i.date && i.date > t && i.date <= end && !i.done).sort(byDate);
@@ -2624,14 +2630,7 @@
     const hd = el('div', 'mDayHd');
     hd.append(el('b', '', `${md(k)}${k === todayKey() ? '（今日）' : ''}`), el('span', 'fSub', out.length ? `使った ${yen(out.reduce((a, i) => a + i.amount, 0))}` : '使った記録なし'));
     box.append(hd);
-    for (const p of ps.sort((a, b) => a.done - b.done)) {
-      const r = el('div', 'fRec mPlan' + (p.done ? ' done' : ''));
-      r.append(btn('tchk' + (p.done ? ' on' : ''), 'check', () => setDone(p, !p.done), p.done ? 'まだ払っていないにする' : '払った'));
-      const nm = el('button', 'fRn'); nm.type = 'button'; nm.addEventListener('click', () => openNote(p.path));
-      nm.append(el('b', '', p.money.title || '出費の予定'), el('small', '', [p.done ? '払った' : k < todayKey() ? '期日をすぎています' : '出費の予定', nameOf(p.path)].join('・')));
-      r.append(nm, el('span', 'fRa plan', yen(p.money.amount)));
-      box.append(r);
-    }
+    for (const p of ps.sort((a, b) => a.done - b.done)) box.append(planMoneyRow(p, { noDate: true }));
     for (const i of out) {
       const r = el(i.src === 'kakei' ? 'div' : 'button', 'fRec');
       if (i.src !== 'kakei') { r.type = 'button'; r.addEventListener('click', () => openNote(i.path)); }
@@ -2643,34 +2642,95 @@
     if (!ps.length && !out.length) box.append(el('div', 'fEmpty', 'この日はなにもありません'));
     return box;
   }
-  // 出費の予定を足す（Inbox.md に - [ ] 💸 80,000 家賃 📅 2026-11-25）
+  // 出費の予定の1行（チェックで「払った」、押すと直す）
+  function planMoneyRow(p, opt = {}) {
+    const tk = todayKey();
+    const r = el('div', 'fRec mPlan' + (p.done ? ' done' : ''));
+    r.append(btn('tchk' + (p.done ? ' on' : ''), 'check', () => setDone(p, !p.done), p.done ? 'まだ払っていないにする' : '払った'));
+    const nm = btn('fRn', [], () => planSheet(p), `「${p.money.title}」を直す`);
+    const when = p.done ? '払った' : p.date < tk ? `期日をすぎています（${sd(p.date)}）` : opt.noDate ? '' : relDay(p.date);
+    nm.append(el('b', '', p.money.title || '出費の予定'), el('small', '', [when, p.tags[0], nameOf(p.path)].filter(Boolean).join('・')));
+    r.append(nm, el('span', 'fRa plan' + (!p.done && p.date < tk ? ' late' : ''), yen(p.money.amount)));
+    return r;
+  }
+  // 出費の予定の行をつくる
+  function planLine({ indent = '', done = false, amount, name, tag, extra = '', date }) {
+    return `${indent}- [${done ? 'x' : ' '}] 💸 ${Math.round(amount).toLocaleString('ja-JP')} ${name}${tag ? ' #' + tag : ''}${extra ? ' ' + extra : ''} 📅 ${date}`;
+  }
+  // 出費の予定を足す・直す。k：日にち（足すとき）か、出費の予定のやること（直すとき）
   function planSheet(k) {
+    const it = typeof k === 'object' ? k : null;
     const inn = $('#sheetIn');
-    sheetHead(inn, '出費の予定を足す');
+    sheetHead(inn, it ? '出費の予定を直す' : '出費の予定を足す');
     const fld = (label, input) => { const l = el('label', 'fld'); l.append(el('span', '', label), input); return l; };
     const nm = el('input', 'inp'); nm.placeholder = '例：家賃・スマホ代・飲み会';
     const am = el('input', 'inp'); am.inputMode = 'numeric'; am.placeholder = '例：80000';
-    const du = el('input', 'inp'); du.type = 'date'; du.value = k;
+    const du = el('input', 'inp'); du.type = 'date';
     const tg = el('input', 'inp'); tg.placeholder = '例：住まい（なくても可）';
-    inn.append(fld('なにに', nm), fld('金額（円）', am), fld('日にち', du), fld('カテゴリ', tg), el('div', 'hint sub', 'Inbox.md に「- [ ] 💸 金額 なにに 📅 日にち」と書きます。払ったらチェックを付けます'));
+    // 直すとき：カテゴリ（はじめのタグ）以外のタグ・リンクはそのまま残す
+    const keep = it ? [...it.links.map(l => `[[${l}]]`), ...it.tags.slice(1).map(g => '#' + g)].join(' ') : '';
+    if (it) { nm.value = it.money.title; am.value = String(it.money.amount); du.value = it.date; tg.value = it.tags[0] || ''; }
+    else du.value = k;
+    inn.append(fld('なにに', nm), fld('金額（円）', am), fld('日にち', du), fld('カテゴリ', tg));
+    inn.append(el('div', 'hint sub', it ? `「${nameOf(it.path)}」の行を書きかえます` : 'Inbox.md に「- [ ] 💸 金額 なにに 📅 日にち」と書きます。払ったらチェックを付けます'));
     const bs = el('div', 'shBtns');
     const save = async () => {
-      const name = nm.value.trim(), amount = parseFloat(am.value.replace(/[,¥￥円\s]/g, ''));
+      const name = nm.value.replace(/\s+/g, ' ').trim(), amount = parseFloat(am.value.replace(/[,¥￥円\s]/g, ''));
       if (!name) { nm.focus(); return; }
       if (!(amount > 0)) { am.focus(); return; }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(du.value)) { du.focus(); return; }
       const tag = tg.value.trim().replace(/^#/, '').replace(/\s+/g, '-');
-      const v = `💸 ${amount.toLocaleString('ja-JP')} ${name}${tag ? ' #' + tag : ''} 📅 ${du.value}`;
       sheet.close();
       moneyDay = du.value; moneyMonth = du.value.slice(0, 7) === ymOf(todayKey()) ? null : du.value.slice(0, 7);
-      if (await edit('Inbox.md', t => MDParser.addTodo(t == null ? '# Inbox\n' : t, v), `出費の予定: ${name}`)) toast(`${md(du.value)}に「${name}」の予定を足しました`);
+      if (it) {
+        const line = planLine({ indent: it.raw.match(/^\s*/)[0], done: it.done, amount, name, tag, extra: keep, date: du.value });
+        const ok = await edit(it.path, t => (t == null ? null : MDParser.replaceLine(t, it.line, it.raw, line)), `出費の予定を直す: ${name}`);
+        if (ok) toast(`「${name}」を直しました`);
+      } else {
+        const v = planLine({ amount, name, tag, date: du.value }).replace(/^- \[ \] /, '');
+        if (await edit('Inbox.md', t => MDParser.addTodo(t == null ? '# Inbox\n' : t, v), `出費の予定: ${name}`)) toast(`${md(du.value)}に「${name}」の予定を足しました`);
+      }
     };
-    bs.append(btn('btn primary', ['plus', '足す'], save));
+    if (it) {
+      let armed = false;
+      const del = btn('btn danger', ['trash-2', '消す'], async () => {
+        if (!armed) { armed = true; del.lastChild.textContent = 'もう一度押すと消します'; return; }
+        sheet.close();
+        const ok = await edit(it.path, t => (t == null ? null : MDParser.removeLine(t, it.line, it.raw)), `出費の予定を消す: ${it.money.title}`);
+        if (ok) toast(`「${it.money.title}」を消しました`);
+      });
+      bs.append(del, btn('btn white', ['file-text', 'ノート'], () => { sheet.close(); openNote(it.path); }));
+    }
+    bs.append(btn('btn primary', ['check', it ? '保存' : '足す'], save));
     [nm, am].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) save(); }));
     inn.append(bs);
     sheet.showModal();
-    setTimeout(() => nm.focus(), 50);
+    setTimeout(() => (it ? am : nm).focus(), 50);
   }
+  // ホームの「出費の予定」：期日をすぎた分と、これから30日のまだ払っていない予定
+  function upcomingPlans() {
+    const tk = todayKey(), end = addDays(tk, 30);
+    return items.filter(i => i.type === 'todo' && i.money?.kind === 'out' && !i.done && i.date && i.date <= end).sort((a, b) => a.date.localeCompare(b.date));
+  }
+  function planWidget(wrapCard) {
+    const ps = upcomingPlans(), tk = todayKey();
+    const sum = ps.reduce((a, p) => a + p.money.amount, 0), late = ps.filter(p => p.date < tk).length;
+    const sub = el('p', 'mWSub');
+    sub.append(el('b', '', yen(sum)), ` これから30日${late ? '' : 'の予定'}`);
+    if (late) sub.append(el('span', 'mLate', `・期日すぎ ${late}件`));
+    wrapCard.append(sub);
+    if (!ps.length) wrapCard.append(el('p', 'db-empty', 'これから30日の出費の予定はありません'));
+    let last = null;
+    for (const p of ps.slice(0, 8)) {
+      const g = p.date < tk ? '期日をすぎた分' : relDay(p.date);
+      if (g !== last) { wrapCard.append(el('div', 'hb-sep', g)); last = g; }
+      wrapCard.append(planMoneyRow(p, { noDate: true }));
+    }
+    if (ps.length > 8) wrapCard.append(btn('addTask', ['chevron-right', `ほか ${ps.length - 8} 件`], () => switchTab('money')));
+    wrapCard.classList.add('mWidget');
+    return wrapCard;
+  }
+  const showPlanWidget = () => !!kakei() || items.some(i => i.type === 'todo' && i.money);
 
   // 貯金の目標をつくる（Finance/名前.md）
   function newGoal() {
@@ -3716,7 +3776,13 @@
       if (i.date !== last) { cn.append(el('div', 'hb-sep', relDay(i.date))); last = i.date; }
       cn.append(i.type === 'event' ? planRow(i) : dbTask(i));
     }
-    grid.append(cs, cn);
+    if (showPlanWidget()) {
+      // 3つ並べる（今日の予定・これから7日・出費の予定）
+      cs.classList.replace('c3h', 'c3'); cn.classList.replace('c3h', 'c3');
+      const cm = dbCard('c3 db-plans', 'wallet', '出費の予定', 'お金', () => switchTab('money'));
+      cm.querySelector('.db-head').insertBefore(btn('db-more', ['plus', '足す'], () => planSheet(t)), cm.querySelector('.db-more'));
+      grid.append(cs, cn, planWidget(cm));
+    } else grid.append(cs, cn);
     main.append(grid);
   }
 

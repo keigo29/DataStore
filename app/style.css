@@ -1255,9 +1255,11 @@ button.fRec { cursor: pointer; } button.fRec:hover { background: color-mix(in sr
 .mDayHd { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .mDayHd b { font-size: 14px; }
 .mPlan .tchk { flex: none; }
-.mPlan button.fRn { all: unset; cursor: pointer; flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mPlan button.fRn { all: unset; cursor: pointer; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; border-radius: 6px; }
+.mPlan button.fRn:hover b { text-decoration: underline; text-decoration-color: var(--f-line); }
+.mPlan .tchk { margin-right: 8px; }
 .mPlan.done .fRn b, .mPlan.done .fRa { text-decoration: line-through; color: var(--f-sub); }
-.fRa.plan { color: #d97706; }
+.fRa.plan { color: #d97706; } .fRa.plan.late { color: #ef4444; }
 @media (max-width: 699px) {
   .mGrid { gap: 2px; margin: 10px -6px 0; }
   .mD { min-height: 58px; padding: 4px 2px; border-radius: 7px; gap: 1px; }
@@ -1267,3 +1269,10 @@ button.fRec { cursor: pointer; } button.fRec:hover { background: color-mix(in sr
   .mD .p em { display: none; }
   .mD .o, .mD .p { font-size: 9.5px; padding: 0 2px; text-align: center; letter-spacing: -.02em; }
 }
+
+/* ホームの「出費の予定」：ホームの見た目のまま、行だけお金の部品 */
+.mWidget { --f-card: var(--card); --f-line: color-mix(in srgb, var(--text) 9%, transparent); --f-text: var(--text); --f-sub: var(--sub); --f-glow: 0; }
+.mWidget .fRec { padding: 8px 2px; }
+.mWidget .fRn b { font-size: 13.5px; }
+.mWSub { margin: 2px 0 6px; font-size: 12.5px; color: var(--sub); }
+.mWSub b { font-size: 18px; color: var(--text); margin-right: 4px; font-variant-numeric: tabular-nums; }

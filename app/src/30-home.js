@@ -108,6 +108,11 @@
       other.forEach(i => pt.append(todoRow(i, { noDate: true })));
       put('right', pt);
     }
+    if (showPlanWidget()) {
+      const pm = panel();
+      pm.append(panelHead('wallet', '出費の予定', btn('linkBtn', '＋ 予定', () => planSheet(t))));
+      put('right', planWidget(pm));
+    }
     const end = addDays(t, 7);
     const soon = items.filter(i => i.date && i.date > t && i.date <= end && !i.done).sort(byDate);
     const pn = panel();
