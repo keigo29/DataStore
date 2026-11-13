@@ -1740,7 +1740,6 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
   -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }   /* 字が切れるところは、ふわっと消す */
 .cm.compact .cmTop .cmNote { display: none; }                         /* ノートの点は日の一覧で見る（マスをすっきり） */
 .cm.compact .cmHb { top: 12px; right: 4px; }                           /* 緑の点を日付の高さにそろえる */
-.cm.compact .cmTop .cmNum { font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .cm.compact .cmBar { font-size: 10px; font-weight: 600; padding: 0 5px; }
 .cm.compact .cmWeek { row-gap: 3px; }
 
@@ -1759,3 +1758,6 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
 .fANote { margin: 0; font-size: 11.5px; }
 .mWAfter { margin: -2px 0 6px; font-size: 12px; color: var(--sub); }
 .mWAfter b { color: var(--text); font-variant-numeric: tabular-nums; } .mWAfter b.neg { color: #ef4444; }
+/* 丸の中の日付：iPhone のボタンの左右の余白（6px）で2けたが右にずれていた → 余白なし・字間なしで真ん中に */
+.cmNum, .mmDay, .cgDay .n, .cgDay b { padding: 0; letter-spacing: 0; text-indent: 0; }
+.cmNum, .mmDay { -webkit-appearance: none; appearance: none; line-height: 1; text-align: center; }
