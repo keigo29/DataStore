@@ -58,3 +58,25 @@ test.describe('スマホ', () => {
     expect(errs).toEqual([]);
   });
 });
+
+test.describe('月：ガントの帯', () => {
+  test.use(PHONE);
+  test('期間のあるやることを週をまたぐ帯で出す・期限切れは赤い枠・休みにする', async ({ page }) => {
+    const errs = watchErrors(page);
+    await openApp(page); await openTab(page, 'cal');
+    await page.click('.calSeg button:has-text("月")');
+    const bars = page.locator('.cmBar');
+    expect(await bars.count()).toBeGreaterThan(3);
+    await expect(page.locator('.cmBar.late').first()).toBeVisible();                  // 見本の「2章」は期限切れ
+    const t = page.locator('.cmBar:has-text("注文画面の実装")');
+    expect(await t.count()).toBeGreaterThanOrEqual(1);                                  // 週をまたぐと週ごとに1本
+    // 帯の長さ：始まり〜期限の日数ぶん
+    const w = await t.first().evaluate(e => e.style.gridColumn);
+    expect(w).toMatch(/^\d \/ \d$/);
+    await expect(page.locator('.cmLegend')).toContainText('期限切れ');
+    await page.click('.dayPanel button:has-text("休みにする")');
+    await expect(page.locator('.dayPanel button:has-text("休みを取り消す")')).toBeVisible();
+    await expect(page.locator('.cmCell.sel.off, .cmCell.today.off').first()).toBeVisible();
+    expect(errs).toEqual([]);
+  });
+});

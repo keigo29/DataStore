@@ -807,18 +807,17 @@ main#view.gMode .ng { height: calc(100dvh - 300px - env(safe-area-inset-bottom))
 .cmWd span { text-align: center; font-size: 11px; font-weight: 600; color: var(--sub); padding: 7px 0; }
 .cmGrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); flex: 1; min-height: 0; }
 .cmCell { border-right: 1px solid var(--cal-line); border-bottom: 1px solid var(--cal-line); min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; align-items: stretch; padding: 4px 3px 3px; cursor: pointer; }
-.cmCell:nth-child(7n) { border-right: 0; }
 .cmCell.we { background: color-mix(in srgb, var(--text) 1.8%, transparent); }
-.cmCell.out .cmNum { color: color-mix(in srgb, var(--sub) 60%, transparent); }
+.cmTop.out .cmNum { color: color-mix(in srgb, var(--sub) 60%, transparent); }
 .cmNum { align-self: center; width: 26px; height: 26px; border-radius: 50%; border: 0; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text); display: grid; place-items: center; cursor: pointer; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .cmNum:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
-.cmCell.today .cmNum { background: var(--ev); color: #fff; }
+.cmTop.today .cmNum { background: var(--ev); color: #fff; }
 .cmList { display: flex; flex-direction: column; gap: 1px; min-height: 0; overflow: hidden; margin-top: 2px; }
 /* スマホの月：点 */
 .cm.compact .cmGrid { grid-template-rows: none !important; grid-auto-rows: 52px; }
 .cm.compact .cmCell { padding: 4px 0 2px; position: relative; }
 .cm.compact .cmCell.sel { background: color-mix(in srgb, var(--ev) 9%, transparent); }
-.cm.compact .cmCell.sel:not(.today) .cmNum { box-shadow: inset 0 0 0 1.5px var(--text); }
+.cm.compact .cmTop.sel:not(.today) .cmNum { box-shadow: inset 0 0 0 1.5px var(--text); }
 .cmDots { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
 .cmDots i { width: 5px; height: 5px; border-radius: 50%; background: var(--ev); }
 .cmDots i.todo { background: color-mix(in srgb, var(--sub) 70%, transparent); }
@@ -876,7 +875,7 @@ main:not(.calMode) .calBar.m + .qEv { margin-top: 0; }
 .cmMini .mi.late { color: #ea4335; }
 .cmMini .mi.done { text-decoration: line-through; opacity: .55; }
 .cmMini .miMore { font-size: 9.5px; font-weight: 700; color: var(--sub); padding-left: 3px; line-height: 13px; }
-.cm.compact .cmCell.out .cmMini { opacity: .5; }
+.cm.compact .cmMini.out { opacity: .5; }
 
 /* ---------- ノート：はみ出したとき ---------- */
 /* 表：セルに最低限の幅。入りきらないときは表の中で横にスクロール（端のうすい影で続きがあるとわかる） */
@@ -1677,3 +1676,37 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
 .db-mood .mdF .e .lc { width: 22px; height: 22px; }
 .mdIc.mdFace .lc { width: 24px; height: 24px; }
 .mdAx .mdIc .lc { width: 14px; height: 14px; }
+
+/* ================= 月のカレンダー：週ごとの行と、期間のあるやることの帯（ガントと同じ中身） ================= */
+.cm { --cmBarH: 20px; }
+.cm.compact { --cmBarH: 17px; }
+.cmGrid.cmWeeks { display: flex; flex-direction: column; }
+.cmWeek { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px; border-bottom: 1px solid var(--cal-line); position: relative; }
+.cm.compact .cmWeek { flex: none; min-height: 86px; }
+.cmWeek > .cmCell { border-bottom: 0; padding: 0; z-index: 0; }
+.cmWeek > .cmCell.c7 { border-right: 0; }
+.cmCell.off { background: color-mix(in srgb, #22c55e 9%, transparent); }
+.cmTop { position: relative; z-index: 1; display: flex; justify-content: center; align-items: center; padding-top: 4px; pointer-events: none; }
+.cmTop .cmNum { pointer-events: auto; }
+.cmHb { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+.cm.compact .cmHb { top: 4px; right: 3px; width: 6px; height: 6px; }
+.cmTop .cmNote { position: absolute; top: 5px; left: 4px; }
+.cmWeek > .cmList, .cmWeek > .cmMini { z-index: 1; margin-top: 0; padding: 0 3px 3px; min-height: 0; }
+.cm.compact .cmWeek > .cmMini { padding: 0 2px 3px; }
+.cmBar { z-index: 2; align-self: stretch; margin: 0 4px; min-width: 0; border: 0; border-radius: 6px; padding: 0 7px; font: inherit; font-size: 11.5px; font-weight: 700; line-height: var(--cmBarH); color: #fff; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  background: var(--mono), var(--c); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.cmBar.cl { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.cmBar.cr { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.cmBar.late { box-shadow: inset 0 0 0 2px #ef4444; }
+.cmBar.done { opacity: .45; text-decoration: line-through; }
+.cmBar:hover { filter: brightness(1.06); }
+.cm.compact .cmBar { margin: 0 2px; padding: 0 4px; font-size: 9.5px; border-radius: 4px; }
+.cm.compact .cmBar.cl { margin-left: 0; } .cm.compact .cmBar.cr { margin-right: 0; }
+.cmLegend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px 11px; font-size: 11.5px; color: var(--sub); border-top: 1px solid var(--cal-line); flex-shrink: 0; }
+.cmLegend span { display: inline-flex; align-items: center; gap: 6px; }
+.cmLegend span::before { content: ''; width: 10px; height: 10px; border-radius: 3px; }
+.cmLegend .hb::before { border-radius: 50%; width: 8px; height: 8px; background: #22c55e; }
+.cmLegend .off::before { background: color-mix(in srgb, #22c55e 22%, var(--card)); }
+.cmLegend .lbar::before { background: var(--mono), var(--ev); }
+.cmLegend .late::before { box-shadow: inset 0 0 0 2px #ef4444; }
+.cmTop .cmNote { background: color-mix(in srgb, var(--sub) 70%, transparent); }   /* ノートがある日：灰色（緑は「確認項目を全部できた」） */

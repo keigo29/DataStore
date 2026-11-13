@@ -1621,6 +1621,19 @@
   }
 
   // 月：マス目に予定を並べる（スマホは点）
+  // 期間のあるやること（🛫 開始日〜📅 期限）：月のカレンダーで、週をまたぐ帯にする（ガントと同じ中身）
+  const isRange = i => i.type === 'todo' && i.start && i.date && i.start < i.date;
+  function weekBars(ws, we) {
+    const list = items.filter(i => isRange(i) && i.start <= we && i.date >= ws)
+      .sort((x, y) => x.start.localeCompare(y.start) || y.date.localeCompare(x.date));
+    const lanes = [];   // 列ごとの最後の日
+    return list.map(i => {
+      const a = i.start < ws ? ws : i.start, b = i.date > we ? we : i.date;
+      let l = lanes.findIndex(e => e < a); if (l < 0) l = lanes.length;
+      lanes[l] = b;
+      return { i, a, b, lane: l };
+    });
+  }
   function monthGrid(compact) {
     const today = todayKey(), d0 = parseKey(calSel);
     const first = new Date(d0.getFullYear(), d0.getMonth(), 1);
@@ -1630,39 +1643,73 @@
     const wrap = el('div', 'cm' + (compact ? ' compact' : ''));
     const wd = el('div', 'cmWd');
     [1, 2, 3, 4, 5, 6, 0].forEach(i => wd.append(el('span', i === 0 || i === 6 ? 'we' : '', WD[i])));
-    const grid = el('div', 'cmGrid');
-    grid.style.gridTemplateRows = `repeat(${weeks}, minmax(0, 1fr))`;
-    const MAX = 4;
-    for (let w = 0; w < weeks * 7; w++) {
-      const k = addDays(start, w), d = parseKey(k);
-      const cell = el('div', 'cmCell' + (d.getMonth() !== d0.getMonth() ? ' out' : '') + ([0, 6].includes(d.getDay()) ? ' we' : '') + (k === today ? ' today' : '') + (k === calSel ? ' sel' : ''));
-      const num = btn('cmNum', String(d.getDate()), e => { e.stopPropagation(); if (compact) { if (calSel === k) newEvent(k); else calGo(k); } else calGo(k, 'day'); }, `${md(k)}${compact ? '' : 'を開く'}`);
-      cell.append(num);
-      const { timed, allDay, todos } = dayItems(k);
-      const list = [...allDay, ...timed, ...todos];
-      if (compact) {
-        // スマホ：予定の名前を短い帯で（入りきらない分は +数）
-        const MAXM = 3, ls = el('div', 'cmMini');
-        list.slice(0, MAXM).forEach(i => {
-          const t = el('span', 'mi' + (i.type === 'todo' ? ' todo' + (k < today ? ' late' : '') : !i.time ? ' allday' : '') + (i.done ? ' done' : ''));
-          t.textContent = i.title;
-          ls.append(t);
-        });
-        if (list.length > MAXM) ls.append(el('span', 'miMore', `+${list.length - MAXM}`));
-        cell.append(ls);
-        if (dayFiles(k).length) cell.append(el('i', 'cmNote'));
-        cell.addEventListener('click', () => { if (calSel === k) newEvent(k); else calGo(k); });
-      } else {
-        const ls = el('div', 'cmList');
-        list.slice(0, MAX).forEach(i => ls.append(calChip(i)));
-        if (list.length > MAX) ls.append(btn('calMore', `ほか ${list.length - MAX} 件`, e => { e.stopPropagation(); calGo(k, 'day'); }));
-        cell.append(ls);
-        cell.title = '空いているところを押すと、この日に予定を入れる';
-        cell.addEventListener('click', e => { if (!e.target.closest('button')) newEvent(k); });
+    const grid = el('div', 'cmGrid cmWeeks');
+    const hb = hbData(), hbOn = hb.habits.length > 0;
+    let anyBar = false, anyLate = false;
+    for (let w = 0; w < weeks; w++) {
+      const ws = addDays(start, w * 7), we = addDays(ws, 6);
+      const bars = weekBars(ws, we), L = bars.length ? Math.max(...bars.map(x => x.lane)) + 1 : 0;
+      const row = el('div', 'cmWeek');
+      row.style.gridTemplateRows = `auto${L ? ` repeat(${L}, var(--cmBarH))` : ''} minmax(0, 1fr)`;
+      for (let c = 0; c < 7; c++) {
+        const k = addDays(ws, c), d = parseKey(k);
+        const st = (d.getMonth() !== d0.getMonth() ? ' out' : '') + ([0, 6].includes(d.getDay()) ? ' we' : '') + (k === today ? ' today' : '') + (k === calSel ? ' sel' : '');
+        const off = hbOn && hb.off.has(k);
+        const cell = el('div', 'cmCell c' + (c + 1) + st + (off ? ' off' : ''));
+        cell.style.gridColumn = c + 1; cell.style.gridRow = '1 / -1';
+        if (off) cell.title = hb.off.get(k);
+        const go = () => (compact ? (calSel === k ? newEvent(k) : calGo(k)) : newEvent(k));
+        cell.addEventListener('click', go);
+        const top = el('div', 'cmTop' + st); top.style.gridColumn = c + 1; top.style.gridRow = 1;
+        const num = btn('cmNum', String(d.getDate()), e => { e.stopPropagation(); if (compact) { if (calSel === k) newEvent(k); else calGo(k); } else calGo(k, 'day'); }, `${md(k)}${compact ? '' : 'を開く'}`);
+        top.append(num);
+        if (hbOn && k <= today) { const s = hbDay(hb.habits, k, today); if (s.target && s.done === s.target) { const g = el('i', 'cmHb'); g.title = '確認項目を全部できた'; top.append(g); } }
+        const { timed, allDay, todos } = dayItems(k);
+        const list = [...allDay, ...timed, ...todos.filter(i => !isRange(i))];
+        const ls = el('div', compact ? 'cmMini' + st : 'cmList');
+        ls.style.gridColumn = c + 1; ls.style.gridRow = L + 2;
+        if (compact) {
+          const MAXM = 3;
+          list.slice(0, MAXM).forEach(i => {
+            const t = el('span', 'mi' + (i.type === 'todo' ? ' todo' + (k < today ? ' late' : '') : !i.time ? ' allday' : '') + (i.done ? ' done' : ''));
+            t.textContent = i.title;
+            ls.append(t);
+          });
+          if (list.length > MAXM) ls.append(el('span', 'miMore', `+${list.length - MAXM}`));
+          if (dayFiles(k).length) top.append(el('i', 'cmNote'));
+          ls.addEventListener('click', go);
+        } else {
+          const MAX = Math.max(1, 4 - L);
+          list.slice(0, MAX).forEach(i => ls.append(calChip(i)));
+          if (list.length > MAX) ls.append(btn('calMore', `ほか ${list.length - MAX} 件`, e => { e.stopPropagation(); calGo(k, 'day'); }));
+          ls.addEventListener('click', e => { if (!e.target.closest('button')) newEvent(k); });
+          cell.title = (off ? hb.off.get(k) + '・' : '') + '空いているところを押すと、この日に予定を入れる';
+        }
+        row.append(cell, top, ls);
       }
-      grid.append(cell);
+      for (const { i, a, b, lane } of bars) {
+        const pj = i.project && projByPath(i.project);
+        const late = !i.done && i.date < today;
+        anyBar = true; anyLate = anyLate || late;
+        const ca = (parseKey(a) - parseKey(ws)) / 864e5, cb = (parseKey(b) - parseKey(ws)) / 864e5;
+        const bar = btn('cmBar' + (i.start < ws ? ' cl' : '') + (i.date > we ? ' cr' : '') + (late ? ' late' : '') + (i.done ? ' done' : ''), [], e => { e.stopPropagation(); openItem(i); },
+          `${i.title}（${sd(i.start)}〜${sd(i.date)}）${pj ? '・' + pj.name : ''}${late ? '・期限切れ' : ''}`);
+        bar.title = bar.getAttribute('aria-label');
+        bar.textContent = i.title;
+        bar.style.gridColumn = `${ca + 1} / ${cb + 2}`; bar.style.gridRow = lane + 2;
+        bar.style.setProperty('--c', pj?.color || 'var(--ev)');
+        row.append(bar);
+      }
+      grid.append(row);
     }
     wrap.append(wd, grid);
+    if (hbOn || anyBar) {
+      const lg = el('div', 'cmLegend');
+      if (hbOn) { lg.append(el('span', 'hb', '確認項目を全部できた'), el('span', 'off', '休みの日')); }
+      if (anyBar) lg.append(el('span', 'lbar', '期間のあるやること'));
+      if (anyLate) lg.append(el('span', 'late', '期限切れ'));
+      wrap.append(lg);
+    }
     return wrap;
   }
 
@@ -1675,6 +1722,7 @@
     if (k === today) hd.append(el('span', 'chip ok', '今日'));
     const dps = dayFiles(k);
     hd.append(dps.length ? btn('btn small white', ['plus', 'ノート'], () => newNote({ day: k })) : btn('btn small white', ['file-plus', 'ノートを作る'], () => createDaily(k)));
+    if (hbData().habits.length) { const off = hbData().off.has(k); hd.append(btn('btn small white', [off ? 'undo-2' : 'tree-palm', off ? '休みを取り消す' : '休みにする'], () => hbToggleOff(k))); }
     p.append(hd);
     if (dps.length) { const fc = el('div', 'fchips'); dps.forEach(x => fc.append(fileChip(x))); p.append(fc); }
     const arr = items.filter(i => i.date === k);
