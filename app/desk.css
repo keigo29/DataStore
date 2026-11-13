@@ -84,7 +84,7 @@ html.wide .side { display: flex; flex-direction: column; gap: 18px; padding: 0 1
 .gpTop .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gpTop small { font-size: 12px; font-weight: 700; color: var(--text); }
 .gpTrack { height: 5px; border-radius: 99px; background: color-mix(in srgb, var(--c) 14%, var(--soft)); overflow: hidden; }
-.gpTrack span { display: block; height: 100%; border-radius: 99px; background: var(--mono), var(--c); }
+.gpTrack span { display: block; height: 100%; border-radius: 99px; background: var(--c); }
 .gpInfo { padding: 12px 14px; gap: 8px; font-size: 12px; color: var(--sub); font-weight: 600; }
 .gpInfo div { display: flex; align-items: flex-start; gap: 6px; }
 .gpInfo .lc { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
@@ -94,7 +94,7 @@ html.wide .side { display: flex; flex-direction: column; gap: 18px; padding: 0 1
 .sumBig span { font-size: 18px; color: var(--sub); letter-spacing: 0; }
 .sumLabel { font-size: 12px; color: var(--sub); margin: 6px 0 12px; }
 .sumBar { height: 8px; border-radius: 99px; background: var(--soft); overflow: hidden; }
-.sumBar span { display: block; height: 100%; border-radius: 99px; background: var(--mono), var(--ok); }
+.sumBar span { display: block; height: 100%; border-radius: 99px; background: var(--gloss), var(--ok); }
 .sideFoot { margin-top: auto; font-size: 11px; color: var(--sub); padding: 0 6px; word-break: break-all; }
 
 /* ---- 中央：ツールバー（大きな見出し＋右にボタン）と中身 ---- */
@@ -153,11 +153,11 @@ button.db-kpi:hover { background: color-mix(in srgb, var(--soft) 80%, var(--text
 .pj-kpi small { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pj-kpi small.bad { color: var(--danger); }
 .pj-kpi .track { height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--c) 14%, var(--soft)); overflow: hidden; margin-top: 4px; }
-.pj-kpi .track span { display: block; height: 100%; border-radius: 99px; background: var(--mono), var(--c); }
+.pj-kpi .track span { display: block; height: 100%; border-radius: 99px; background: var(--gloss), var(--c); }
 .pj-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 14px; align-items: start; }
 .pj-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .pj-col > .panel { margin: 0; }
-.pj-fav { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; font-size: 14px; color: #fff; background: var(--mono), var(--c); box-shadow: var(--gloss-line); }
+.pj-fav { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; font-size: 14px; color: #fff; background: var(--gloss), var(--c); box-shadow: var(--gloss-line); }
 .pj-link { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; background: none; color: var(--text); text-align: left; border-radius: 14px; }
 .pj-link:hover { background: var(--soft); }
 .pj-link .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -222,7 +222,7 @@ html.wide .task.active { background: color-mix(in srgb, var(--mode) 8%, var(--ca
 html.wide .chk { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--g300); background: none; padding: 0; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
 html.wide .chk:hover { border-color: var(--c, var(--text)); }
 html.wide .chk .lc { width: 13px; height: 13px; stroke-width: 3; }
-html.wide .chk.done { border: 0; background: var(--mono), var(--c, var(--g500)); box-shadow: var(--gloss-line); }
+html.wide .chk.done { border: 0; background: var(--gloss), var(--c, var(--g500)); box-shadow: var(--gloss-line); }
 html.wide .task.done .ttitle { color: var(--sub); text-decoration: line-through; }
 html.wide .tmain { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 html.wide .ttitle { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
@@ -275,7 +275,7 @@ html.wide .fold:hover { background: var(--soft); color: var(--text); }
 html.wide .fold .lc { width: 16px; height: 16px; transition: transform .15s; }
 html.wide .fold.closed .lc { transform: rotate(-90deg); }
 html.wide .sumbar { position: absolute; top: 50%; margin-top: -4px; height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--c) 18%, transparent); overflow: hidden; pointer-events: none; }
-html.wide .sumbar span { display: block; height: 100%; border-radius: 99px; background: var(--mono), var(--c); }
+html.wide .sumbar span { display: block; height: 100%; border-radius: 99px; background: var(--c); }
 html.wide .tname { border: 0; background: none; padding: 0; text-align: left; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; }
 html.wide .tname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html.wide .tname .lc { width: 14px; height: 14px; color: var(--sub); }
@@ -310,7 +310,7 @@ html.wide .bar:hover .hd::after { content: ""; position: absolute; top: 6px; bot
 html.wide .bar.late { box-shadow: inset 0 0 0 2px var(--danger); }
 html.wide .bar.isdone { opacity: .45; }
 html.wide .bar.dragging { z-index: 4; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), 0 4px 12px rgba(24,24,24,.12); }
-html.wide .ms { position: absolute; top: 50%; width: 20px; height: 20px; margin-top: -10px; z-index: 1; border-radius: 50%; background: var(--mono), var(--c); box-shadow: var(--gloss-line), 0 0 0 3px var(--card); cursor: grab; touch-action: none; }
+html.wide .ms { position: absolute; top: 50%; width: 20px; height: 20px; margin-top: -10px; z-index: 1; border-radius: 50%; background: var(--gloss), var(--c); box-shadow: var(--gloss-line), 0 0 0 3px var(--card); cursor: grab; touch-action: none; }
 html.wide .ms.isdone { opacity: .45; }
 html.wide .ms.late { box-shadow: var(--gloss-line), 0 0 0 3px var(--danger-soft), 0 0 0 5px var(--danger); }
 html.wide .blabel { position: absolute; top: 0; height: 100%; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; pointer-events: none; }
@@ -439,7 +439,7 @@ html.wide .nt-pick > .nt-homeHead .lc { width: 15px; height: 15px; }
 html.wide .nt-file.open::after { content: ""; width: 6px; height: 6px; margin-left: 8px; border-radius: 50%; background: color-mix(in srgb, var(--text) 45%, transparent); flex-shrink: 0; }
 html.wide .nt-file.open > .lc { color: var(--text); }
 html.wide #sideNotes .nt-tree .nt-kids { box-sizing: border-box; }
-html.wide .db-dailyItem .chk.done { border: 0; background: var(--mono), var(--ok); box-shadow: var(--gloss-line); }
+html.wide .db-dailyItem .chk.done { border: 0; background: var(--gloss), var(--ok); box-shadow: var(--gloss-line); }
 html.wide .db-dailyBtn { height: 34px; font-size: 12.5px; padding: 0 12px; }
 html.wide .db-dailyBtn .lc { width: 14px; height: 14px; }
 html.wide .db-daily > .db-dailyBtn { align-self: flex-start; margin-top: 4px; }
