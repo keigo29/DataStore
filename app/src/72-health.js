@@ -280,7 +280,7 @@
       const top = [...byEx.values()].sort((a, b) => b.list.length - a.list.length).slice(0, 6);
       for (const e of top) {
         const r = el('div', 'fCat');
-        const ic = el('span', 'fIc', (e.group || e.name).slice(0, 1)); ic.style.background = HC.lift;
+        const ic = el('span', 'fIc', (e.group || e.name).slice(0, 1)); ic.style.background = mono(HC.lift);
         const lst = e.list[e.list.length - 1], prev = e.list[e.list.length - 2];
         const key = lst.e1rm || lst.best ? 'e1rm' : 'reps';
         const val = x => (key === 'e1rm' ? x.e1rm || x.best : x.reps);
@@ -311,7 +311,7 @@
         const np = Object.keys(S.files).find(p => p.startsWith(s.date.replace(/-/g, '/') + '/') && /筋トレ/.test(nameOf(p)));
         const r = el(np ? 'button' : 'div', 'fRec');
         if (np) { r.type = 'button'; r.addEventListener('click', () => openNote(np)); }
-        const ic = el('span', 'fIc sm', [...s.groups][0]?.slice(0, 1) || '筋'); ic.style.background = HC.lift;
+        const ic = el('span', 'fIc sm', [...s.groups][0]?.slice(0, 1) || '筋'); ic.style.background = mono(HC.lift);
         const nm = el('span', 'fRn'); nm.append(el('b', '', [...s.ex.keys()].join('・')), el('small', '', [md(s.date), s.start, `${s.sets}セット`, [...s.groups].join('・')].filter(Boolean).join('・')));
         r.append(ic, nm, el('span', 'fRa', `${Math.round(s.volume).toLocaleString('ja-JP')}kg`));
         lc2.append(r);
@@ -484,7 +484,7 @@
     });
     for (const x of segs) {
       const b = el('i', 'sSeg'); b.style.left = pc(x.a); b.style.width = `max(3px, ${((x.b - x.a) / span) * 100}%)`; b.style.top = ROW[x.st] * RH + 9 + 'px'; b.style.height = RH - 18 + 'px';
-      b.style.background = SC[x.st] || SC.plain;
+      b.style.background = mono(SC[x.st] || SC.plain);
       b.title = `${x.st === 'awake' ? '覚醒' : SN[x.st] || '睡眠'}  ${tfmt(x.a)}〜${tfmt(x.b)}（${Math.round(x.b - x.a)}分）`;
       plot.append(b);
     }
@@ -552,7 +552,7 @@
         const stack = el('span', 'sStack'); stack.style.height = ((n.asleep + (n.awake || 0)) / max) * 100 + '%';
         const segs = n.hasParts ? [['awake', n.awake], ['rem', n.rem], ['core', n.core], ['deep', n.deep]] : [['plain', n.asleep]];
         const tot = n.asleep + (n.awake || 0);
-        for (const [k, v] of segs) { if (!v) continue; const s2 = el('i'); s2.style.flexGrow = v / tot; s2.style.background = SC[k]; stack.append(s2); }
+        for (const [k, v] of segs) { if (!v) continue; const s2 = el('i'); s2.style.flexGrow = v / tot; s2.style.background = mono(SC[k]); stack.append(s2); }
         col.append(stack);
         if (n.score && ns.length <= 31) col.append(el('b', 'sScore' + (n.score.total >= 80 ? ' g' : n.score.total < 60 ? ' r' : ''), String(n.score.total)));
       } else col.disabled = true;
@@ -579,7 +579,7 @@
         col.title = `${md(n.date)}  ${n.bed} 〜 ${n.wake}`;
         let a = fromEve(n.bed), b = fromEve(n.wake); if (b < a) b = a;
         const bar = el('span', 'sRange'); bar.style.top = ((a - lo) / span) * 100 + '%'; bar.style.height = Math.max(2, ((b - a) / span) * 100) + '%';
-        bar.style.background = `linear-gradient(${SC.plain}, ${SC.deep})`;
+        bar.style.background = mono(SC.plain);
         col.append(bar);
       } else col.disabled = !n;
       plot.append(col);
@@ -605,7 +605,7 @@
     if (n.hasParts) {
       const tot = n.asleep + (n.awake || 0);
       const bar = el('div', 'sBar');
-      ['deep', 'core', 'rem', 'awake'].forEach(k => { if (!n[k]) return; const s2 = el('i'); s2.style.flexGrow = n[k] / tot; s2.style.background = SC[k]; s2.title = `${SN[k]} ${hmS(n[k])}`; bar.append(s2); });
+      ['deep', 'core', 'rem', 'awake'].forEach(k => { if (!n[k]) return; const s2 = el('i'); s2.style.flexGrow = n[k] / tot; s2.style.background = mono(SC[k]); s2.title = `${SN[k]} ${hmS(n[k])}`; bar.append(s2); });
       d.append(bar);
       const ls = el('div', 'sParts');
       ['deep', 'core', 'rem', 'awake'].forEach(k => { const x = el('div'); x.style.setProperty('--c', SC[k]); x.append(el('small', '', SN[k]), el('b', '', hmS(n[k] ?? 0)), el('span', '', k === 'awake' ? '' : `${((n[k] || 0) / n.asleep * 100).toFixed(0)}%`)); ls.append(x); });

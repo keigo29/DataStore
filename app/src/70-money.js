@@ -205,7 +205,7 @@
         const bal = balanceOf(a, end); total += bal;
         const series = Array.from({ length: Math.max(n1, 2) }, (_, i) => balanceOf(a, `${ym}-${String(Math.min(i + 1, daysIn(ym))).padStart(2, '0')}`));
         const r = el('div', 'fCat fAcct');
-        const ic = el('span', 'fIc', a.name.slice(0, 1)); ic.style.background = AC[a.type] || '#8b8b93';
+        const ic = el('span', 'fIc', a.name.slice(0, 1)); ic.style.background = mono(AC[a.type] || '#8b8b93');
         const nm = el('span', 'fNm'); nm.append(el('b', '', a.name), el('small', '', `${ACCT_TYPES[a.type] || ''}・${yen(bal)}`));
         const sp = el('span', 'fCs'); sp.innerHTML = spark(series, '#4ade80', 90, 26);
         r.append(ic, nm, sp); ac.append(r);
@@ -229,7 +229,7 @@
     if (!top.length) cats.append(el('div', 'fEmpty', '出費がまだありません'));
     top.forEach(([name, o], i) => {
       const r = btn('fCat' + (moneyCat === name ? ' on' : ''), [], () => { moneyCat = moneyCat === name ? null : name; render(); }, name);
-      const ic = el('span', 'fIc', name.slice(0, 1)); ic.style.background = o.color || CC[i % CC.length];
+      const ic = el('span', 'fIc', name.slice(0, 1)); ic.style.background = mono(o.color || CC[i % CC.length]);
       const nm = el('span', 'fNm'); nm.append(el('b', '', name), el('small', '', `${yen(o.sum)}・${Math.round((o.sum / cur.tout) * 100)}%`));
       const sp = el('span', 'fCs'); sp.innerHTML = spark(cum(o.day.slice(0, Math.max(n1, 2))), '#4ade80', 90, 26);
       r.append(ic, nm, sp); cats.append(r);
@@ -269,7 +269,7 @@
     for (const i of rows) {
       const r = el(i.src === 'kakei' ? 'div' : 'button', 'fRec');
       if (i.src !== 'kakei') { r.type = 'button'; r.addEventListener('click', () => openNote(i.path)); }
-      const ic = el('span', 'fIc sm', catOf(i).slice(0, 1)); ic.style.background = i.color || (i.kind === 'in' ? '#30a46c' : '#8b8b93');
+      const ic = el('span', 'fIc sm', catOf(i).slice(0, 1)); ic.style.background = mono(i.color || (i.kind === 'in' ? '#30a46c' : '#8b8b93'));
       const nm = el('span', 'fRn'); nm.append(el('b', '', i.title || catOf(i)), el('small', '', [md(i.date), catOf(i), i.account || (i.src ? '' : 'ノート')].filter(Boolean).join('・')));
       r.append(ic, nm, el('span', 'fRa ' + i.kind, (i.kind === 'in' ? '+' : i.kind === 'out' ? '−' : '') + yen(i.amount)));
       lc.append(r);
@@ -333,7 +333,7 @@
     for (const i of out) {
       const r = el(i.src === 'kakei' ? 'div' : 'button', 'fRec');
       if (i.src !== 'kakei') { r.type = 'button'; r.addEventListener('click', () => openNote(i.path)); }
-      const ic = el('span', 'fIc sm', catOf(i).slice(0, 1)); ic.style.background = i.color || '#8b8b93';
+      const ic = el('span', 'fIc sm', catOf(i).slice(0, 1)); ic.style.background = mono(i.color || '#8b8b93');
       const nm = el('span', 'fRn'); nm.append(el('b', '', i.title || catOf(i)), el('small', '', [catOf(i), i.account || (i.src ? '' : 'ノート')].filter(Boolean).join('・')));
       r.append(ic, nm, el('span', 'fRa out', '−' + yen(i.amount)));
       box.append(r);

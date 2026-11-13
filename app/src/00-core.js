@@ -43,6 +43,8 @@
     return h;
   }
   const panel = (cls = '') => el('section', 'panel ' + cls);
+  // 単色グラデーション（その色だけで、上が明るく下が少し濃い）。style.background に入れる
+  const mono = c => `linear-gradient(180deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,0) 58%, rgba(0,0,0,.14) 100%), ${c}`;
   const noData = t => el('div', 'noData', t);
 
   // ---------- お知らせ ----------
