@@ -1734,3 +1734,12 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
   html.wide .fKpis .fKpi { flex: none; }
 }
 .cm.compact .cmWeek { min-height: 100px; }   /* スマホの月：もう少したて長に */
+/* スマホの月のマス：はみ出し・印のずれを直す */
+.cm.compact .cmWeek > .cmMini { overflow: hidden; }
+.cmMini .mi { max-width: 100%; min-width: 0; box-sizing: border-box;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }   /* 字が切れるところは、ふわっと消す */
+.cm.compact .cmTop .cmNote { display: none; }                         /* ノートの点は日の一覧で見る（マスをすっきり） */
+.cm.compact .cmHb { top: 12px; right: 4px; }                           /* 緑の点を日付の高さにそろえる */
+.cm.compact .cmTop .cmNum { font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.cm.compact .cmBar { font-size: 10px; font-weight: 600; padding: 0 5px; }
+.cm.compact .cmWeek { row-gap: 3px; }
