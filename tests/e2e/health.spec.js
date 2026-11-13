@@ -67,6 +67,9 @@ test('睡眠の質：内訳から点数を出す・時間帯に切りかえる',
   const card = page.locator('.sCard');
   await expect(card.locator('.sDetail .sBig')).toContainText('100');          // 今朝：7時間・深い17%・レム24%・10分・いつもどおり
   await expect(card.locator('.sStat:has-text("寝た時刻") b')).toHaveText('23:00');
+  await expect(card.locator('.sPlot.line path.sL')).toHaveCount(4);              // はじめは1日ごとの線（深い・ノンレム・レム・途中で起きた）
+  await expect(card.locator('.sLegend')).toContainText('ノンレム');
+  await card.locator('.hSeg button:has-text("積み上げ")').click();
   await card.locator('.sCol').nth(-2).click();                                // きのうの朝：5時間・深い10%・レム10%・40分
   await expect(card.locator('.sDetail .sBig')).toContainText('24');
   await expect(card.locator('.sWhy')).toContainText('7時間まで あと 2:00');
