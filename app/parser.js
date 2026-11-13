@@ -90,7 +90,7 @@ const MDParser = (() => {
         if (!title) continue;
         // 出費の予定：- [ ] 💸 80,000 家賃 📅 2026-11-25（チェックを付けると「払った」）
         const mm = body.match(MONEY_RE), amount = mm ? Math.abs(parseFloat(mm[2].replace(/,/g, ''))) : 0;
-        items.push({ type: 'todo', done: m[2] !== ' ', ...common, ...(amount ? { money: { kind: MONEY_KIND[mm[1]], amount, title: clean(mm[3]) } } : {}) });
+        items.push({ type: 'todo', done: m[2] !== ' ', ...common, ...(amount ? { title: common.title.replace(/[💸💰🏦]\uFE0F?\s*/u, '¥'), money: { kind: MONEY_KIND[mm[1]], amount, title: clean(mm[3]) } } : {}) });   // 画面では 💸 を ¥ に
       }
       else if (date && title && (time || explicit || tags.includes('予定'))) items.push({ type: 'event', done: false, ...common });
     }

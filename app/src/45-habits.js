@@ -3,7 +3,8 @@
   // チェック：その日のデイリーノートの先頭のプロパティ（例 運動: 1）。外すと 0。TEDDY が書いても同じ
   const HB_FILE = 'Notes/毎日確認.md';
   const HB_COLORS = ['#005cff', '#00c230', '#ff5a00', '#8600ff', '#1fb8cc', '#f2280d', '#ffae00', '#717680'];
-  const HB_EMOJI = ['💧', '📖', '💪', '🏃', '🚶', '🧘', '🛏️', '📝', '🥗', '💊', '🦷', '🧹', '☀️', '💻', '🇬🇧', '💰', '🚭', '📵', '🎸', '😊'];
+  // アイコンは Lucide（表の「アイコン」の列に名前を書く。例 dumbbell）
+  const HB_ICONS = ['dumbbell', 'footprints', 'bike', 'activity', 'heart-pulse', 'droplet', 'glass-water', 'coffee', 'apple', 'salad', 'utensils', 'pill', 'book-open', 'notebook-pen', 'pen-line', 'languages', 'graduation-cap', 'code', 'laptop', 'brain', 'mountain', 'waves', 'wind', 'leaf', 'sprout', 'flower-2', 'sun', 'sunrise', 'moon', 'bed', 'alarm-clock', 'timer', 'shower-head', 'bath', 'sparkles', 'smile', 'heart', 'users', 'phone-off', 'smartphone', 'cigarette-off', 'wine-off', 'piggy-bank', 'wallet', 'music', 'guitar', 'palette', 'camera', 'gamepad-2', 'dog', 'cat', 'house', 'briefcase', 'clipboard-list', 'target', 'star', 'zap'];
   const HB_ORDER = [1, 2, 3, 4, 5, 6, 0];   // 月曜はじまり
   const HB_HEAT = 18;                        // カレンダーの週の数
   const OFF_KINDS = ['有給', '祝日', '夏休み', '冬休み', '代休', '休み'];
@@ -175,7 +176,9 @@
 
   // ---------- 部品 ----------
   function hbIcon(h, cls = 'hb-icon') {
-    const i = el('span', cls, h.icon || h.name.trim()[0] || '•');
+    const i = el('span', cls);
+    const n = (h.icon || '').replace(/^lucide:/, '');
+    if (window.ICONS[n]) i.innerHTML = icon(n); else i.textContent = h.icon || h.name.trim()[0] || '•';   // 名前が Lucide にないときは、その文字のまま
     i.style.setProperty('--c', h.color);
     return i;
   }
@@ -398,15 +401,13 @@
     sheetHead(inn, h ? '確認項目を編集' : '確認項目を追加');
     const fld = (label, input) => { const l = el('label', 'fld'); l.append(el('span', '', label), input); return l; };
     const name = el('input', 'inp'); name.placeholder = '例：運動・読書・水を2L'; name.maxLength = 40; name.value = h?.name || '';
-    let ic = h ? h.icon : HB_EMOJI[d.habits.length % HB_EMOJI.length], color = h ? h.color : HB_COLORS[d.habits.length % HB_COLORS.length];
+    let ic = h ? h.icon.replace(/^lucide:/, '') : HB_ICONS[d.habits.length % HB_ICONS.length], color = h ? h.color : HB_COLORS[d.habits.length % HB_COLORS.length];
     let days = h ? [...h.days] : [0, 1, 2, 3, 4, 5, 6];
-    const icIn = el('input', 'inp hb-emojiIn'); icIn.placeholder = '絵文字'; icIn.maxLength = 4; icIn.value = ic || '';
-    const icBox = el('div', 'hb-emojis');
-    const drawIc = () => { icBox.replaceChildren(...HB_EMOJI.map(e => { const b = btn(e === ic ? 'on' : '', [], () => { ic = e; icIn.value = e; drawIc(); }, e); b.textContent = e; return b; })); };
-    icIn.addEventListener('input', () => { ic = icIn.value.trim(); drawIc(); });
+    const icBox = el('div', 'hb-iconPick');
+    const drawIc = () => { icBox.style.setProperty('--c', color); icBox.replaceChildren(...HB_ICONS.map(n => { const b = btn(n === ic ? 'on' : '', [n], () => { ic = n; drawIc(); }, n); b.title = n; return b; })); };
     drawIc();
     const sw = el('div', 'swatches');
-    const drawSw = () => sw.replaceChildren(...HB_COLORS.map(c => { const b = btn('sw' + (c === color ? ' on' : ''), [], () => { color = c; drawSw(); }, c); b.style.background = c; return b; }));
+    const drawSw = () => sw.replaceChildren(...HB_COLORS.map(c => { const b = btn('sw' + (c === color ? ' on' : ''), [], () => { color = c; drawSw(); drawIc(); }, c); b.style.background = c; return b; }));
     drawSw();
     const dw = el('div', 'hb-daysPick');
     const drawDays = () => {
@@ -426,7 +427,7 @@
     for (const [p, f] of Object.entries(S.files)) if (Daily.dateOf(p, dailyCfg) && f.text.startsWith('---')) (splitFrontmatter(f.text).props || []).forEach(x => { if (!/^(tags?|aliases|date|project|cssclass)$/i.test(x.k)) keys.add(x.k); });
     [...keys].sort().forEach(k => { const o = el('option'); o.value = k; dl.append(o); });
     inn.append(fld('名前', name));
-    const icf = el('div', 'fld'); icf.append(el('span', '', 'アイコン'), icBox, icIn); inn.append(icf);
+    const icf = el('div', 'fld'); icf.append(el('span', '', 'アイコン'), icBox); inn.append(icf);
     const cf = el('div', 'fld'); cf.append(el('span', '', '色'), sw); inn.append(cf);
     const df = el('div', 'fld'); df.append(el('span', '', '実施する曜日'), dw); inn.append(df, kl);
     inn.append(fld('今日のノートのプロパティ', prop), dl, el('div', 'hint sub', 'チェックすると、その日のデイリーノートの先頭に「プロパティ: 1」と書きます（外すと 0）。ノートや TEDDY で 1 にしても、チェックが付きます'));
@@ -455,7 +456,7 @@
       const pr = (prop.value.trim() || nm).replace(/[:#\s]/g, '_');
       sheet.close();
       hbWrite(dd => {
-        const v = { name: nm, icon: (icIn.value.trim() || ic || '').replace(/\|/g, ''), color, days: days.slice().sort(), prop: pr, keep: keep.checked };
+        const v = { name: nm, icon: ic || '', color, days: days.slice().sort(), prop: pr, keep: keep.checked };
         if (h) { const x = dd.habits.find(y => y.name === h.name); if (!x) return false; Object.assign(x, v); }
         else dd.habits.push({ ...v, start: todayKey() });
       }, `毎日確認：${h ? '編集' : '追加'} ${nm}`);
@@ -526,7 +527,8 @@
       const p = btn('hb-pill' + (done ? ' done' : ''), [], () => hbToggle(h, tk), done ? 'チェックを外す' : 'できた！');
       p.style.setProperty('--c', h.color);
       const c = el('span', 'hb-chk' + (done ? ' done' : '')); if (done) c.innerHTML = icon('check');
-      p.append(c, el('span', 'nm', `${h.icon ? h.icon + ' ' : ''}${h.name}`));
+      const nm = el('span', 'nm'); nm.append(hbIcon(h, 'hb-miniIcon'), h.name);
+      p.append(c, nm);
       box.append(p);
     }
     if (!s.list.length && s.off == null) box.append(el('span', 'hb-none', '今日の予定はありません'));

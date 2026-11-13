@@ -1633,10 +1633,12 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
 .hb-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 40px 20px; }
 .hb-empty > .lc { width: 34px; height: 34px; color: var(--sub); }
 .hb-empty p { color: var(--sub); font-size: 13px; max-width: 420px; margin: 0 0 6px; }
-.hb-emojis { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-bottom: 6px; }
-.hb-emojis button { border: 1.5px solid transparent; background: var(--soft); border-radius: 10px; height: 36px; font-size: 18px; cursor: pointer; padding: 0; }
-.hb-emojis button.on { border-color: var(--text); background: var(--card); }
-.hb-emojiIn { max-width: 120px; }
+.hb-iconPick { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; max-height: 172px; overflow-y: auto; padding: 2px; }
+.hb-iconPick button { border: 0; background: var(--soft); border-radius: 10px; height: 38px; cursor: pointer; padding: 0; display: grid; place-items: center; color: var(--sub); }
+.hb-iconPick button .lc { width: 18px; height: 18px; }
+.hb-iconPick button:hover { color: var(--text); }
+.hb-iconPick button.on { background: color-mix(in srgb, var(--c) 16%, var(--card)); color: var(--c); box-shadow: inset 0 0 0 2px var(--c); }
+.hb-pill .nm { display: inline-flex; align-items: center; gap: 5px; }
 .hb-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .hb-presets button, .hb-wds button { border: 1.5px solid var(--line); background: var(--card); color: var(--text); border-radius: 99px; height: 32px; padding: 0 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .hb-presets button.on, .hb-wds button.on { background: var(--text); color: var(--card); border-color: var(--text); }
@@ -1663,5 +1665,4 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
   .hb-hchart { grid-template-columns: minmax(70px, 1fr) 1fr 64px; gap: 10px 8px; }
   .hb-streaks { grid-template-columns: 1fr; }
   .hb-list { grid-template-columns: 1fr; }
-  .hb-emojis { grid-template-columns: repeat(7, 1fr); }
 }
