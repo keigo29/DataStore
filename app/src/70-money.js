@@ -211,6 +211,7 @@
         r.append(ic, nm, sp); ac.append(r);
       }
       const f = el('div', 'fFoot'); const a1 = el('div'); a1.append(el('small', '', '合計'), el('b', '', yen(total))); f.append(a1); ac.append(f);
+      if (isNow) { const ab = afterPlans(total); if (ab) ac.append(ab); }
       row.append(ac);
     }
     wrap.append(row);
@@ -411,6 +412,24 @@
     const tk = todayKey(), end = addDays(tk, 30);
     return items.filter(i => i.type === 'todo' && i.money?.kind === 'out' && !i.done && i.date && i.date <= end).sort((a, b) => a.date.localeCompare(b.date));
   }
+  // まだ払っていない出費の予定（期日すぎもふくむ）。until：その日まで
+  const unpaidPlans = until => items.filter(i => i.type === 'todo' && i.money?.kind === 'out' && !i.done && i.date && (!until || i.date <= until));
+  // 資産 − 出費の予定（払ったあとに残るお金）
+  function afterPlans(total) {
+    const tk = todayKey(), me = `${ymOf(tk)}-${String(daysIn(ymOf(tk))).padStart(2, '0')}`;
+    const all = unpaidPlans(), sumAll = all.reduce((a, p) => a + p.money.amount, 0);
+    if (!all.length) return null;
+    const inM = unpaidPlans(me), sumM = inM.reduce((a, p) => a + p.money.amount, 0), late = all.filter(p => p.date < tk).length;
+    const box = el('div', 'fAfter');
+    box.append(el('p', 'hLbl', '出費の予定を払ったあと'));
+    const row = (label, v, cls = '', note = '') => { const r = el('div', 'fAR ' + cls); const l = el('span', 'l', label); if (note) l.append(el('small', '', note)); r.append(l, el('b', '', v)); box.append(r); };
+    row('資産（いまの合計）', yen(total));
+    row('出費の予定', '−' + yen(sumAll), 'minus', `まだ払っていない ${all.length}件${late ? `・期日すぎ ${late}件をふくむ` : ''}`);
+    const rest = total - sumAll;
+    row('払ったあとに残るお金', (rest < 0 ? '−' : '') + yen(Math.abs(rest)), 'rest' + (rest < 0 ? ' neg' : ''));
+    if (sumM !== sumAll) box.append(el('p', 'fSub fANote', `今月末（${sd(me)}）までの予定だけなら ${(total - sumM < 0 ? '−' : '') + yen(Math.abs(total - sumM))}`));
+    return box;
+  }
   function planWidget(wrapCard) {
     const ps = upcomingPlans(), tk = todayKey();
     const sum = ps.reduce((a, p) => a + p.money.amount, 0), late = ps.filter(p => p.date < tk).length;
@@ -418,6 +437,12 @@
     sub.append(el('b', '', yen(sum)), ` これから30日${late ? '' : 'の予定'}`);
     if (late) sub.append(el('span', 'mLate', `・期日すぎ ${late}件`));
     wrapCard.append(sub);
+    const K = kakei();
+    if (K && K.accounts.length && ps.length) {   // 資産から30日分の予定を引くと
+      const total = K.accounts.reduce((a, x) => a + balanceOf(x, tk), 0), rest = total - sum;
+      const r = el('p', 'mWAfter'); r.append('資産から引くと ', el('b', rest < 0 ? 'neg' : '', (rest < 0 ? '−' : '') + yen(Math.abs(rest))), `（資産 ${yen(total)}）`);
+      wrapCard.append(r);
+    }
     if (!ps.length) wrapCard.append(el('p', 'db-empty', 'これから30日の出費の予定はありません'));
     let last = null;
     for (const p of ps.slice(0, 8)) {

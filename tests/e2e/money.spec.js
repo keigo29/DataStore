@@ -95,3 +95,21 @@ test('出費の予定をホームから直す・消す', async ({ browser }) => 
   expect(errs).toEqual([]);
   await ctx.close();
 });
+
+test('資産から出費の予定を引いた残りを出す', async ({ browser }) => {
+  const ctx = await browser.newContext(PC); const page = await ctx.newPage();
+  const d = today();
+  const kakei = { accounts: [{ id: 'b', name: '銀行', type: 'bank', initial: 100000, order: 1 }], txs: [] };
+  await mockGitHub(ctx, { 'Inbox.md': `# Inbox\n\n- [ ] 💸 30,000 家賃 📅 ${d}\n- [x] 💸 5,000 払った分 📅 ${d}\n- [ ] 💸 1,000 来年 📅 2099-01-01\n`, 'Data/kakei.json': JSON.stringify(kakei) });
+  const errs = watchErrors(page);
+  await openApp(page, { connect: true });
+  await page.waitForTimeout(800);
+  await expect(page.locator('.mWAfter')).toContainText('¥70,000');           // ホーム：30日分だけ引く
+  await openTab(page, 'money');
+  const a = page.locator('.fAfter');
+  await expect(a.locator('.fAR.minus b')).toHaveText('−¥31,000');           // まだ払っていない分（払った分は引かない）
+  await expect(a.locator('.fAR.rest b')).toHaveText('¥69,000');
+  await expect(a.locator('.fANote')).toContainText('¥70,000');               // 今月末までなら
+  expect(errs).toEqual([]);
+  await ctx.close();
+});
