@@ -3321,8 +3321,10 @@
   //   デイリーノートの「- 体重 70.5kg」「- 体脂肪 18%」の行（ヘルスケアにない日をうめる）
   //   目標：ノートの先頭の goal_weight: 67・goal_due: 2027-02-28、または本文の「目標：67kg（2027-02-28）」
   const MOOD_RE = /^[ \t]*[-*][ \t]+気分[ \t　]*[:：]?[ \t　]*([1-5])(?:[ \t]*[/／][ \t]*5)?(?:[ \t　]+(.*))?$/gm;   // 改行をまたがない
-  const MOODS = [[1, '😣', 'とても悪い', '#ef4444'], [2, '😕', '悪い', '#f97316'], [3, '😐', 'ふつう', '#eab308'], [4, '🙂', '良い', '#84cc16'], [5, '😄', 'とても良い', '#22c55e']];
+  const MOODS = [[1, 'frown', 'とても悪い', '#ef4444'], [2, 'annoyed', '悪い', '#f97316'], [3, 'meh', 'ふつう', '#eab308'], [4, 'smile', '良い', '#84cc16'], [5, 'laugh', 'とても良い', '#22c55e']];   // 顔は Lucide
   const moodOf = v => MOODS[Math.max(0, Math.min(4, Math.round(v) - 1))];
+  // 気分の顔（その色の Lucide アイコン）。text をつけると横に並べる
+  function moodIc(v, text, cls = 'mdIc') { const m = moodOf(v), s = el('span', cls); s.innerHTML = icon(m[1]); s.style.setProperty('--c', m[3]); s.title = m[2]; if (text != null) s.append(text); return s; }
   let healthRange = 30;          // 見る日数（0 は全部）
   const HC = { weight: '#38bdf8', avg: '#a78bfa', sleep: '#818cf8', steps: '#4ade80', lift: '#fb923c', goal: '#f472b6' };
 
@@ -3538,7 +3540,7 @@
       ks.append(kpi('目標まで', sub, rest == null ? '—' : rest <= 0 ? '0.0' : kg(rest), 'kg', HC.goal, [], d2));
     }
     const mAvg = avg7(H.days, 'mood', tk), mToday = byDate.get(tk)?.mood;
-    ks.append(kpi('気分', mToday != null ? `7日平均（今日は ${moodOf(mToday)[1]} ${mToday.toFixed(1)}）` : '7日平均（今日はまだ）', mAvg == null ? '—' : `${moodOf(mAvg)[1]} ${mAvg.toFixed(1)}`, mAvg == null ? '' : '/ 5', '#facc15',
+    ks.append(kpi('気分', mToday != null ? `7日平均（今日は ${moodOf(mToday)[2]} ${mToday.toFixed(1)}）` : '7日平均（今日はまだ）', mAvg == null ? '—' : moodIc(mAvg, mAvg.toFixed(1), 'mdIc big'), mAvg == null ? '' : '/ 5', '#facc15',
       last14.map(k => byDate.get(k)?.mood ?? null), mAvg == null ? dl(['', '「気分を書く」か TEDDY から'], null) : null, false));
     const sl = last14.map(k => byDate.get(k)?.sleep ?? null), sAvg = avg7(H.days, 'sleep', tk);   // 睡眠のカード（くわしくは下の「睡眠の質」）
     ks.append(kpi('睡眠', '7日平均', sAvg == null ? '—' : `${Math.floor(sAvg / 60)}:${String(Math.round(sAvg % 60)).padStart(2, '0')}`, sAvg == null ? '' : '時間', HC.sleep, sl, sAvg == null ? dl(['', 'ヘルスケアから入ります'], null) : dl([sAvg >= 420 ? 'よく寝ています' : '7時間より短め', ''], sAvg >= 420)));
@@ -3952,7 +3954,7 @@
     const box = el('div', 'mdPlot');
     const avg = pts.map((p, i) => (p.avg != null ? [X(i), Y(p.avg)] : null)).filter(Boolean);
     box.innerHTML = `<svg viewBox="0 0 ${W} ${HH}" preserveAspectRatio="none" aria-hidden="true"><g class="fGrid">${[1, 2, 3, 4, 5].map(v => `<line x1="0" x2="${W}" y1="${Y(v)}" y2="${Y(v)}"/>`).join('')}</g>${avg.length > 1 ? `<path d="${smoothPath(avg)}" fill="none" stroke="#facc15" stroke-width="2.2" vector-effect="non-scaling-stroke" class="fGlow" style="--g:#facc15"/>` : ''}</svg>`;
-    const ax = el('div', 'mdAx'); MOODS.forEach(([v, e]) => { const s2 = el('span', '', e); s2.style.top = (Y(v) / HH) * 100 + '%'; ax.append(s2); });
+    const ax = el('div', 'mdAx'); MOODS.forEach(([v]) => { const s2 = moodIc(v); s2.style.top = (Y(v) / HH) * 100 + '%'; ax.append(s2); });
     const dots = el('div', 'hDots mdDots');
     pts.forEach((p, i) => { if (p.v == null) return; const d = el('i'); d.style.left = (X(i) / W) * 100 + '%'; d.style.top = (Y(p.v) / HH) * 100 + '%'; d.style.background = moodOf(p.v)[3]; d.style.boxShadow = 'none'; dots.append(d); });
     const tip = el('div', 'fTip'); tip.hidden = true;
@@ -3963,7 +3965,7 @@
       const r = box.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.floor(((lastX - r.left) / r.width) * n))), p = pts[i];
       if (p.v == null) { tip.hidden = true; return; }
       tip.hidden = false;
-      tip.textContent = `${md(p.date)}  ${p.moods.map(m => moodOf(m.v)[1] + (m.note ? ' ' + m.note : '')).join(' / ')}`;
+      tip.textContent = `${md(p.date)}  ${p.moods.map(m => moodOf(m.v)[2] + (m.note ? '「' + m.note + '」' : '')).join(' / ')}`;
       const px = (X(i) / W) * r.width, half = Math.min(tip.offsetWidth / 2 + 4, r.width / 2);
       tip.style.left = Math.max(half, Math.min(r.width - half, px)) + 'px'; tip.style.top = Math.max(0, (Y(p.v) / HH) * r.height - 40) + 'px';
     };
@@ -3977,7 +3979,8 @@
       if (A.length < 3 || B.length < 3) return null;
       const ma = A.reduce((x, y) => x + y, 0) / A.length, mb = B.reduce((x, y) => x + y, 0) / B.length;
       const r = el('div', 'mdCmp');
-      r.append(el('small', '', label), el('span', '', `${a} ${moodOf(ma)[1]} ${ma.toFixed(1)}（${A.length}日）`), el('span', '', `${b} ${moodOf(mb)[1]} ${mb.toFixed(1)}（${B.length}日）`));
+      const half = (t, m, n) => { const s2 = el('span', 'mdHalf'); s2.append(t + ' ', moodIc(m), ` ${m.toFixed(1)}（${n}日）`); return s2; };
+      r.append(el('small', '', label), half(a, ma, A.length), half(b, mb, B.length));
       const df = ma - mb; r.append(el('b', Math.abs(df) < 0.2 ? '' : df > 0 ? 'g' : 'r', Math.abs(df) < 0.05 ? '±0.0' : `${df > 0 ? '+' : '−'}${Math.abs(df).toFixed(1)}`));
       return r;
     };
@@ -3993,7 +3996,7 @@
     const recent = H.days.filter(d => d.moods).slice(-6).reverse();
     for (const d of recent) for (const m of d.moods.slice().reverse()) {
       const r = btn('fRec mdRec', [], () => openNote(m.path), 'ノートを開く');
-      const ic = el('span', 'mdFace', moodOf(m.v)[1]);
+      const ic = moodIc(m.v, null, 'mdIc mdFace');
       const nm = el('span', 'fRn'); nm.append(el('b', '', m.note || moodOf(m.v)[2]), el('small', '', m.note ? `${md(d.date)}・${moodOf(m.v)[2]}` : md(d.date)));
       r.append(ic, nm, el('span', 'fRa', `${m.v} / 5`));
       list.append(r);
@@ -4006,7 +4009,7 @@
     const f = el('div', 'mdFaces');
     MOODS.forEach(([v, e, l, col]) => {
       const b = btn('mdF' + (cur === v ? ' on' : ''), [], () => onPick(v), `${l}（${v}）`);
-      b.style.setProperty('--c', col); b.append(el('span', 'e', e), el('small', '', l));
+      b.style.setProperty('--c', col); const fe = el('span', 'e'); fe.innerHTML = icon(e); b.append(fe, el('small', '', l));
       f.append(b);
     });
     return f;
@@ -4015,7 +4018,7 @@
   async function writeMood(v, note) {
     const tk = todayKey(), line = `- 気分 ${v}/5${note ? ' ' + note.replace(/\s+/g, ' ').trim() : ''}`;
     const ok = await edit(dailyPathOf(tk), t => appendToMemo(t == null ? newDailyText(tk) : t, [line]), `気分: ${v}/5`);
-    if (ok) toast(`気分 ${moodOf(v)[1]} を書きました`);
+    if (ok) toast(`気分「${moodOf(v)[2]}」を書きました`);
     return ok;
   }
   function moodSheet() {
