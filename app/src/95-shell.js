@@ -322,7 +322,7 @@
   function render() {
     if (!ntOn()) { $('#view').classList.remove('ntMode'); delete document.body.dataset.app; }
     $('#view').classList.toggle('gMode', tab === 'graph');
-    $('#view').classList.remove('calMode');
+    $('#view').classList.remove('calMode', 'calMonth');
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     // 下のメニューが入りきらないとき：選んでいるタブが見えるようにスライド
     if (!isWide()) {

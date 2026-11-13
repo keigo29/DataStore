@@ -1679,7 +1679,7 @@
           if (dayFiles(k).length) top.append(el('i', 'cmNote'));
           ls.addEventListener('click', go);
         } else {
-          const MAX = Math.max(1, 4 - L);
+          const MAX = Math.max(2, 5 - L);   // マスがたて長なので少し多めに
           list.slice(0, MAX).forEach(i => ls.append(calChip(i)));
           if (list.length > MAX) ls.append(btn('calMore', `ほか ${list.length - MAX} 件`, e => { e.stopPropagation(); calGo(k, 'day'); }));
           ls.addEventListener('click', e => { if (!e.target.closest('button')) newEvent(k); });
@@ -1743,6 +1743,7 @@
     const v = calV(), W = isWide();
     if (v === 'month' && calDraft) clearDraft();
     main.classList.toggle('calMode', W);
+    main.classList.toggle('calMonth', W && calV() === 'month');   // 月は、マスをたて長にしてスクロールで見る
     main.append(calBar());
     if (v === 'month') {
       main.append(monthGrid(!W));
@@ -5373,7 +5374,7 @@
   function render() {
     if (!ntOn()) { $('#view').classList.remove('ntMode'); delete document.body.dataset.app; }
     $('#view').classList.toggle('gMode', tab === 'graph');
-    $('#view').classList.remove('calMode');
+    $('#view').classList.remove('calMode', 'calMonth');
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     // 下のメニューが入りきらないとき：選んでいるタブが見えるようにスライド
     if (!isWide()) {

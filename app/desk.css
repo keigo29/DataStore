@@ -567,3 +567,9 @@ html.wide main#view .fin { max-width: 1400px; }
   html.wide .side .nav { flex-wrap: wrap; row-gap: 0; }
   html.wide .side .nav small { width: 100%; padding-left: 27px; margin-left: 0; }
 }
+
+/* 月のカレンダー：画面に押しこめず、マスをたて長に（はみ出た分はスクロール） */
+html.wide main#view.calMode.calMonth { overflow-y: auto; }
+html.wide main#view.calMode.calMonth > .cm { flex: none; }
+html.wide main#view.calMonth .cmWeek { flex: none; min-height: 158px; }
+@media (max-width: 1080px) { html.wide main#view.calMonth .cmWeek { min-height: 132px; } }

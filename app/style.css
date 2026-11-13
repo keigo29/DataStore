@@ -1733,3 +1733,4 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
   html.wide .fKpis::after { content: none; }
   html.wide .fKpis .fKpi { flex: none; }
 }
+.cm.compact .cmWeek { min-height: 100px; }   /* スマホの月：もう少したて長に */

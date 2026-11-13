@@ -397,7 +397,7 @@
           if (dayFiles(k).length) top.append(el('i', 'cmNote'));
           ls.addEventListener('click', go);
         } else {
-          const MAX = Math.max(1, 4 - L);
+          const MAX = Math.max(2, 5 - L);   // マスがたて長なので少し多めに
           list.slice(0, MAX).forEach(i => ls.append(calChip(i)));
           if (list.length > MAX) ls.append(btn('calMore', `ほか ${list.length - MAX} 件`, e => { e.stopPropagation(); calGo(k, 'day'); }));
           ls.addEventListener('click', e => { if (!e.target.closest('button')) newEvent(k); });
@@ -461,6 +461,7 @@
     const v = calV(), W = isWide();
     if (v === 'month' && calDraft) clearDraft();
     main.classList.toggle('calMode', W);
+    main.classList.toggle('calMonth', W && calV() === 'month');   // 月は、マスをたて長にしてスクロールで見る
     main.append(calBar());
     if (v === 'month') {
       main.append(monthGrid(!W));
