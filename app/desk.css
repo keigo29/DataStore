@@ -558,3 +558,12 @@ html.wide #notesView .nt-tagCloud > * { max-width: 100%; overflow: hidden; text-
 html.wide #notesView .nt-doc { --tblbg: var(--nt-bg); }
 /* お金：広い画面でも読みやすい幅まで */
 html.wide main#view .fin { max-width: 1400px; }
+
+/* ---- 細かい見た目の直し ---- */
+.sideHead h2 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1080px) {
+  .sideHead h2 { font-size: 18px; gap: 7px; }
+  .sideHead h2 .lc { width: 19px; height: 19px; }
+  html.wide .side .nav { flex-wrap: wrap; row-gap: 0; }
+  html.wide .side .nav small { width: 100%; padding-left: 27px; margin-left: 0; }
+}

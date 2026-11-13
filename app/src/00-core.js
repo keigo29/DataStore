@@ -146,7 +146,7 @@
     for (const l of body.split('\n')) {
       if (/^\s*(```|~~~)/.test(l)) { fence = !fence; continue; }
       if (fence || /^#{1,6}\s/.test(l)) continue;
-      for (const m of l.matchAll(/(^|[\s(（「、。])#([^\s#.,;:!?()[\]{}"'`、。「」（）<>]+)/g)) if (!/^\d+$/.test(m[2])) out.add(m[2]);
+      for (const m of l.matchAll(/(^|[\s(（「、。])#([^\s#.,;:!?()[\]{}"'`、。「」（）<>]+)/g)) if (!/^(\d+|[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(m[2])) out.add(m[2]);
     }
     return [...out];
   }

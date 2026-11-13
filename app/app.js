@@ -147,7 +147,7 @@
     for (const l of body.split('\n')) {
       if (/^\s*(```|~~~)/.test(l)) { fence = !fence; continue; }
       if (fence || /^#{1,6}\s/.test(l)) continue;
-      for (const m of l.matchAll(/(^|[\s(（「、。])#([^\s#.,;:!?()[\]{}"'`、。「」（）<>]+)/g)) if (!/^\d+$/.test(m[2])) out.add(m[2]);
+      for (const m of l.matchAll(/(^|[\s(（「、。])#([^\s#.,;:!?()[\]{}"'`、。「」（）<>]+)/g)) if (!/^(\d+|[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(m[2])) out.add(m[2]);
     }
     return [...out];
   }
@@ -419,7 +419,7 @@
       const body = stripCode(fm.body);
       const tags = new Set();
       for (const t of [].concat(fm.data.tags ?? fm.data.tag ?? [])) String(t).split(/[\s,]+/).filter(Boolean).forEach(x => tags.add(x.replace(/^#/, '')));
-      for (const m of body.matchAll(/(^|[\s(（「、。,])#([^\s#.,;:!?()[\]{}"'`、。「」（）]+)/g)) if (!/^\d+$/.test(m[2])) tags.add(m[2]);
+      for (const m of body.matchAll(/(^|[\s(（「、。,])#([^\s#.,;:!?()[\]{}"'`、。「」（）]+)/g)) if (!/^(\d+|[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(m[2])) tags.add(m[2]);
       const links = [], seenLink = new Set();
       for (const m of body.matchAll(/(!?)\[\[([^\]|#^\n]*)(?:#[^\]|\n]*)?(?:\|[^\]\n]*)?\]\]/g)) {
         const target = m[2].trim(), k = (m[1] ? '!' : '') + target;
@@ -962,7 +962,7 @@
     const f = el('form', 'qEv');
     const row = el('div', 'qEvRow');
     const inp = el('input', 'inp');
-    inp.placeholder = '例：14時 MTG／明日 10:00-11:30 歯医者';
+    inp.placeholder = isWide() ? '例：14時 MTG／明日 10:00-11:30 歯医者' : '例：明日14時 歯医者';
     inp.maxLength = 200; inp.enterKeyHint = 'done';
     const go = btn('btn primary small', ['plus', '入れる'], null);
     go.type = 'submit';
@@ -1615,7 +1615,7 @@
     // 同じ表を描き直したとき（予定を入れた・同期した）は、見ていた位置のまま
     const sk = `${calV()}|${days[0]}|${days.length}`;
     const keep = cgScroll.key === sk ? cgScroll.top : null;
-    requestAnimationFrame(() => { body.scrollTop = keep != null ? keep : Math.max(0, (start / 60) * P); cgScroll = { key: sk, top: body.scrollTop }; });
+    requestAnimationFrame(() => { body.scrollTop = keep != null ? keep : Math.max(0, Math.floor(start / 60) * P - 12) /* ちょうどの時刻から（時刻の字が切れないように少し上） */; cgScroll = { key: sk, top: body.scrollTop }; });
     body.addEventListener('scroll', () => { cgScroll = { key: sk, top: body.scrollTop }; }, { passive: true });
     return wrap;
   }
@@ -5184,7 +5184,7 @@
     } else if (tab === 'cal') {
       sb.append(btn('btn primary wide', ['calendar-plus', '予定を追加'], () => newEvent(calSel)), miniCal());
       sb.append(sideTitle(`${relDay(calSel)}に入れる`));
-      const q = el('div', 'navCard calSideQ'); const qb = quickEventBox(calSel); qb.querySelector('.inp').placeholder = '14時 MTG（Enter で入れる）'; q.append(qb); sb.append(q);
+      const q = el('div', 'navCard calSideQ'); const qb = quickEventBox(calSel); qb.querySelector('.inp').placeholder = '例：14時 MTG'; q.append(qb); sb.append(q);
       sb.append(sideTitle('これから'));
       const up = items.filter(i => i.date && i.date >= t && !i.done && (i.type === 'event' || i.time || i.milestone)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : byTime(a, b))).slice(0, 10);
       const n = el('nav', 'navCard');

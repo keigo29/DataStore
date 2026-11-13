@@ -133,7 +133,7 @@
     } else if (tab === 'cal') {
       sb.append(btn('btn primary wide', ['calendar-plus', '予定を追加'], () => newEvent(calSel)), miniCal());
       sb.append(sideTitle(`${relDay(calSel)}に入れる`));
-      const q = el('div', 'navCard calSideQ'); const qb = quickEventBox(calSel); qb.querySelector('.inp').placeholder = '14時 MTG（Enter で入れる）'; q.append(qb); sb.append(q);
+      const q = el('div', 'navCard calSideQ'); const qb = quickEventBox(calSel); qb.querySelector('.inp').placeholder = '例：14時 MTG'; q.append(qb); sb.append(q);
       sb.append(sideTitle('これから'));
       const up = items.filter(i => i.date && i.date >= t && !i.done && (i.type === 'event' || i.time || i.milestone)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : byTime(a, b))).slice(0, 10);
       const n = el('nav', 'navCard');

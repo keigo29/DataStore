@@ -1710,3 +1710,26 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
 .cmLegend .lbar::before { background: var(--mono), var(--ev); }
 .cmLegend .late::before { box-shadow: inset 0 0 0 2px #ef4444; }
 .cmTop .cmNote { background: color-mix(in srgb, var(--sub) 70%, transparent); }   /* ノートがある日：灰色（緑は「確認項目を全部できた」） */
+.trow .ttl small, .ttl small.meta { letter-spacing: 0; }   /* やることの行の下の小さな字（ページの見出しの字間を受けつがない） */
+
+/* ---- 細かい見た目の直し ---- */
+.dayHead { flex-wrap: wrap; row-gap: 6px; }
+.dayHead b { white-space: nowrap; }
+.dayHead .chip { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 699px) {
+  .hb-focusChip.solo { display: none; }          /* 「すべての項目」は絞り込んでいないときは出さない（1行におさめる） */
+  .hb-monthBar { flex-wrap: nowrap; }
+  .hb-monthBar .hb-month { white-space: nowrap; }
+  .hb-monthBar > .btn:last-child { margin-left: auto; }
+}
+.qEvPv.idle { white-space: normal; line-height: 1.45; }   /* 書き方の説明は折り返す（切れないように） */
+/* 小さいカレンダー：選んだ日は、せまい幅でも丸のまま（たて長にならない） */
+.mmDay { isolation: isolate; }
+.mmDay.sel { background: none; border-radius: 0; }
+.mmDay.sel::before { content: ''; position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--text); z-index: -1; }
+/* タブレット（PC の並びでせまい幅）：数字のカードは横スライドにせず、折り返して並べる（右が切れて見えないように） */
+@media (max-width: 899px) {
+  html.wide .fKpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); overflow: visible; margin: 0; padding: 0; gap: 12px; }
+  html.wide .fKpis::after { content: none; }
+  html.wide .fKpis .fKpi { flex: none; }
+}

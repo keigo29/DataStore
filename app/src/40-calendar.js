@@ -333,7 +333,7 @@
     // 同じ表を描き直したとき（予定を入れた・同期した）は、見ていた位置のまま
     const sk = `${calV()}|${days[0]}|${days.length}`;
     const keep = cgScroll.key === sk ? cgScroll.top : null;
-    requestAnimationFrame(() => { body.scrollTop = keep != null ? keep : Math.max(0, (start / 60) * P); cgScroll = { key: sk, top: body.scrollTop }; });
+    requestAnimationFrame(() => { body.scrollTop = keep != null ? keep : Math.max(0, Math.floor(start / 60) * P - 12) /* ちょうどの時刻から（時刻の字が切れないように少し上） */; cgScroll = { key: sk, top: body.scrollTop }; });
     body.addEventListener('scroll', () => { cgScroll = { key: sk, top: body.scrollTop }; }, { passive: true });
     return wrap;
   }

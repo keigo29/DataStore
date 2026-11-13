@@ -123,7 +123,7 @@
     const f = el('form', 'qEv');
     const row = el('div', 'qEvRow');
     const inp = el('input', 'inp');
-    inp.placeholder = '例：14時 MTG／明日 10:00-11:30 歯医者';
+    inp.placeholder = isWide() ? '例：14時 MTG／明日 10:00-11:30 歯医者' : '例：明日14時 歯医者';
     inp.maxLength = 200; inp.enterKeyHint = 'done';
     const go = btn('btn primary small', ['plus', '入れる'], null);
     go.type = 'submit';

@@ -42,7 +42,7 @@
       const body = stripCode(fm.body);
       const tags = new Set();
       for (const t of [].concat(fm.data.tags ?? fm.data.tag ?? [])) String(t).split(/[\s,]+/).filter(Boolean).forEach(x => tags.add(x.replace(/^#/, '')));
-      for (const m of body.matchAll(/(^|[\s(（「、。,])#([^\s#.,;:!?()[\]{}"'`、。「」（）]+)/g)) if (!/^\d+$/.test(m[2])) tags.add(m[2]);
+      for (const m of body.matchAll(/(^|[\s(（「、。,])#([^\s#.,;:!?()[\]{}"'`、。「」（）]+)/g)) if (!/^(\d+|[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(m[2])) tags.add(m[2]);
       const links = [], seenLink = new Set();
       for (const m of body.matchAll(/(!?)\[\[([^\]|#^\n]*)(?:#[^\]|\n]*)?(?:\|[^\]\n]*)?\]\]/g)) {
         const target = m[2].trim(), k = (m[1] ? '!' : '') + target;

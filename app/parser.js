@@ -67,7 +67,7 @@ const MDParser = (() => {
       const links = [...body.matchAll(LINK_RE)].map(x => x[1].trim());
       const milestone = /🏁/u.test(body);
       const tags = [];
-      for (const t of body.matchAll(TAG_RE)) if (!/^\d+$/.test(t[2])) tags.push(t[2]);
+      for (const t of body.matchAll(TAG_RE)) if (!/^(\d+|[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(t[2])) tags.push(t[2]);
       let time = null, endTime = null;
       const tm = body.match(TIME_RE);
       if (tm) { time = pad(tm[1]); endTime = tm[2] ? pad(tm[2]) : null; body = body.slice(tm[0].length); }
