@@ -62,6 +62,7 @@
     ht.append(hm2);
     hero.append(ht, ks);
     grid.append(hero);
+    { const hs = hbStrip(el('section', 'db-card')); if (hs) grid.append(hs); }
     // 今日のノート
     const cd = dbCard('db-daily c3', 'notebook-text', '今日のノート', S.files[dRel] ? '開く' : null, () => openNote(dRel));
     if (!dPaths.length) {

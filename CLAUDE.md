@@ -8,7 +8,7 @@
 ## 直すところ
 
 - `app/app.js` は **作られたファイル**。直すのは `app/src/*.js`（タブごと。名前の順につなげて1つにする）→ `npm run build`
-  - 00-core（データ・保存）／10-notes-bridge（PC のノート画面とのつなぎ・自動保存）／20-parts（部品）／30-home／31-todo／40-calendar／50-projects／60-notes／70-money／72-health（体重・睡眠・筋トレ）／75-graph／80-markdown（スマホの書く画面・キーのバー）／85-sync／90-wide（PC の並び）／95-shell（タブ・レール）／99-start
+  - 00-core（データ・保存）／10-notes-bridge（PC のノート画面とのつなぎ・自動保存）／20-parts（部品）／30-home／31-todo／40-calendar／45-habits（毎日確認）／50-projects／60-notes／70-money／72-health（体重・睡眠・筋トレ）／75-graph／80-markdown（スマホの書く画面・キーのバー）／85-sync／90-wide（PC の並び）／95-shell（タブ・レール）／99-start
 - 画面を変えたら `app/sw.js` の `VERSION` を1つ上げる（スマホが新しい版を取りに行くため）。新しいファイルは `FILES` にも足す
 - Mac 版は `app/` をコピーして使う（`mac/scripts/copy-app.js`。`mac/app/` は作られたもので git に入れない）
 

@@ -57,10 +57,10 @@ async function openApp(page, { connect = false } = {}) {
   await page.waitForTimeout(400);
 }
 // タブを開く（PC は左の列、スマホは下のメニュー）
-const TABS = ['home', 'todo', 'proj', 'cal', 'notes', 'graph', 'money', 'health'];
+const TABS = ['home', 'todo', 'proj', 'cal', 'habits', 'notes', 'graph', 'money', 'health'];
 async function openTab(page, tab) {
   const wide = await page.evaluate(() => document.documentElement.classList.contains('wide'));
-  if (wide) await page.click(`#railApps .railBtn:nth-child(${TABS.indexOf(tab) + 1})`);
+  if (wide) await page.click(`#railApps .railBtn[data-tab="${tab}"]`);
   else await page.click(`#tabs [data-tab="${tab}"]`, { force: true });
   await page.waitForTimeout(300);
 }

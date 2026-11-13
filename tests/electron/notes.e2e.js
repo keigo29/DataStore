@@ -27,7 +27,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.on('dialog', d => d.accept());
   await w.setViewportSize({ width: 1300, height: 860 });
   await sleep(1500);
-  await w.click('#railApps .railBtn:nth-child(5)'); await sleep(800);
+  await w.click('#railApps .railBtn[data-tab="notes"]'); await sleep(800);
   await w.click('#sideNotes .nav:has-text("Notes")'); await sleep(300);
   await w.click('#sideNotes .nav:has-text("Spring Boot")'); await sleep(800);
   await w.click('#topActs .nt-mode button:has-text("読む")'); await sleep(1200);
@@ -50,7 +50,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(8000);
   assert.ok(sh(remote, 'log', '--format=%s', 'main').split('\n').length > 1, 'git に送られない');
   // やることタブに切りかえても大丈夫
-  await w.click('#railApps .railBtn:nth-child(2)'); await sleep(500);
+  await w.click('#railApps .railBtn[data-tab="todo"]'); await sleep(500);
   await w.locator('#sideBody .nav[aria-label="すべて"]').first().click(); await sleep(400);
   assert.ok(await w.locator('#view :text("あとで")').count() > 0, 'やることに出ない');
   assert.deepStrictEqual(errs, []);

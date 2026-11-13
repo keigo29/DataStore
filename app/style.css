@@ -1394,3 +1394,274 @@ button.fRec { cursor: pointer; } button.fRec:hover { background: color-mix(in sr
 .db-moodT { font-size: 12px; font-weight: 600; opacity: .65; margin-bottom: 6px; }
 .db-mood .mdF { padding: 5px 2px 4px; } .db-mood .mdF .e { font-size: 22px; }
 @media (max-width: 699px) { .mdCmp { grid-template-columns: 1fr 1fr 40px; gap: 2px 8px; font-size: 11.5px; } .mdCmp small { grid-column: 1 / -1; } .mdCmp b { grid-row: 2; grid-column: 3; } }
+
+/* ================= 毎日確認（旧 Workstation の hb- をそのまま） ================= */
+.hb-view { display: flex; flex-direction: column; gap: 14px; padding-bottom: 8px; }
+.hb-panel { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); padding: 18px 20px; min-width: 0; }
+.hb-panel h3 { margin: 0 0 12px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+.hb-panel h3 .lc { width: 16px; height: 16px; color: var(--sub); }
+.hb-panel h3 .right { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--sub); display: flex; align-items: center; gap: 6px; }
+.hb-noData { color: var(--sub); font-size: 13px; margin: 6px 0; }
+
+.hb-icon {
+  width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center;
+  font-size: 17px; color: var(--c); background: color-mix(in srgb, var(--c) 12%, var(--card));
+}
+.hb-icon .lc { width: 55%; height: 55%; }
+.hb-miniIcon { display: inline-grid; place-items: center; width: 18px; height: 18px; color: var(--c); font-size: 13px; }
+.hb-miniIcon .lc { width: 15px; height: 15px; }
+
+/* チェック（丸） */
+.hb-chk {
+  width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--g300);
+  background: none; color: #fff; display: grid; place-items: center; padding: 0; transition: transform .08s;
+}
+.hb-chk:hover { border-color: var(--c); }
+.hb-chk:active { transform: scale(.88); }
+.hb-chk.done { border: 0; background: var(--gloss), var(--c); box-shadow: var(--gloss-line); }
+.hb-chk .lc { width: 15px; height: 15px; stroke-width: 3; }
+.hb-chk.off:not(.done) { border-style: dashed; opacity: .6; }
+
+/* 今日パネル */
+.hb-todayTop { display: flex; align-items: center; gap: 16px; padding-bottom: 14px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+.hb-ring { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+.hb-ring > svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.hb-ring circle { fill: none; stroke-width: 7; }
+.hb-ring .bgc { stroke: var(--soft); }
+.hb-ring .fgc { stroke: var(--ok); stroke-linecap: round; transition: stroke-dashoffset .3s; }
+.hb-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hb-todayText { flex: 1; min-width: 0; }
+.hb-todayText .date { font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
+.hb-todayText .msg { font-size: 13px; color: var(--sub); margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+.hb-todayText .msg .lc { width: 15px; height: 15px; flex-shrink: 0; }
+.hb-todayTop.all .msg { color: var(--ok-text); font-weight: 600; }
+.hb-offBtn { flex-shrink: 0; height: 36px; font-size: 12px; }
+.hb-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 2px 10px; }
+.hb-row { display: flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 16px; min-width: 0; }
+.hb-row:hover { background: var(--soft); }
+.hb-row.focused { background: var(--soft); box-shadow: inset 0 0 0 1.5px var(--text); }
+.hb-row.allRow { padding-left: 4px; }
+.hb-row.allRow .hb-icon { --c: var(--text); }
+.hb-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 7px 4px; text-align: left; border-radius: 12px; }
+.hb-name .txt { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hb-name .nm { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-name small { font-size: 12px; color: var(--sub); display: flex; align-items: center; gap: 3px; white-space: nowrap; overflow: hidden; }
+.hb-name small .lc { width: 12px; height: 12px; flex-shrink: 0; }
+.hb-name small.hot { color: var(--focus); font-weight: 600; }
+.hb-name small .link { display: inline-flex; align-items: center; gap: 3px; color: var(--sub); font-weight: 500; margin-left: 8px; }
+.hb-edit { border: 0; background: none; width: 32px; height: 32px; border-radius: 50%; padding: 0; color: var(--sub); display: grid; place-items: center; opacity: 0; flex-shrink: 0; }
+.hb-edit:hover { background: var(--card); color: var(--text); }
+.hb-edit .lc { width: 16px; height: 16px; }
+.hb-row:hover .hb-edit, .hb-row:focus-within .hb-edit { opacity: 1; }
+.hb-add { border: 1.5px dashed var(--g300); background: none; border-radius: 16px; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--sub); font-size: 13px; font-weight: 600; margin: 4px 0 0; }
+.hb-add:hover { color: var(--text); border-color: var(--text); }
+.hb-add .lc { width: 15px; height: 15px; }
+
+/* 月の切り替え */
+.hb-monthBar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hb-sq { width: 36px; height: 36px; padding: 0; justify-content: center; }
+.hb-sq .lc { width: 16px; height: 16px; margin: 0; }
+.hb-month { font-size: 17px; font-weight: 700; min-width: 110px; text-align: center; font-variant-numeric: tabular-nums; }
+.hb-focusChip { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 6px 0 14px; border-radius: 99px; background: var(--card); box-shadow: var(--shadow-sm); font-size: 13px; font-weight: 600; }
+.hb-focusChip.solo { padding-right: 14px; color: var(--sub); }
+.hb-focusChip > span { display: inline-flex; align-items: center; gap: 6px; }
+.hb-focusChip > span .lc { width: 15px; height: 15px; }
+.hb-focusChip button { border: 0; background: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--sub); padding: 0; }
+.hb-focusChip button:hover { background: var(--soft); color: var(--text); }
+.hb-focusChip button .lc { width: 14px; height: 14px; }
+
+/* 数字のタイル */
+.hb-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.hb-kpi { background: var(--card); border-radius: var(--r); padding: 16px 18px; box-shadow: var(--shadow); min-width: 0; }
+.hb-kpi .label { font-size: 12px; font-weight: 600; color: var(--sub); display: flex; align-items: center; gap: 6px; }
+.hb-kpi .label .lc { width: 14px; height: 14px; }
+.hb-kpi .value { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 6px 0 4px; letter-spacing: -.04em; line-height: 1.05; }
+.hb-kpi .note { font-size: 12px; color: var(--sub); display: inline-flex; align-items: center; gap: 4px; }
+.hb-kpi .note .lc { width: 14px; height: 14px; }
+
+/* 縦棒グラフ */
+.hb-vchart { display: grid; grid-template-columns: 38px 1fr; padding-top: 22px; }
+.hb-vchart .yaxis { position: relative; height: 150px; }
+.hb-vchart .yaxis span { position: absolute; right: 8px; transform: translateY(50%); font-size: 11px; color: var(--sub); font-variant-numeric: tabular-nums; }
+.hb-vchart .plot { position: relative; height: 150px; display: grid; gap: 3px; align-items: end; border-bottom: 1px solid var(--line); }
+.hb-vchart .gl { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line); pointer-events: none; }
+.hb-vchart .hcol { position: relative; height: 100%; display: flex; align-items: flex-end; justify-content: center; border: 0; background: none; padding: 0; border-radius: 10px 10px 0 0; }
+.hb-vchart .hcol:hover { background: var(--soft); }
+.hb-vchart .hcol.rest { background: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--text) 5%, transparent) 5px 7px); }
+.hb-vchart .restMark { font-size: 10px; font-weight: 700; color: var(--g400); margin-bottom: 4px; }
+.hb-vchart .hbar { width: 100%; max-width: 22px; border-radius: 99px 99px 4px 4px; background: var(--gloss), var(--c); box-shadow: var(--gloss-line); }
+.hb-vchart .hbar.zero { height: 4px !important; background: var(--line); border-radius: 2px; box-shadow: none; }
+.hb-vchart .hcol.dim .bar:not(.zero) { background: color-mix(in srgb, var(--c) 18%, var(--card)); box-shadow: none; }
+.hb-vchart .vlabel { position: absolute; font-size: 12px; font-weight: 700; transform: translateY(-125%); }
+.hb-vchart .xaxis { grid-column: 2; display: grid; gap: 3px; margin-top: 6px; }
+.hb-vchart .xaxis span { font-size: 11px; color: var(--sub); text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hb-vchart .xaxis span.now { color: var(--text); font-weight: 700; }
+
+.hb-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.hb-hchart { display: grid; grid-template-columns: minmax(80px, 150px) 1fr 78px; gap: 12px 12px; align-items: center; }
+.hb-hchart .hl { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; border: 0; background: none; padding: 0; text-align: left; }
+.hb-hchart .hl .hb-icon { width: 26px; height: 26px; font-size: 14px; }
+.hb-hchart .hl span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-hchart .track { height: 12px; border-radius: 99px; background: var(--soft); overflow: hidden; }
+.hb-hchart .track span { display: block; height: 100%; border-radius: 99px; background: var(--gloss), var(--c); box-shadow: var(--gloss-line); }
+.hb-hchart .hv { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.hb-hchart .hv small { color: var(--sub); margin-left: 4px; font-weight: 500; font-size: 11px; }
+
+/* 週のチェック表 */
+.hb-weekNav .lbl { font-weight: 700; color: var(--text); font-size: 13px; min-width: 92px; text-align: center; font-variant-numeric: tabular-nums; }
+.hb-weekNav .btn { height: 32px; font-size: 12px; }
+.hb-weekNav .hb-sq { width: 32px; height: 32px; }
+.hb-gridWrap { overflow-x: auto; }
+.hb-grid { display: grid; align-items: center; gap: 8px 6px; min-width: 520px; grid-template-columns: minmax(130px, 240px) repeat(7, minmax(36px, 52px)) 52px; }
+.hb-grid .gh { font-size: 12px; color: var(--sub); text-align: center; line-height: 1.35; border: 0; background: none; padding: 4px 0; border-radius: 12px; font-weight: 500; position: relative; }
+button.gh:hover { background: var(--soft); }
+.hb-grid .gh .wd { display: block; font-weight: 700; }
+.hb-grid .gh .md { font-variant-numeric: tabular-nums; }
+.hb-grid .gh.is-today { color: var(--text); }
+.hb-grid .gh.is-today .md { display: inline-block; background: var(--gloss), var(--accent); color: var(--accent-text); border-radius: 99px; padding: 0 7px; font-weight: 700; box-shadow: var(--gloss-line); }
+.hb-grid .gh.sat .wd, .hb-grid .gh.sun .wd { color: var(--g400); }
+.hb-grid .gh.rest { background: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--text) 5%, transparent) 5px 7px); }
+.hb-grid .gh .restTag { display: block; margin: 2px auto 0; width: max-content; max-width: 100%; font-size: 10px; font-weight: 700; padding: 0 6px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); overflow: hidden; text-overflow: ellipsis; }
+.hb-grid .hname { display: flex; align-items: center; gap: 10px; min-width: 0; font-weight: 600; font-size: 14px; padding: 4px 6px; border-radius: 99px; }
+.hb-grid .hname.focused { background: var(--soft); }
+.hb-grid .hname .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-grid .cell {
+  aspect-ratio: 1; width: 100%; max-width: 40px; justify-self: center; border-radius: 50%;
+  border: 2px solid var(--g300); background: transparent; color: #fff; display: grid; place-items: center; padding: 0; transition: transform .08s;
+}
+.hb-grid .cell:hover:not(:disabled) { border-color: var(--c); }
+.hb-grid .cell:active:not(:disabled) { transform: scale(.9); }
+.hb-grid .cell.done { border: 0; background: var(--gloss), var(--c); box-shadow: var(--gloss-line); }
+.hb-grid .cell .lc { width: 48%; height: 48%; stroke-width: 3; }
+.hb-grid .cell.off:not(.done) { border-style: dashed; opacity: .5; }
+.hb-grid .cell.rest:not(.done) { border-style: dotted; border-color: var(--warn); opacity: .55; }
+.hb-grid .cell:disabled { opacity: .2; cursor: default; }
+.hb-grid .wrate { font-size: 13px; font-weight: 600; color: var(--sub); text-align: center; font-variant-numeric: tabular-nums; }
+.hb-grid .wrate.full { color: var(--ok-text); }
+.hb-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; font-size: 12px; color: var(--sub); }
+.hb-legend i { display: inline-block; width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--g300); vertical-align: -2px; margin-right: 5px; }
+.hb-legend i.d { background: var(--gloss), var(--accent); border-color: transparent; }
+.hb-legend i.o { border-style: dashed; opacity: .7; }
+.hb-legend i.r { border-style: dotted; border-color: var(--warn); }
+
+/* 連続記録とカレンダー */
+.hb-streaks { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.hb-statHead { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-weight: 700; font-size: 15px; }
+.hb-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+.hb-nums .hnum b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.hb-nums .hnum span { font-size: 12px; color: var(--sub); }
+.hb-heat { display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+.hb-heat button { aspect-ratio: 1; border: 0; border-radius: 4px; padding: 0; background: var(--soft); }
+.hb-heat button.on { background: var(--c); }
+.hb-heat button.off { background: transparent; box-shadow: inset 0 0 0 1px var(--soft); }
+.hb-heat button.rest { background: repeating-linear-gradient(135deg, transparent 0 2px, color-mix(in srgb, var(--warn) 45%, transparent) 2px 3px); }
+.hb-heat button.fut { visibility: hidden; }
+.hb-heat button.today { box-shadow: inset 0 0 0 2px var(--text); }
+.hb-heatLabel { display: flex; justify-content: space-between; font-size: 11px; color: var(--sub); margin-top: 8px; }
+
+/* まだ習慣がないとき */
+.hb-empty { margin: 40px auto; max-width: 420px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--sub); }
+.hb-empty > .lc { width: 34px; height: 34px; }
+.hb-empty b { color: var(--text); font-size: 17px; }
+.hb-empty p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
+.hb-emptyBtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* 「今日」画面の習慣欄 */
+.hb-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+.hb-stripHead { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0 4px; font-size: 12px; font-weight: 600; color: var(--sub); height: 34px; }
+.hb-stripHead .lc { width: 14px; height: 14px; }
+.hb-stripHead b { color: var(--text); font-variant-numeric: tabular-nums; }
+.hb-stripHead b.all { color: var(--ok-text); }
+.hb-stripHead:hover span { text-decoration: underline; text-underline-offset: 3px; }
+.hb-pill { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px 0 5px; border: 0; border-radius: 99px; background: var(--card); box-shadow: var(--shadow-sm); font-size: 13px; font-weight: 600; max-width: 260px; }
+.hb-pill .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-pill small { font-size: 11px; color: var(--sub); font-weight: 500; white-space: nowrap; }
+.hb-pill .hb-chk { width: 24px; height: 24px; }
+.hb-pill .hb-chk .lc { width: 13px; height: 13px; }
+.hb-pill:hover .hb-chk:not(.done) { border-color: var(--c); }
+.hb-pill.done .nm { color: var(--sub); }
+.hb-pill.rest { padding: 0 12px; background: var(--warn-soft); color: var(--warn); box-shadow: none; }
+.hb-pill.rest .lc { width: 14px; height: 14px; }
+.hb-none { font-size: 12px; color: var(--sub); }
+
+/* ダイアログ */
+dialog.wide { width: min(560px, calc(100vw - 40px)); }
+.dlgNote { margin: -6px 0 0; font-size: 12px; color: var(--sub); line-height: 1.6; }
+.hb-iconPick { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; max-height: 128px; overflow-y: auto; padding: 4px; border-radius: 14px; background: var(--soft); }
+.hb-iconPick label { position: relative; }
+.hb-iconPick input { position: absolute; opacity: 0; pointer-events: none; }
+.hb-iconPick span { display: grid; place-items: center; height: 38px; border-radius: 10px; color: var(--sub); cursor: pointer; }
+.hb-iconPick span:hover { background: var(--card); color: var(--text); }
+.hb-iconPick span .lc { width: 18px; height: 18px; }
+.hb-iconPick input:checked + span { background: color-mix(in srgb, var(--c, var(--text)) 14%, var(--card)); color: var(--c, var(--text)); box-shadow: inset 0 0 0 2px var(--c, var(--text)); }
+.hb-emoji { width: 150px; }
+.hb-daysRow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; font-weight: 600; color: var(--sub); }
+.hb-presets { margin-left: auto; display: flex; gap: 4px; }
+.hb-presets button, .hb-quick button { border: 0; background: var(--soft); border-radius: 99px; height: 28px; padding: 0 12px; font-size: 12px; font-weight: 600; color: var(--text); }
+.hb-presets button:hover, .hb-quick button:hover, .hb-quick button.on { background: var(--gloss), var(--accent); color: var(--accent-text); }
+.hb-days label { position: relative; }
+.hb-days input { position: absolute; opacity: 0; }
+.hb-days span { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--soft); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; }
+.hb-days input:checked + span { background: var(--gloss), var(--accent); color: var(--accent-text); box-shadow: var(--gloss-line); }
+.checkRow small { font-size: 11px; color: var(--sub); font-weight: 500; }
+.hb-linkRow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.hb-linkRow select { flex: 1; min-width: 200px; }
+.hb-linkCount { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); font-weight: 600; }
+.hb-linkCount[hidden] { display: none; }
+.hb-linkCount output { min-width: 32px; }
+#hbMove .btn { height: 32px; font-size: 12px; }
+.hb-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.hb-offList { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+.hb-offRow { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: 12px; background: var(--soft); font-size: 13px; color: var(--text); font-weight: 500; }
+.hb-offRow .when { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.hb-offRow .when .lc { width: 14px; height: 14px; color: var(--sub); }
+.hb-offRow .lab { margin-left: auto; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); }
+#offAdd { align-self: flex-start; }
+
+#hbToast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 99px; background: var(--gloss), var(--accent); color: var(--accent-text); box-shadow: var(--shadow-lg); font-size: 13px; font-weight: 600; max-width: calc(100vw - 40px); }
+#hbToast.bad { background: var(--danger); color: #fff; }
+#hbToast .lc { width: 16px; height: 16px; flex-shrink: 0; }
+
+@container (max-width: 760px) {
+  .hb-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hb-cols { grid-template-columns: 1fr; }
+}
+
+
+/* MD Workstation 用の足し */
+.hb-view { gap: 14px; }
+.hb-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 40px 20px; }
+.hb-empty > .lc { width: 34px; height: 34px; color: var(--sub); }
+.hb-empty p { color: var(--sub); font-size: 13px; max-width: 420px; margin: 0 0 6px; }
+.hb-emojis { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-bottom: 6px; }
+.hb-emojis button { border: 1.5px solid transparent; background: var(--soft); border-radius: 10px; height: 36px; font-size: 18px; cursor: pointer; padding: 0; }
+.hb-emojis button.on { border-color: var(--text); background: var(--card); }
+.hb-emojiIn { max-width: 120px; }
+.hb-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.hb-presets button, .hb-wds button { border: 1.5px solid var(--line); background: var(--card); color: var(--text); border-radius: 99px; height: 32px; padding: 0 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.hb-presets button.on, .hb-wds button.on { background: var(--text); color: var(--card); border-color: var(--text); }
+.hb-wds { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.hb-wds button { padding: 0; }
+.hb-keep { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 2px 0 10px; }
+.hb-offDates { display: flex; align-items: center; gap: 8px; } .hb-offDates .inp { flex: 1; min-width: 0; }
+.hb-offList { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
+.hb-offRow { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-top: 1px solid var(--line); font-size: 13px; }
+.hb-offRow .when { display: inline-flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.hb-offRow .when .lc { width: 15px; height: 15px; color: var(--sub); }
+.hb-offRow .lab { color: var(--sub); font-weight: 600; }
+#side .hb-panel { box-shadow: none; padding: 14px 12px; }
+#side .hb-list { grid-template-columns: 1fr; }
+#side .hb-offBtn { width: 100%; margin-bottom: 10px; }
+.db-card.hb-strip, .panel.hb-strip { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+.panel.hb-strip { display: flex; }
+@media (max-width: 699px) {
+  .hb-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .hb-kpi { padding: 12px 14px; } .hb-kpi .value { font-size: 24px; }
+  .hb-cols { grid-template-columns: 1fr; }
+  .hb-panel { padding: 14px; }
+  .hb-focusChip { margin-left: 0; }
+  .hb-hchart { grid-template-columns: minmax(70px, 1fr) 1fr 64px; gap: 10px 8px; }
+  .hb-streaks { grid-template-columns: 1fr; }
+  .hb-list { grid-template-columns: 1fr; }
+  .hb-emojis { grid-template-columns: repeat(7, 1fr); }
+}

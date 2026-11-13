@@ -108,6 +108,7 @@
       other.forEach(i => pt.append(todoRow(i, { noDate: true })));
       put('right', pt);
     }
+    { const hp = hbStrip(panel()); if (hp) put('right', hp); }
     {
       const pmd = panel();
       pmd.append(panelHead('smile', '今日の気分', btn('linkBtn', 'ひとこと', () => moodSheet())));

@@ -351,7 +351,8 @@
     const line = `${key}: ${value}`;
     if (!m) return `---\n${line}\n---\n${text}`;
     const ls = m[1].split(/\r?\n/);
-    const i = ls.findIndex(l => new RegExp(`^${key}\\s*:`, 'i').test(l));
+    const ek = String(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const i = ls.findIndex(l => new RegExp(`^${ek}\\s*:`, 'i').test(l));
     if (i >= 0) ls[i] = line; else ls.push(line);
     return `---\n${ls.join('\n')}\n---${m[2]}` + text.slice(m[0].length);
   }
