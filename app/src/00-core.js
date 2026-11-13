@@ -213,6 +213,7 @@
     let seed = 11; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
     const h = ['date,weight_kg,body_fat_pct,sleep_min,steps,resting_hr,active_kcal,sleep_deep_min,sleep_core_min,sleep_rem_min,sleep_awake_min,bed_time,wake_time'];
     const hm2 = m => `${String(Math.floor(((m % 1440) + 1440) % 1440 / 60)).padStart(2, '0')}:${String(((m % 60) + 60) % 60).padStart(2, '0')}`;
+    const z = ['date,start,end,stage'];
     const s = ['date,start,session_id,effort,exercise,muscle_group,bodyweight,set_no,kind,weight_kg,reps,rir,assisted,e1rm_kg,volume_kg,note'];
     const menu = [[['ベンチプレス', '胸', 72.5, 5], ['懸垂', '背中', 0, 8], ['ショルダープレス', '肩', 30, 8]], [['スクワット', '脚', 90, 5], ['ルーマニアンデッドリフト', '脚', 80, 8], ['プランク', '体幹', 0, 1]]];
     let n = 0;
@@ -221,6 +222,12 @@
       if (rnd() < .85) {
         const sl = Math.round(330 + rnd() * 140), deep = Math.round(sl * (.1 + rnd() * .12)), rem = Math.round(sl * (.16 + rnd() * .1)), aw = Math.round(5 + rnd() * 35);
         const bed = 23 * 60 + Math.round((rnd() - .4) * 90), wake = bed + sl + aw;
+        if (i > -21) {   // 1晩の流れ：5つの周期（はじめは深いが多く、朝に近いほどレムが多い）
+          const core = sl - deep - rem, wD = [.34, .28, .2, .12, .06], wR = [.08, .14, .2, .26, .32];
+          let c = bed; const at = m => `${addDays(k, -1 + Math.floor(m / 1440))}T${hm2(m)}`;
+          const seg = (len, st) => { len = Math.round(len); if (len > 0) { z.push([k, at(c), at(c + len), st].join(',')); c += len; } };
+          for (let j = 0; j < 5; j++) { seg(core * .12, 'core'); seg(deep * wD[j], 'deep'); seg(core * .08, 'core'); seg(rem * wR[j], 'rem'); if (j === 1 || j === 3) seg(aw / 2, 'awake'); }
+        }
         h.push([k, w.toFixed(1), (19.0 - i * 0.02 + (rnd() - .5)).toFixed(1), sl, Math.round(5000 + rnd() * 6000), Math.round(56 + rnd() * 6), Math.round(250 + rnd() * 250), deep, sl - deep - rem, rem, aw, hm2(bed), hm2(wake)].join(','));
       }
       const wd = parseKey(k).getDay();
@@ -233,7 +240,7 @@
         }));
       }
     }
-    return { 'Data/health/health.csv': h.join('\n') + '\n', 'Data/kintore/sets.csv': s.join('\n') + '\n' };
+    return { 'Data/health/sleep.csv': z.join('\n') + '\n', 'Data/health/health.csv': h.join('\n') + '\n', 'Data/kintore/sets.csv': s.join('\n') + '\n' };
   }
 
   // ---------- GitHub ----------
@@ -301,7 +308,7 @@
     S = { files: next, dailyJson: cfgFiles['daily-notes.json'] || null, cfg: cfgFiles, bins, dirs: [...new Set([...dirs, ...(S.dirs || []).filter(d => Bridge.virtualDir(d))])], isVault, syncedAt: Date.now(), error: null };
     if (tree.truncated) toast('ファイルが多すぎて、一部しか読めていません', 'warn');
   }
-  const DATA_FILES = ['Data/kakei.json', 'Data/health/health.csv', 'Data/kintore/sets.csv'];
+  const DATA_FILES = ['Data/kakei.json', 'Data/health/health.csv', 'Data/health/sleep.csv', 'Data/kintore/sets.csv'];
   const fullPath = rel => ((cfg.prefix || '').replace(/^\/+|\/+$/g, '') ? cfg.prefix.replace(/^\/+|\/+$/g, '') + '/' : '') + rel;
   async function putFile(rel, text, sha, message) {
     if (desk) {

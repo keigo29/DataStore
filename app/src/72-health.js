@@ -26,8 +26,8 @@
 
   let healthCache = { key: null, v: null };
   function healthData() {
-    const hcsv = S.cfg?.['Data/health/health.csv'] || '', scsv = S.cfg?.['Data/kintore/sets.csv'] || '';
-    const key = hcsv.length + ':' + scsv.length + ':' + hcsv.slice(-80) + scsv.slice(-80) + ':' + filesVersion;
+    const hcsv = S.cfg?.['Data/health/health.csv'] || '', scsv = S.cfg?.['Data/kintore/sets.csv'] || '', zcsv = S.cfg?.['Data/health/sleep.csv'] || '';
+    const key = hcsv.length + ':' + scsv.length + ':' + zcsv.length + ':' + hcsv.slice(-80) + scsv.slice(-80) + zcsv.slice(-60) + ':' + filesVersion;
     if (healthCache.key === key) return healthCache.v;
     // 日ごとの体の数字
     const days = new Map();
@@ -63,7 +63,16 @@
       s.ex.set(r.exercise, e); ses.set(id, s);
     }
     const sessions = [...ses.values()].filter(s => s.sets).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
-    const v = { days: list, sessions, goal: weightGoal(), hasHealth: !!hcsv.trim(), hasLift: !!scsv.trim() };
+    // 1晩の流れ（何時から何時までがどの段階か）
+    const segs = new Map();
+    const tmin = t => { const m = String(t).match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/); return m ? new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]).getTime() / 60000 : null; };
+    for (const r of parseCSV(zcsv)) {
+      const a = tmin(r.start), b = tmin(r.end);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date) || a == null || b == null || b <= a || !['deep', 'core', 'rem', 'awake', 'asleep'].includes(r.stage)) continue;
+      const l = segs.get(r.date) || []; l.push({ a, b, st: r.stage }); segs.set(r.date, l);
+    }
+    for (const l of segs.values()) l.sort((x, y) => x.a - y.a);
+    const v = { segs, days: list, sessions, goal: weightGoal(), hasHealth: !!hcsv.trim(), hasLift: !!scsv.trim() };
     healthCache = { key, v };
     return v;
   }
@@ -340,7 +349,7 @@
   // ================= 睡眠の質 =================
   // 1晩の点数（目安・100点）：長さ 40・深い睡眠 20・レム 20・途中で起きた時間 10・寝る時刻のそろい方 10
   // 内訳（深い・コア・レム）がない日は点数を出さない（長さだけでは「質」がわからないので）
-  let sleepView = 'line';        // line：1日ごとの線／parts：積み上げの棒／time：寝た〜起きた時刻
+  let sleepView = null;          // night：1晩の流れ／line：1日ごとの線／parts：積み上げの棒／time：寝た〜起きた時刻（null：流れがあれば night）
   let sleepSel = null;           // 選んだ日
   const SC = { deep: '#4f46e5', core: '#60a5fa', rem: '#22d3ee', awake: '#fb923c', plain: '#818cf8' };
   const SN = { deep: '深い', core: 'ノンレム（浅い）', rem: 'レム', awake: '途中で起きた' };
@@ -377,6 +386,7 @@
   }
   function sleepCard(H, range) {
     const c = el('div', 'fCard sCard');
+    const view = sleepView || (H.segs.size ? 'night' : 'line');
     const nights = range.map(d => sleepNight(H, d));
     const beds = [];   // その日より前の7晩の寝た時刻
     const scored = nights.map((n, i) => {
@@ -387,7 +397,7 @@
     const hd = el('div', 'fHead');
     hd.append(el('h3', '', '睡眠の質'));
     const seg = el('div', 'seg hSeg');
-    [['line', '線'], ['parts', '積み上げ'], ['time', '時間帯']].forEach(([v, l]) => seg.append(btn(sleepView === v ? 'on' : '', l, () => { sleepView = v; render(); })));
+    [...(H.segs.size ? [['night', '1晩']] : []), ['line', '線'], ['parts', '積み上げ'], ['time', '時間帯']].forEach(([v, l]) => seg.append(btn(view === v ? 'on' : '', l, () => { sleepView = v; render(); })));
     hd.append(seg); c.append(hd);
     if (!ok.length) {
       c.append(el('p', 'fSub', 'その朝に起きた日に入ります'), el('div', 'fEmpty', 'まだ睡眠の記録がありません。iPhone のショートカットで、睡眠の合計・内訳（深い・コア・レム・覚醒）・寝た時刻と起きた時刻を送ると、ここに大きく出ます'));
@@ -415,16 +425,53 @@
     c.append(stats);
     // 凡例
     const lg = el('div', 'sLegend');
-    if (sleepView !== 'time') {
+    if (view !== 'time') {
       if (withP.length) ['deep', 'core', 'rem', 'awake'].forEach(k => { const s2 = el('span'); s2.style.setProperty('--c', SC[k]); s2.append(SN[k]); lg.append(s2); });
       else { const s2 = el('span'); s2.style.setProperty('--c', SC.plain); s2.append('睡眠（内訳はまだありません）'); lg.append(s2); }
-      lg.append(el('em', '', sleepView === 'parts' ? '点線：7時間' : '点：その日の数字（押すとくわしく）'));
+      lg.append(el('em', '', view === 'night' ? '1晩の流れ（‹ › で日を変える）' : view === 'parts' ? '点線：7時間' : '点：その日の数字（押すとくわしく）'));
     } else lg.append(el('em', '', '棒：寝た時刻 〜 起きた時刻（上がよる、下があさ）'));
     c.append(lg);
-    const sel = (sleepSel && scored.find(n => n && n.date === sleepSel)) || [...scored].reverse().find(Boolean);
-    c.append(sleepView === 'line' ? sleepLineChart(scored, sel) : sleepView === 'parts' ? sleepPartsChart(scored, sel) : sleepTimeChart(scored, sel));
+    let sel = (sleepSel && scored.find(n => n && n.date === sleepSel)) || [...scored].reverse().find(Boolean);
+    if (view === 'night') {   // 流れのある晩だけ（期間の外でもよい）
+      const ds = [...H.segs.keys()].sort(), d = sleepSel && H.segs.has(sleepSel) ? sleepSel : sel && H.segs.has(sel.date) ? sel.date : ds[ds.length - 1];
+      sel = scored.find(n => n && n.date === d) || { ...(sleepNight(H, d) || { date: d, asleep: H.segs.get(d).filter(x => x.st !== 'awake').reduce((t, x) => t + x.b - x.a, 0) }), score: null };
+    }
+    c.append(view === 'night' ? sleepHypno(H, sel) : view === 'line' ? sleepLineChart(scored, sel) : view === 'parts' ? sleepPartsChart(scored, sel) : sleepTimeChart(scored, sel));
     c.append(sleepDetail(sel));
     return c;
+  }
+  // 1晩の流れ：横が時刻、段が 覚醒・レム・ノンレム（浅い）・深い（ヘルスケアアプリの睡眠のグラフと同じ見方）
+  function sleepHypno(H, n) {
+    const box = el('div', 'sHypWrap');
+    const ds = [...H.segs.keys()].sort(), i = ds.indexOf(n.date), segs = H.segs.get(n.date);
+    const nav = el('div', 'sNav');
+    const go = d => { sleepSel = d; render(); };
+    const pb = btn('sNavB', '‹', () => go(ds[i - 1]), '前の晩'), nb = btn('sNavB', '›', () => go(ds[i + 1]), '次の晩');
+    pb.disabled = i <= 0; nb.disabled = i >= ds.length - 1;
+    const ttl = el('div', 'sNavT'); ttl.append(el('b', '', hm(n.asleep)), el('span', '', `${md(n.date)} の朝`));
+    nav.append(pb, ttl, nb); box.append(nav);
+    const ROW = { awake: 0, rem: 1, core: 2, asleep: 2, deep: 3 }, RH = 58;
+    const t0 = Math.floor(segs[0].a / 60) * 60, t1 = Math.ceil(Math.max(...segs.map(x => x.b)) / 60) * 60, span = t1 - t0 || 60;
+    const pc = t => ((t - t0) / span) * 100 + '%';
+    const plot = el('div', 'sHyp'); plot.style.height = RH * 4 + 'px';
+    ['awake', 'rem', 'core', 'deep'].forEach((k, r) => { const row = el('div', 'sHRow'); row.append(el('span', '', k === 'awake' ? '覚醒' : SN[k])); row.style.top = r * RH + 'px'; row.style.height = RH + 'px'; plot.append(row); });
+    const step = span > 600 ? 180 : span > 300 ? 120 : 60, tfmt = t => { const d = new Date(t * 60000); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
+    const ax = el('div', 'sHAx');
+    for (let t = t0; t <= t1; t += step) { const g = el('i', 'sHG'); g.style.left = pc(t); plot.append(g); const l = el('span', '', tfmt(t)); l.style.left = pc(t); ax.append(l); }
+    // 段をつなぐ細い線（先に置いて、ブロックの下にする）
+    segs.forEach((x, j) => {
+      const y = segs[j + 1]; if (!y || y.a - x.b > 5 || ROW[x.st] === ROW[y.st]) return;
+      const r1 = Math.min(ROW[x.st], ROW[y.st]), r2 = Math.max(ROW[x.st], ROW[y.st]);
+      const c = el('i', 'sHC'); c.style.left = pc(x.b); c.style.top = r1 * RH + RH / 2 + 'px'; c.style.height = (r2 - r1) * RH + 'px'; plot.append(c);
+    });
+    for (const x of segs) {
+      const b = el('i', 'sSeg'); b.style.left = pc(x.a); b.style.width = `max(3px, ${((x.b - x.a) / span) * 100}%)`; b.style.top = ROW[x.st] * RH + 9 + 'px'; b.style.height = RH - 18 + 'px';
+      b.style.background = SC[x.st] || SC.plain;
+      b.title = `${x.st === 'awake' ? '覚醒' : SN[x.st] || '睡眠'}  ${tfmt(x.a)}〜${tfmt(x.b)}（${Math.round(x.b - x.a)}分）`;
+      plot.append(b);
+    }
+    box.append(plot, ax);
+    return box;
   }
   // 線：1日ごとに 深い・ノンレム（浅い）・レム・途中で起きた を線でつなぐ（体重のグラフと同じ見方）
   function sleepLineChart(ns, sel) {

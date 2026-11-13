@@ -9,7 +9,7 @@ const { execFile } = require('child_process');
 const MAX_FILES = 8000;
 const ATTACH_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif|pdf)$/i;
 const OBS_CFG = ['daily-notes.json', 'app.json', 'templates.json', 'appearance.json'];
-const DATA_FILES = ['Data/kakei.json', 'Data/health/health.csv', 'Data/kintore/sets.csv'];
+const DATA_FILES = ['Data/kakei.json', 'Data/health/health.csv', 'Data/health/sleep.csv', 'Data/kintore/sets.csv'];
 const skipDir = name => name.startsWith('.') || name === 'node_modules';
 
 class Vault {

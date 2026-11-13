@@ -78,3 +78,31 @@ test('睡眠の質：内訳から点数を出す・時間帯に切りかえる',
   expect(errs).toEqual([]);
   await ctx.close();
 });
+
+test('睡眠の1晩の流れ：sleep.csv から段ごとのブロックを出す・前の晩へ', async ({ browser }) => {
+  const ctx = await browser.newContext(PHONE); const page = await ctx.newPage();
+  const t = today(), y = addDays(t, -1), yy = addDays(t, -2);
+  const night = (d, p) => [`${d},${p}T23:30,${d}T00:30,core`, `${d},${d}T00:30,${d}T01:30,deep`, `${d},${d}T01:30,${d}T02:00,rem`, `${d},${d}T02:00,${d}T02:10,awake`, `${d},${d}T02:10,${d}T06:30,core`];
+  const head = 'date,weight_kg,body_fat_pct,sleep_min,steps,resting_hr,active_kcal,sleep_deep_min,sleep_core_min,sleep_rem_min,sleep_awake_min,bed_time,wake_time';
+  await mockGitHub(ctx, {
+    'Inbox.md': '# Inbox\n',
+    'Data/health/health.csv': [head, `${y},,,410,,,,60,320,30,10,23:30,06:30`, `${t},,,410,,,,60,320,30,10,23:30,06:30`].join('\n') + '\n',
+    'Data/health/sleep.csv': ['date,start,end,stage', ...night(y, yy), ...night(t, y)].join('\n') + '\n',
+  });
+  const errs = watchErrors(page);
+  await openApp(page, { connect: true });
+  await page.waitForTimeout(800);
+  await openTab(page, 'health');
+  const card = page.locator('.sCard');
+  await expect(card.locator('.sSeg')).toHaveCount(5);                       // はじめから「1晩」
+  await expect(card.locator('.sNavT b')).toHaveText('6時間50分');
+  await expect(card.locator('.sHAx span').first()).toHaveText('23:00');
+  await expect(card.locator('.sNavB').nth(1)).toBeDisabled();
+  await card.locator('.sNavB').first().click();                             // 前の晩
+  await expect(card.locator('.sNavB').first()).toBeDisabled();
+  await expect(card.locator('.sSeg')).toHaveCount(5);
+  await card.locator('.hSeg button:has-text("線")').click();
+  await expect(card.locator('.sPlot.line')).toBeVisible();
+  expect(errs).toEqual([]);
+  await ctx.close();
+});

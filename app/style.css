@@ -1352,3 +1352,20 @@ button.fRec { cursor: pointer; } button.fRec:hover { background: color-mix(in sr
 .sVl.on { width: 0; border-left: 1px dashed color-mix(in srgb, var(--f-text) 45%, transparent); background: none; }
 .sTip { white-space: nowrap; max-width: none; }
 @media (max-width: 699px) { .sTip { white-space: normal; width: max-content; max-width: 86%; } .sDots i { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; box-shadow: none; } }
+
+/* 睡眠：1晩の流れ（横が時刻・段が 覚醒／レム／ノンレム／深い） */
+.sNav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 0 8px; }
+.sNavT { display: flex; flex-direction: column; align-items: center; line-height: 1.25; }
+.sNavT b { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sNavT span { font-size: 12px; color: var(--f-sub); }
+.sNavB { border: 1px solid var(--f-line); background: none; color: var(--f-text); width: 40px; height: 40px; border-radius: 12px; font-size: 22px; line-height: 1; cursor: pointer; }
+.sNavB:disabled { opacity: .3; cursor: default; }
+.sHyp { position: relative; border: 1px solid var(--f-line); border-bottom: 0; border-radius: 10px 10px 0 0; overflow: hidden; }
+.sHRow span { position: relative; z-index: 2; padding: 1px 5px; border-radius: 5px; background: color-mix(in srgb, var(--f-card) 82%, transparent); }
+.sHRow { position: absolute; left: 0; right: 0; box-sizing: border-box; border-bottom: 1px solid var(--f-line); padding: 3px 3px; font-size: 11.5px; font-weight: 600; color: var(--f-sub); pointer-events: none; }
+.sHG { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--f-line); pointer-events: none; }
+.sHC { position: absolute; width: 2px; margin-left: -1px; border-radius: 1px; background: color-mix(in srgb, #60a5fa 38%, transparent); pointer-events: none; }
+.sSeg { position: absolute; box-sizing: border-box; border-radius: 7px; box-shadow: 0 0 calc(var(--f-glow) * 8px) color-mix(in srgb, currentColor 0%, rgba(96, 165, 250, .35)); }
+.sHAx { position: relative; height: 20px; border-top: 1px solid var(--f-line); }
+.sHAx span { position: absolute; top: 4px; transform: translateX(-50%); font-size: 10.5px; color: var(--f-sub); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sHAx span:first-child { transform: none; } .sHAx span:last-child { transform: translateX(-100%); }
