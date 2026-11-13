@@ -52,3 +52,26 @@ test('ノートと CSV から数字を出し、体重をデイリーノートに
   expect(errs).toEqual([]);
   await ctx.close();
 });
+
+test('睡眠の質：内訳から点数を出す・時間帯に切りかえる', async ({ browser }) => {
+  const ctx = await browser.newContext(PC); const page = await ctx.newPage();
+  const t = today(), D = n => addDays(t, -n);
+  const head = 'date,weight_kg,body_fat_pct,sleep_min,steps,resting_hr,active_kcal,sleep_deep_min,sleep_core_min,sleep_rem_min,sleep_awake_min,bed_time,wake_time';
+  const good = d => `${d},,,420,,,,70,250,100,10,23:00,06:10`;
+  const csv = [head, good(D(4)), good(D(3)), good(D(2)), `${D(1)},,,300,,,,30,240,30,40,23:00,04:40`, good(D(0))].join('\n') + '\n';
+  await mockGitHub(ctx, { 'Inbox.md': '# Inbox\n', 'Data/health/health.csv': csv });
+  const errs = watchErrors(page);
+  await openApp(page, { connect: true });
+  await page.waitForTimeout(800);
+  await openTab(page, 'health');
+  const card = page.locator('.sCard');
+  await expect(card.locator('.sDetail .sBig')).toContainText('100');          // 今朝：7時間・深い17%・レム24%・10分・いつもどおり
+  await expect(card.locator('.sStat:has-text("寝た時刻") b')).toHaveText('23:00');
+  await card.locator('.sCol').nth(-2).click();                                // きのうの朝：5時間・深い10%・レム10%・40分
+  await expect(card.locator('.sDetail .sBig')).toContainText('24');
+  await expect(card.locator('.sWhy')).toContainText('7時間まで あと 2:00');
+  await card.locator('.hSeg button:has-text("時間帯")').click();
+  await expect(page.locator('.sCard .sRange')).toHaveCount(5);
+  expect(errs).toEqual([]);
+  await ctx.close();
+});

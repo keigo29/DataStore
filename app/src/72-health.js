@@ -36,6 +36,9 @@
       put(r.date, 'weight', num(r.weight_kg)); put(r.date, 'fat', num(r.body_fat_pct));
       put(r.date, 'sleep', num(r.sleep_min) ?? (num(r.sleep_h) != null ? num(r.sleep_h) * 60 : null));
       put(r.date, 'steps', num(r.steps)); put(r.date, 'rhr', num(r.resting_hr)); put(r.date, 'kcal', num(r.active_kcal));
+      put(r.date, 'deep', num(r.sleep_deep_min)); put(r.date, 'core', num(r.sleep_core_min)); put(r.date, 'rem', num(r.sleep_rem_min)); put(r.date, 'awake', num(r.sleep_awake_min));
+      if (/^\d{1,2}:\d{2}$/.test(r.bed_time || '')) put(r.date, 'bed', r.bed_time.padStart(5, '0'));
+      if (/^\d{1,2}:\d{2}$/.test(r.wake_time || '')) put(r.date, 'wake', r.wake_time.padStart(5, '0'));
     }
     // デイリーノートの「- 体重 70.5kg」
     for (const [p, f] of Object.entries(S.files)) {
@@ -198,7 +201,7 @@
       }
       ks.append(kpi('目標まで', sub, rest == null ? '—' : rest <= 0 ? '0.0' : kg(rest), 'kg', HC.goal, [], d2));
     }
-    const sl = last14.map(k => byDate.get(k)?.sleep ?? null), sAvg = avg7(H.days, 'sleep', tk);
+    const sl = last14.map(k => byDate.get(k)?.sleep ?? null), sAvg = avg7(H.days, 'sleep', tk);   // 睡眠のカード（くわしくは下の「睡眠の質」）
     ks.append(kpi('睡眠', '7日平均', sAvg == null ? '—' : `${Math.floor(sAvg / 60)}:${String(Math.round(sAvg % 60)).padStart(2, '0')}`, sAvg == null ? '' : '時間', HC.sleep, sl, sAvg == null ? dl(['', 'ヘルスケアから入ります'], null) : dl([sAvg >= 420 ? 'よく寝ています' : '7時間より短め', ''], sAvg >= 420)));
     const st = last14.map(k => byDate.get(k)?.steps ?? null), stAvg = avg7(H.days, 'steps', tk);
     ks.append(kpi('歩数', '7日平均', stAvg == null ? '—' : Math.round(stAvg).toLocaleString('ja-JP'), stAvg == null ? '' : '歩', HC.steps, st, stAvg == null ? dl(['', 'ヘルスケアから入ります'], null) : null));
@@ -222,10 +225,9 @@
     ft.append(f1, f2); ch.append(ft);
     row.append(ch);
     const side = el('div', 'fCard hSide');
-    side.append(el('h3', '', '睡眠と歩数'), el('p', 'fSub', '直近14日（ヘルスケアから）'));
-    if (sl.some(v => v != null) || st.some(v => v != null)) {
-      side.append(el('p', 'hLbl', '睡眠'), bars(sl, last14.map(sd), HC.sleep, hm, 420));
-      side.append(el('p', 'hLbl', '歩数'), bars(st, last14.map(sd), HC.steps, v => Math.round(v).toLocaleString('ja-JP') + '歩', 8000));
+    side.append(el('h3', '', '歩数と体の数字'), el('p', 'fSub', '直近14日（ヘルスケアから）'));
+    if (st.some(v => v != null)) {
+      side.append(bars(st, last14.map(sd), HC.steps, v => Math.round(v).toLocaleString('ja-JP') + '歩', 8000));
     } else {
       side.append(el('div', 'fEmpty', 'まだありません。iPhone のショートカットで毎朝ヘルスケアの数字を送ると入ります'));
       const hn = Object.keys(S.files).find(p => nameOf(p) === 'ヘルスケア連携');
@@ -237,6 +239,9 @@
     if (mini.childElementCount) side.append(mini);
     row.append(side);
     wrap.append(row);
+
+    // 睡眠の質（大きいグラフ）
+    wrap.append(sleepCard(H, range));
 
     // 筋トレ：種目ごとの重さ ＋ 週の挙上量
     if (H.sessions.length) {
@@ -330,4 +335,175 @@
     if (L[at] != null && /^\s*-\s*$/.test(L[at])) L.splice(at, 1);   // テンプレートの空の「- 」
     L.splice(at, 0, ...lines);
     return L.join('\n');
+  }
+
+  // ================= 睡眠の質 =================
+  // 1晩の点数（目安・100点）：長さ 40・深い睡眠 20・レム 20・途中で起きた時間 10・寝る時刻のそろい方 10
+  // 内訳（深い・コア・レム）がない日は点数を出さない（長さだけでは「質」がわからないので）
+  let sleepView = 'parts';       // parts：内訳／time：寝た〜起きた時刻
+  let sleepSel = null;           // 選んだ日
+  const SC = { deep: '#4f46e5', core: '#60a5fa', rem: '#22d3ee', awake: '#fb923c', plain: '#818cf8' };
+  const SN = { deep: '深い', core: 'コア', rem: 'レム', awake: '途中で起きた' };
+  const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const fromEve = t => (toMin(t) - 18 * 60 + 1440) % 1440;     // 夕方6時からの分（夜をまたいでも順になる）
+  const clock = m => { const x = (m + 18 * 60) % 1440; return `${Math.floor(x / 60)}:${String(Math.round(x % 60)).padStart(2, '0')}`; };
+  const hmS = m => m == null ? '—' : `${Math.floor(m / 60)}:${String(Math.round(m % 60)).padStart(2, '0')}`;
+  function sleepNight(H, d) {
+    const o = H.days.find(x => x.date === d);
+    if (!o || (o.sleep == null && o.deep == null && o.bed == null)) return null;
+    const hasParts = o.deep != null || o.rem != null || o.core != null;
+    const asleep = hasParts ? (o.deep || 0) + (o.core || 0) + (o.rem || 0) : o.sleep;
+    return { date: d, asleep, deep: o.deep, core: o.core, rem: o.rem, awake: o.awake, bed: o.bed, wake: o.wake, hasParts };
+  }
+  function sleepScore(n, prevBeds) {
+    if (!n || !n.hasParts || !n.asleep) return null;
+    const r = [];
+    const dur = n.asleep;
+    const pDur = dur >= 420 && dur <= 540 ? 40 : dur < 420 ? Math.max(0, 40 * (dur - 300) / 120) : Math.max(25, 40 - (dur - 540) / 6);   // 5時間で0・7〜9時間で満点
+    r.push(['長さ', pDur, 40, dur >= 420 ? '7時間以上' : `7時間まで あと ${hmS(420 - dur)}`]);
+    const dp = (n.deep || 0) / dur * 100, rp = (n.rem || 0) / dur * 100;
+    const pDeep = Math.max(0, Math.min(20, (dp - 5) / 10 * 20)), pRem = Math.max(0, Math.min(20, (rp - 10) / 10 * 20));   // 深い 15%・レム 20% で満点
+    r.push(['深い睡眠', pDeep, 20, `${dp.toFixed(0)}%（目安 15〜25%）`]);
+    r.push(['レム睡眠', pRem, 20, `${rp.toFixed(0)}%（目安 20〜25%）`]);
+    const aw = n.awake ?? 0, pAw = aw <= 10 ? 10 : Math.max(0, 10 - (aw - 10) / 5);   // 10分まで満点・60分で0
+    r.push(['途中で起きた', pAw, 10, `${Math.round(aw)}分`]);
+    let pReg = 10, regTxt = 'くらべる日がまだない';
+    if (n.bed && prevBeds.length >= 2) {
+      const avgB = prevBeds.reduce((a, b) => a + b, 0) / prevBeds.length, diff = Math.abs(fromEve(n.bed) - avgB);
+      pReg = diff <= 30 ? 10 : Math.max(0, 10 - (diff - 30) / 9); regTxt = `いつもより ${Math.round(diff)}分 ${fromEve(n.bed) > avgB ? 'おそい' : 'はやい'}`;
+    } else if (!n.bed) regTxt = '寝た時刻がない';
+    r.push(['寝る時刻', pReg, 10, regTxt]);
+    return { total: Math.round(r.reduce((a, x) => a + x[1], 0)), parts: r };
+  }
+  function sleepCard(H, range) {
+    const c = el('div', 'fCard sCard');
+    const nights = range.map(d => sleepNight(H, d));
+    const beds = [];   // その日より前の7晩の寝た時刻
+    const scored = nights.map((n, i) => {
+      const prev = nights.slice(Math.max(0, i - 7), i).filter(x => x && x.bed).map(x => fromEve(x.bed));
+      return n ? { ...n, score: sleepScore(n, prev) } : null;
+    });
+    const ok = scored.filter(Boolean);
+    const hd = el('div', 'fHead');
+    hd.append(el('h3', '', '睡眠の質'));
+    const seg = el('div', 'seg hSeg');
+    [['parts', '内訳'], ['time', '時間帯']].forEach(([v, l]) => seg.append(btn(sleepView === v ? 'on' : '', l, () => { sleepView = v; render(); })));
+    hd.append(seg); c.append(hd);
+    if (!ok.length) {
+      c.append(el('p', 'fSub', 'その朝に起きた日に入ります'), el('div', 'fEmpty', 'まだ睡眠の記録がありません。iPhone のショートカットで、睡眠の合計・内訳（深い・コア・レム・覚醒）・寝た時刻と起きた時刻を送ると、ここに大きく出ます'));
+      const hn = Object.keys(S.files).find(p => nameOf(p) === 'ヘルスケア連携');
+      if (hn) c.append(btn('btn small white', ['book-open', '作り方を見る'], () => openNote(hn)));
+      return c;
+    }
+    // まとめの数字
+    const avgOf = f => { const v = ok.map(f).filter(x => x != null && Number.isFinite(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+    const withP = ok.filter(n => n.hasParts && n.asleep);
+    const bedsM = ok.filter(n => n.bed).map(n => fromEve(n.bed)), wakesM = ok.filter(n => n.wake).map(n => fromEve(n.wake));
+    const sd2 = a => { if (a.length < 2) return null; const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); };
+    const stats = el('div', 'sStats');
+    const st = (label, val, note, color) => { const d = el('div', 'sStat'); if (color) d.style.setProperty('--c', color); d.append(el('small', '', label), el('b', '', val)); if (note) d.append(el('span', '', note)); stats.append(d); };
+    const sc = avgOf(n => n.score?.total);
+    if (sc != null) st('点数（平均）', `${Math.round(sc)}点`, '目安・100点', sc >= 80 ? '#22c55e' : sc >= 60 ? '#f59e0b' : '#ef4444');
+    st('睡眠（平均）', hmS(avgOf(n => n.asleep)), `${ok.filter(n => n.asleep >= 420).length}/${ok.length}晩が7時間以上`);
+    if (withP.length) {
+      st('深い睡眠', `${(avgOf(n => n.hasParts ? (n.deep || 0) / n.asleep * 100 : null)).toFixed(0)}%`, `平均 ${hmS(avgOf(n => n.hasParts ? n.deep : null))}`, SC.deep);
+      st('レム睡眠', `${(avgOf(n => n.hasParts ? (n.rem || 0) / n.asleep * 100 : null)).toFixed(0)}%`, `平均 ${hmS(avgOf(n => n.hasParts ? n.rem : null))}`, SC.rem);
+      st('途中で起きた', `${Math.round(avgOf(n => n.awake) || 0)}分`, '1晩の平均', SC.awake);
+    }
+    if (bedsM.length) st('寝た時刻', clock(bedsM.reduce((a, b) => a + b, 0) / bedsM.length), sd2(bedsM) != null ? `ばらつき ±${Math.round(sd2(bedsM))}分` : '平均');
+    if (wakesM.length) st('起きた時刻', clock(wakesM.reduce((a, b) => a + b, 0) / wakesM.length), sd2(wakesM) != null ? `ばらつき ±${Math.round(sd2(wakesM))}分` : '平均');
+    c.append(stats);
+    // 凡例
+    const lg = el('div', 'sLegend');
+    if (sleepView === 'parts') {
+      if (withP.length) ['deep', 'core', 'rem', 'awake'].forEach(k => { const s2 = el('span'); s2.style.setProperty('--c', SC[k]); s2.append(SN[k]); lg.append(s2); });
+      else { const s2 = el('span'); s2.style.setProperty('--c', SC.plain); s2.append('睡眠（内訳はまだありません）'); lg.append(s2); }
+      lg.append(el('em', '', '点線：7時間'));
+    } else lg.append(el('em', '', '棒：寝た時刻 〜 起きた時刻（上がよる、下があさ）'));
+    c.append(lg);
+    const sel = (sleepSel && scored.find(n => n && n.date === sleepSel)) || [...scored].reverse().find(Boolean);
+    c.append(sleepView === 'parts' ? sleepPartsChart(scored, sel) : sleepTimeChart(scored, sel));
+    c.append(sleepDetail(sel));
+    return c;
+  }
+  // 内訳：積み上げの棒（下から 深い・コア・レム、いちばん上に 途中で起きた）
+  function sleepPartsChart(ns, sel) {
+    const box = el('div', 'sChart');
+    const max = Math.max(540, ...ns.filter(Boolean).map(n => n.asleep + (n.awake || 0))) * 1.05;
+    const plot = el('div', 'sPlot');
+    [360, 420, 480].forEach(m => { const g = el('span', 'sGuide' + (m === 420 ? ' main' : '')); g.style.bottom = (m / max) * 100 + '%'; g.dataset.t = `${m / 60}時間`; plot.append(g); });
+    const bw = ns.length > 45 ? ' thin' : '';
+    ns.forEach((n, i) => {
+      const col = el('button', 'sCol' + bw + (n && sel && n.date === sel.date ? ' sel' : '')); col.type = 'button';
+      if (n) {
+        col.addEventListener('click', () => { sleepSel = n.date; render(); });
+        col.title = `${md(n.date)}  ${hmS(n.asleep)}${n.score ? `・${n.score.total}点` : ''}`;
+        const stack = el('span', 'sStack'); stack.style.height = ((n.asleep + (n.awake || 0)) / max) * 100 + '%';
+        const segs = n.hasParts ? [['awake', n.awake], ['rem', n.rem], ['core', n.core], ['deep', n.deep]] : [['plain', n.asleep]];
+        const tot = n.asleep + (n.awake || 0);
+        for (const [k, v] of segs) { if (!v) continue; const s2 = el('i'); s2.style.flexGrow = v / tot; s2.style.background = SC[k]; stack.append(s2); }
+        col.append(stack);
+        if (n.score && ns.length <= 31) col.append(el('b', 'sScore' + (n.score.total >= 80 ? ' g' : n.score.total < 60 ? ' r' : ''), String(n.score.total)));
+      } else col.disabled = true;
+      plot.append(col);
+    });
+    box.append(plot, sleepAxis(ns));
+    return box;
+  }
+  // 時間帯：寝た時刻 〜 起きた時刻の棒
+  function sleepTimeChart(ns, sel) {
+    const box = el('div', 'sChart');
+    const has = ns.filter(n => n && n.bed && n.wake);
+    if (!has.length) { box.append(el('div', 'fEmpty', '寝た時刻と起きた時刻がまだありません（ショートカットで bed_time・wake_time を送ると出ます）')); return box; }
+    let lo = Math.min(...has.map(n => fromEve(n.bed))), hi = Math.max(...has.map(n => fromEve(n.wake)));
+    lo = Math.floor((lo - 30) / 60) * 60; hi = Math.ceil((hi + 30) / 60) * 60;
+    const span = hi - lo || 60;
+    const plot = el('div', 'sPlot time');
+    for (let m = lo; m <= hi; m += 60) { if ((m - lo) % (span > 720 ? 120 : 60)) continue; const g = el('span', 'sGuide' + (clock(m) === '0:00' ? ' main' : '')); g.style.top = ((m - lo) / span) * 100 + '%'; g.dataset.t = clock(m); plot.append(g); }
+    const bw = ns.length > 45 ? ' thin' : '';
+    ns.forEach(n => {
+      const col = el('button', 'sCol' + bw + (n && sel && n.date === sel.date ? ' sel' : '')); col.type = 'button';
+      if (n && n.bed && n.wake) {
+        col.addEventListener('click', () => { sleepSel = n.date; render(); });
+        col.title = `${md(n.date)}  ${n.bed} 〜 ${n.wake}`;
+        let a = fromEve(n.bed), b = fromEve(n.wake); if (b < a) b = a;
+        const bar = el('span', 'sRange'); bar.style.top = ((a - lo) / span) * 100 + '%'; bar.style.height = Math.max(2, ((b - a) / span) * 100) + '%';
+        bar.style.background = `linear-gradient(${SC.plain}, ${SC.deep})`;
+        col.append(bar);
+      } else col.disabled = !n;
+      plot.append(col);
+    });
+    box.append(plot, sleepAxis(ns));
+    return box;
+  }
+  function sleepAxis(ns) {
+    const ax = el('div', 'sAxis'), every = Math.ceil(ns.length / (isWide() ? 8 : 5));
+    const range = ns.map((n, i) => n?.date);
+    const first = ns.findIndex(Boolean);
+    ns.forEach((n, i) => ax.append(el('span', '', (ns.length - 1 - i) % every === 0 ? sd(range[i] || addDays(ns[first]?.date || todayKey(), i - first)) : '')));
+    return ax;
+  }
+  // 選んだ晩のくわしい中身
+  function sleepDetail(n) {
+    const d = el('div', 'sDetail');
+    if (!n) return d;
+    const hd = el('div', 'sDHd');
+    hd.append(el('b', '', `${md(n.date)} の朝`), el('span', 'fSub', [n.bed && n.wake ? `${n.bed} に寝て ${n.wake} に起きた` : '', `眠っていた時間 ${hm(n.asleep)}`].filter(Boolean).join('・')));
+    if (n.score) { const s2 = el('span', 'sBig' + (n.score.total >= 80 ? ' g' : n.score.total < 60 ? ' r' : ''), String(n.score.total)); s2.append(el('small', '', '点')); hd.prepend(s2); }
+    d.append(hd);
+    if (n.hasParts) {
+      const tot = n.asleep + (n.awake || 0);
+      const bar = el('div', 'sBar');
+      ['deep', 'core', 'rem', 'awake'].forEach(k => { if (!n[k]) return; const s2 = el('i'); s2.style.flexGrow = n[k] / tot; s2.style.background = SC[k]; s2.title = `${SN[k]} ${hmS(n[k])}`; bar.append(s2); });
+      d.append(bar);
+      const ls = el('div', 'sParts');
+      ['deep', 'core', 'rem', 'awake'].forEach(k => { const x = el('div'); x.style.setProperty('--c', SC[k]); x.append(el('small', '', SN[k]), el('b', '', hmS(n[k] ?? 0)), el('span', '', k === 'awake' ? '' : `${((n[k] || 0) / n.asleep * 100).toFixed(0)}%`)); ls.append(x); });
+      d.append(ls);
+    } else d.append(el('p', 'fSub', '内訳（深い・コア・レム）がないので、点数は出していません'));
+    if (n.score) {
+      const sp = el('div', 'sWhy');
+      n.score.parts.forEach(([l, p, mx, note]) => { const r = el('div'); const m = el('span', 'm'); const f = el('i'); f.style.width = (p / mx) * 100 + '%'; m.append(f); r.append(el('small', '', l), m, el('b', '', `${Math.round(p)}/${mx}`), el('span', 'n', note)); sp.append(r); });
+      d.append(sp, el('p', 'sNote', '点数はこのアプリの目安です（長さ40・深い20・レム20・途中で起きた10・寝る時刻のそろい方10）。ウォッチの測り方で数字は変わります'));
+    }
+    return d;
   }

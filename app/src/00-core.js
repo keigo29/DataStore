@@ -211,13 +211,18 @@
   // お試しの体の記録（ヘルスケアの CSV・筋トレメモの CSV と同じ形）
   function demoHealth(t) {
     let seed = 11; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
-    const h = ['date,weight_kg,body_fat_pct,sleep_min,steps,resting_hr,active_kcal'];
+    const h = ['date,weight_kg,body_fat_pct,sleep_min,steps,resting_hr,active_kcal,sleep_deep_min,sleep_core_min,sleep_rem_min,sleep_awake_min,bed_time,wake_time'];
+    const hm2 = m => `${String(Math.floor(((m % 1440) + 1440) % 1440 / 60)).padStart(2, '0')}:${String(((m % 60) + 60) % 60).padStart(2, '0')}`;
     const s = ['date,start,session_id,effort,exercise,muscle_group,bodyweight,set_no,kind,weight_kg,reps,rir,assisted,e1rm_kg,volume_kg,note'];
     const menu = [[['ベンチプレス', '胸', 72.5, 5], ['懸垂', '背中', 0, 8], ['ショルダープレス', '肩', 30, 8]], [['スクワット', '脚', 90, 5], ['ルーマニアンデッドリフト', '脚', 80, 8], ['プランク', '体幹', 0, 1]]];
     let n = 0;
     for (let i = -44; i <= 0; i++) {
       const k = addDays(t, i), w = 70.2 - i * 0.032 + (rnd() - .5) * .8;
-      if (rnd() < .85) h.push([k, w.toFixed(1), (19.0 - i * 0.02 + (rnd() - .5)).toFixed(1), Math.round(330 + rnd() * 140), Math.round(5000 + rnd() * 6000), Math.round(56 + rnd() * 6), Math.round(250 + rnd() * 250)].join(','));
+      if (rnd() < .85) {
+        const sl = Math.round(330 + rnd() * 140), deep = Math.round(sl * (.1 + rnd() * .12)), rem = Math.round(sl * (.16 + rnd() * .1)), aw = Math.round(5 + rnd() * 35);
+        const bed = 23 * 60 + Math.round((rnd() - .4) * 90), wake = bed + sl + aw;
+        h.push([k, w.toFixed(1), (19.0 - i * 0.02 + (rnd() - .5)).toFixed(1), sl, Math.round(5000 + rnd() * 6000), Math.round(56 + rnd() * 6), Math.round(250 + rnd() * 250), deep, sl - deep - rem, rem, aw, hm2(bed), hm2(wake)].join(','));
+      }
       const wd = parseKey(k).getDay();
       if (i < 0 && (wd === 1 || wd === 3 || wd === 5)) {
         const m = menu[n++ % 2], prog = (44 + i) / 44;
