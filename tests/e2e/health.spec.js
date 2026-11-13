@@ -9,7 +9,7 @@ test('見本のデータで表示できる（スマホ）', async ({ browser }) 
   const ctx = await browser.newContext(PHONE); const page = await ctx.newPage();
   const errs = watchErrors(page);
   await openApp(page); await openTab(page, 'health');
-  await expect(page.locator('.hKpis .fKpi')).toHaveCount(5);
+  await expect(page.locator('.hKpis .fKpi')).toHaveCount(6);
   expect(await page.locator('.hDots i').count()).toBeGreaterThan(5);
   expect(await page.locator('.fRec').count()).toBeGreaterThan(0);
   expect(errs).toEqual([]);
@@ -103,6 +103,33 @@ test('睡眠の1晩の流れ：sleep.csv から段ごとのブロックを出す
   await expect(card.locator('.sSeg')).toHaveCount(5);
   await card.locator('.hSeg button:has-text("線")').click();
   await expect(card.locator('.sPlot.line')).toBeVisible();
+  expect(errs).toEqual([]);
+  await ctx.close();
+});
+
+test('気分：ホームの顔で書く・ひとことつきで書く・TEDDY が書いた行も読む', async ({ browser }) => {
+  const ctx = await browser.newContext(PHONE); const page = await ctx.newPage();
+  const t = today(), y = addDays(t, -1);
+  const gh = await mockGitHub(ctx, {
+    'Inbox.md': '# Inbox\n',
+    'Templates/デイリー.md': '## やること\n- \n## メモ\n- \n',
+    [`${y.replace(/-/g, '/')}/TEDDY メモ.md`]: '---\ntags: [日誌]\n---\n- 気分 2/5 寝不足\n- 気分：4\n',
+  });
+  const errs = watchErrors(page);
+  await openApp(page, { connect: true });
+  await page.waitForTimeout(800);
+  await page.locator('.mdW .mdF').nth(3).click();                          // 🙂 良い
+  await expect.poll(() => gh.remote.get(dayPath(t))?.text || '').toContain('## メモ\n- 気分 4/5\n');
+  await expect(page.locator('.mdW .mdF.on')).toHaveCount(1);
+  await openTab(page, 'health');
+  await page.click('.fBar button:has-text("気分を書く")');
+  await page.locator('#sheetIn .mdF').nth(4).click();
+  await page.fill('#sheetIn .inp', '散歩した');
+  await page.click('#sheetIn .shBtns .btn.primary');
+  await expect.poll(() => gh.remote.get(dayPath(t))?.text || '').toContain('- 気分 4/5\n- 気分 5/5 散歩した');
+  await expect(page.locator('.fKpi:has-text("気分") .fVal')).toContainText('3.8');   // きのう 3.0・今日 4.5
+  await expect(page.locator('.mdRec').first()).toContainText('散歩した');
+  await expect(page.locator('.mdRec:has-text("寝不足")')).toHaveCount(1);
   expect(errs).toEqual([]);
   await ctx.close();
 });

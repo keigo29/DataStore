@@ -58,6 +58,8 @@
     const nxe = sched.find(i => (i.time || '') >= hhmm());
     ks.append(ring, tile('calendar-clock', `${sched.filter(i => i.type === 'event').length}件`, '今日の予定', nxe ? `次 ${nxe.time}` : ''), tile('circle-check', `${dn}件`, '今日完了したこと'),
       tile('triangle-alert', `${over.length}件`, '期限切れ', '', over.length ? 'bad' : ''), tile('list-todo', `${open.length}件`, 'まだのやること', `ノート ${Object.keys(S.files).length}件から`));
+    const hm2 = el('div', 'db-mood'); hm2.append(el('div', 'db-moodT', '今日の気分')); moodWidget(hm2);
+    ht.append(hm2);
     hero.append(ht, ks);
     grid.append(hero);
     // 今日のノート

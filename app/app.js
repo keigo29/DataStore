@@ -181,6 +181,7 @@
         'Projects/ほのぼの書店.md': f(`---\ncolor: "#005cff"\nlinks:\n  - GitLab https://gitlab.com/\n  - 設計書 https://example.com/design\n---\nSpring Boot のグループ開発。EC2（Tomcat・MySQL）にデプロイする。\n\n## タスク\n- [x] 要件のまとめ 🛫 ${d(-9)} 📅 ${d(-6)}\n- [x] 画面設計 🛫 ${d(-5)} 📅 ${d(-2)}\n- [ ] 注文画面の実装 🛫 ${d(-1)} 📅 ${d(4)}\n- [ ] テスト 🛫 ${d(5)} 📅 ${d(9)}\n- [ ] 発表 📅 ${d(12)} #節目\n`),
         'Projects/資格の勉強.md': f(`---\ncolor: "#00c230"\n---\n基本情報技術者試験。\n\n## タスク\n- [x] 1章 🛫 ${d(-12)} 📅 ${d(-8)}\n- [ ] 2章 🛫 ${d(-7)} 📅 ${d(-1)}\n- [ ] 3章 🛫 ${d(0)} 📅 ${d(6)}\n- [ ] 試験日 📅 ${d(20)} #節目\n`),
         'Projects/引越し貯金.md': f(`---\ncolor: "#1a9e5c"\ntags: [お金]\ntarget: 400000\nsaved: 170000\ndue: ${d(170)}\n---\n引越しのための貯金。\n\n## タスク\n- [ ] 毎月の積立額を決める 📅 ${d(9)}\n- [ ] 貯金 20万円\n- [ ] 引越し 📅 ${d(190)} #節目\n`),
+        ...Object.fromEntries(Array.from({ length: 24 }, (_, j) => j + 1).filter(j => j % 5 !== 2).map(j => [`${d(-j).replace(/-/g, '/')}/気分.md`, f(`---\ntags: [日誌]\n---\n## メモ\n- 気分 ${[4, 3, 5, 3, 2, 4, 4, 3][j % 8]}/5 ${['よく眠れた', '', '筋トレのあと すっきり', '', '寝不足', '散歩した', '', '仕事が多い'][j % 8]}\n`)])),
         'Projects/減量.md': f(`---\ncolor: "#ff7a1a"\ntags: [筋トレ]\ngoal_weight: 67\ngoal_due: ${d(110)}\n---\n筋肉を落とさずに、体脂肪を落とす。\n\n## タスク\n- [ ] 毎朝体重をはかってデイリーに書く\n`),
         'Spring Boot メモ.md': f(`---\nproject: 研修\ntags: [java, spring]\n---\n## よく使うアノテーション\n- \`@RestController\` … JSON を返す\n- \`@Transactional\` … まとめてコミット／ロールバック\n\n## 予定\n### ${d(5)}\n- 13:00 Spring 勉強会（社内）\n- [ ] 勉強会の資料を準備 #仕事\n\n> [!tip] ==大事==\n> Bean のスコープは基本シングルトン\n`),
       },
@@ -1218,6 +1219,11 @@
       pt.append(panelHead('list-todo', 'ほかのノートの今日の分', el('span', '', `${other.length}件`)));
       other.forEach(i => pt.append(todoRow(i, { noDate: true })));
       put('right', pt);
+    }
+    {
+      const pmd = panel();
+      pmd.append(panelHead('smile', '今日の気分', btn('linkBtn', 'ひとこと', () => moodSheet())));
+      put('right', moodWidget(pmd));
     }
     if (showPlanWidget()) {
       const pm = panel();
@@ -2775,6 +2781,9 @@
   //   Data/kintore/sets.csv   … 筋トレメモの全セット（date,start,session_id,exercise,muscle_group,kind,weight_kg,reps,e1rm_kg,volume_kg …）
   //   デイリーノートの「- 体重 70.5kg」「- 体脂肪 18%」の行（ヘルスケアにない日をうめる）
   //   目標：ノートの先頭の goal_weight: 67・goal_due: 2027-02-28、または本文の「目標：67kg（2027-02-28）」
+  const MOOD_RE = /^[ \t]*[-*][ \t]+気分[ \t　]*[:：]?[ \t　]*([1-5])(?:[ \t]*[/／][ \t]*5)?(?:[ \t　]+(.*))?$/gm;   // 改行をまたがない
+  const MOODS = [[1, '😣', 'とても悪い', '#ef4444'], [2, '😕', '悪い', '#f97316'], [3, '😐', 'ふつう', '#eab308'], [4, '🙂', '良い', '#84cc16'], [5, '😄', 'とても良い', '#22c55e']];
+  const moodOf = v => MOODS[Math.max(0, Math.min(4, Math.round(v) - 1))];
   let healthRange = 30;          // 見る日数（0 は全部）
   const HC = { weight: '#38bdf8', avg: '#a78bfa', sleep: '#818cf8', steps: '#4ade80', lift: '#fb923c', goal: '#f472b6' };
 
@@ -2813,11 +2822,19 @@
     }
     // デイリーノートの「- 体重 70.5kg」
     for (const [p, f] of Object.entries(S.files)) {
-      if (!/体重|体脂肪/.test(f.text)) continue;
-      const d = Daily.dateOf(p, dailyCfg);   // デイリーノートだけ（調べもののノートの「体重 70kg の人は…」は数えない）
+      if (!/体重|体脂肪|気分/.test(f.text)) continue;
+      // その日のノートだけ（デイリーノートか、YYYY/MM/DD/ のフォルダのノート。調べもののノートの「体重 70kg の人は…」は数えない）
+      const fm = p.match(/^(\d{4})\/(\d{2})\/(\d{2})\//), d = Daily.dateOf(p, dailyCfg) || (fm ? `${fm[1]}-${fm[2]}-${fm[3]}` : null);
       if (!d) continue;
       for (const m of f.text.matchAll(/^\s*[-*]\s+体重\s*[:：]?\s*(\d{2,3}(?:\.\d+)?)\s*kg/gim)) put(d, 'weight', +m[1]);
       for (const m of f.text.matchAll(/^\s*[-*]\s+体脂肪率?\s*[:：]?\s*(\d{1,2}(?:\.\d+)?)\s*%/gim)) put(d, 'fat', +m[1]);
+      // 気分：- 気分 4/5 ひとこと（1日に何回でも。その日の数字は平均）
+      for (const m of f.text.matchAll(MOOD_RE)) {
+        const o = days.get(d) || { date: d };
+        (o.moods = o.moods || []).push({ v: +m[1], note: (m[2] || '').trim(), path: p });
+        o.mood = o.moods.reduce((a, x) => a + x.v, 0) / o.moods.length;
+        days.set(d, o);
+      }
     }
     const list = [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
     // 筋トレ（セッションごと）
@@ -2938,7 +2955,7 @@
     const bar = el('div', 'fBar');
     const seg = el('div', 'seg hSeg');
     [[30, '30日'], [90, '90日'], [0, '全部']].forEach(([v, l]) => seg.append(btn(healthRange === v ? 'on' : '', l, () => { healthRange = v; render(); })));
-    bar.append(seg, btn('btn small white', ['scale', '体重を書く'], () => weightSheet()));
+    bar.append(seg, btn('btn small white', ['smile', '気分を書く'], () => moodSheet()), btn('btn small white', ['scale', '体重を書く'], () => weightSheet()));
     const lastH = H.days.length ? H.days[H.days.length - 1].date : '';
     if (lastH) bar.append(el('span', 'fSub fLast', `体の記録：${md(lastH)} まで`));
     wrap.append(bar);
@@ -2981,6 +2998,9 @@
       }
       ks.append(kpi('目標まで', sub, rest == null ? '—' : rest <= 0 ? '0.0' : kg(rest), 'kg', HC.goal, [], d2));
     }
+    const mAvg = avg7(H.days, 'mood', tk), mToday = byDate.get(tk)?.mood;
+    ks.append(kpi('気分', mToday != null ? `7日平均（今日は ${moodOf(mToday)[1]} ${mToday.toFixed(1)}）` : '7日平均（今日はまだ）', mAvg == null ? '—' : `${moodOf(mAvg)[1]} ${mAvg.toFixed(1)}`, mAvg == null ? '' : '/ 5', '#facc15',
+      last14.map(k => byDate.get(k)?.mood ?? null), mAvg == null ? dl(['', '「気分を書く」か TEDDY から'], null) : null, false));
     const sl = last14.map(k => byDate.get(k)?.sleep ?? null), sAvg = avg7(H.days, 'sleep', tk);   // 睡眠のカード（くわしくは下の「睡眠の質」）
     ks.append(kpi('睡眠', '7日平均', sAvg == null ? '—' : `${Math.floor(sAvg / 60)}:${String(Math.round(sAvg % 60)).padStart(2, '0')}`, sAvg == null ? '' : '時間', HC.sleep, sl, sAvg == null ? dl(['', 'ヘルスケアから入ります'], null) : dl([sAvg >= 420 ? 'よく寝ています' : '7時間より短め', ''], sAvg >= 420)));
     const st = last14.map(k => byDate.get(k)?.steps ?? null), stAvg = avg7(H.days, 'steps', tk);
@@ -3020,6 +3040,8 @@
     row.append(side);
     wrap.append(row);
 
+    // 気分
+    wrap.append(moodCard(H, range));
     // 睡眠の質（大きいグラフ）
     wrap.append(sleepCard(H, range));
 
@@ -3370,6 +3392,128 @@
       d.append(sp, el('p', 'sNote', '点数はこのアプリの目安です（長さ40・深い20・レム20・途中で起きた10・寝る時刻のそろい方10）。ウォッチの測り方で数字は変わります'));
     }
     return d;
+  }
+
+  // ================= 気分 =================
+  // 書き方（Workstation でも TEDDY でも同じ）：デイリーノートの「メモ」に - 気分 4/5 ひとこと
+  function moodCard(H, range) {
+    const c = el('div', 'fCard mdCard');
+    const hd = el('div', 'fHead');
+    hd.append(el('h3', '', '気分'), btn('btn small white', ['plus', '書く'], () => moodSheet()));
+    c.append(hd, el('p', 'fSub', '1〜5（5がとても良い）。点：その日の平均・線：7日平均'));
+    const byDate = new Map(H.days.map(d => [d.date, d]));
+    const pts = range.map(k => ({ date: k, v: byDate.get(k)?.mood ?? null, avg: avg7(H.days, 'mood', k), moods: byDate.get(k)?.moods || [] }));
+    const md2 = H.days.filter(d => d.mood != null);
+    if (!pts.some(p => p.v != null)) {
+      c.append(el('div', 'fEmpty', 'この期間の気分はまだありません。上の「書く」か、TEDDY に「今日の気分は4、よく眠れた」のように頼むと入ります（デイリーノートに「- 気分 4/5 ひとこと」と書きます）'));
+      return c;
+    }
+    // グラフ
+    const W = 600, HH = 200, n = pts.length, X = i => ((i + 0.5) / n) * W, Y = v => HH - 10 - ((v - 1) / 4) * (HH - 20);
+    const box = el('div', 'mdPlot');
+    const avg = pts.map((p, i) => (p.avg != null ? [X(i), Y(p.avg)] : null)).filter(Boolean);
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${HH}" preserveAspectRatio="none" aria-hidden="true"><g class="fGrid">${[1, 2, 3, 4, 5].map(v => `<line x1="0" x2="${W}" y1="${Y(v)}" y2="${Y(v)}"/>`).join('')}</g>${avg.length > 1 ? `<path d="${smoothPath(avg)}" fill="none" stroke="#facc15" stroke-width="2.2" vector-effect="non-scaling-stroke" class="fGlow" style="--g:#facc15"/>` : ''}</svg>`;
+    const ax = el('div', 'mdAx'); MOODS.forEach(([v, e]) => { const s2 = el('span', '', e); s2.style.top = (Y(v) / HH) * 100 + '%'; ax.append(s2); });
+    const dots = el('div', 'hDots mdDots');
+    pts.forEach((p, i) => { if (p.v == null) return; const d = el('i'); d.style.left = (X(i) / W) * 100 + '%'; d.style.top = (Y(p.v) / HH) * 100 + '%'; d.style.background = moodOf(p.v)[3]; d.style.boxShadow = 'none'; dots.append(d); });
+    const tip = el('div', 'fTip'); tip.hidden = true;
+    box.append(ax, dots, tip);
+    let raf = 0, lastX = 0;
+    const at = () => {
+      raf = 0;
+      const r = box.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.floor(((lastX - r.left) / r.width) * n))), p = pts[i];
+      if (p.v == null) { tip.hidden = true; return; }
+      tip.hidden = false;
+      tip.textContent = `${md(p.date)}  ${p.moods.map(m => moodOf(m.v)[1] + (m.note ? ' ' + m.note : '')).join(' / ')}`;
+      const px = (X(i) / W) * r.width, half = Math.min(tip.offsetWidth / 2 + 4, r.width / 2);
+      tip.style.left = Math.max(half, Math.min(r.width - half, px)) + 'px'; tip.style.top = Math.max(0, (Y(p.v) / HH) * r.height - 40) + 'px';
+    };
+    box.addEventListener('pointermove', e => { lastX = e.clientX; if (!raf) raf = requestAnimationFrame(at); });
+    box.addEventListener('pointerdown', e => { lastX = e.clientX; if (!raf) raf = requestAnimationFrame(at); });
+    box.addEventListener('pointerleave', () => { tip.hidden = true; });
+    c.append(box);
+    // くらべてみる（その日の気分の平均を、条件ごとに）
+    const cmp = (label, yes, no, a, b) => {
+      const A = md2.filter(yes).map(d => d.mood), B = md2.filter(no).map(d => d.mood);
+      if (A.length < 3 || B.length < 3) return null;
+      const ma = A.reduce((x, y) => x + y, 0) / A.length, mb = B.reduce((x, y) => x + y, 0) / B.length;
+      const r = el('div', 'mdCmp');
+      r.append(el('small', '', label), el('span', '', `${a} ${moodOf(ma)[1]} ${ma.toFixed(1)}（${A.length}日）`), el('span', '', `${b} ${moodOf(mb)[1]} ${mb.toFixed(1)}（${B.length}日）`));
+      const df = ma - mb; r.append(el('b', Math.abs(df) < 0.2 ? '' : df > 0 ? 'g' : 'r', Math.abs(df) < 0.05 ? '±0.0' : `${df > 0 ? '+' : '−'}${Math.abs(df).toFixed(1)}`));
+      return r;
+    };
+    const liftDays = new Set(H.sessions.map(x => x.date));
+    const rows = [
+      cmp('睡眠', d => d.sleep >= 420, d => d.sleep != null && d.sleep < 420, '7時間以上', '7時間未満'),
+      cmp('筋トレ', d => liftDays.has(d.date), d => !liftDays.has(d.date), 'した日', 'しない日'),
+      cmp('歩数', d => d.steps >= 8000, d => d.steps != null && d.steps < 8000, '8000歩以上', '未満'),
+    ].filter(Boolean);
+    if (rows.length) { const cw = el('div', 'mdCmps'); cw.append(el('p', 'hLbl', 'くらべてみる（気分の平均）'), ...rows); c.append(cw); }
+    // 最近の記録
+    const list = el('div', 'mdList');
+    const recent = H.days.filter(d => d.moods).slice(-6).reverse();
+    for (const d of recent) for (const m of d.moods.slice().reverse()) {
+      const r = btn('fRec mdRec', [], () => openNote(m.path), 'ノートを開く');
+      const ic = el('span', 'mdFace', moodOf(m.v)[1]);
+      const nm = el('span', 'fRn'); nm.append(el('b', '', m.note || moodOf(m.v)[2]), el('small', '', m.note ? `${md(d.date)}・${moodOf(m.v)[2]}` : md(d.date)));
+      r.append(ic, nm, el('span', 'fRa', `${m.v} / 5`));
+      list.append(r);
+    }
+    c.append(el('p', 'hLbl', '最近の記録'), list);
+    return c;
+  }
+  // 顔のボタン（ホームでも使う）。押した数字を on に
+  function moodFaces(cur, onPick) {
+    const f = el('div', 'mdFaces');
+    MOODS.forEach(([v, e, l, col]) => {
+      const b = btn('mdF' + (cur === v ? ' on' : ''), [], () => onPick(v), `${l}（${v}）`);
+      b.style.setProperty('--c', col); b.append(el('span', 'e', e), el('small', '', l));
+      f.append(b);
+    });
+    return f;
+  }
+  // 今日のデイリーノートの「メモ」に - 気分 4/5 ひとこと を足す
+  async function writeMood(v, note) {
+    const tk = todayKey(), line = `- 気分 ${v}/5${note ? ' ' + note.replace(/\s+/g, ' ').trim() : ''}`;
+    const ok = await edit(dailyPathOf(tk), t => appendToMemo(t == null ? newDailyText(tk) : t, [line]), `気分: ${v}/5`);
+    if (ok) toast(`気分 ${moodOf(v)[1]} を書きました`);
+    return ok;
+  }
+  function moodSheet() {
+    const inn = $('#sheetIn');
+    sheetHead(inn, '気分を書く');
+    let val = null;
+    const memo = el('input', 'inp'); memo.placeholder = 'ひとこと（なくても可）例：よく眠れた・仕事でつかれた';
+    const faces = () => moodFaces(val, v => { val = v; fw.replaceChildren(faces()); });
+    const fw = el('div'); fw.append(faces());
+    const lbl = el('label', 'fld'); lbl.append(el('span', '', 'ひとこと'), memo);
+    inn.append(fw, lbl, el('div', 'hint sub', `${relDay(todayKey())}のデイリーノートの「メモ」に「- 気分 4/5 ひとこと」と書きます。1日に何回書いてもよく、その日の平均で見ます`));
+    const bs = el('div', 'shBtns');
+    const save = async () => { if (!val) { fw.animate([{ transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], 200); return; } sheet.close(); await writeMood(val, memo.value); };
+    bs.append(btn('btn primary', ['check', '書く'], save));
+    memo.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) save(); });
+    inn.append(bs);
+    sheet.showModal();
+  }
+  // ホームの「今日の気分」：顔を押すとすぐ書く
+  function moodWidget(card) {
+    const tk = todayKey(), d = healthData().days.find(x => x.date === tk);
+    const last = d?.moods?.[d.moods.length - 1];
+    card.classList.add('mdW');
+    card.append(moodFaces(last?.v, v => writeMood(v, '')));
+    card.append(el('p', 'mdWSub', last ? `今日 ${d.moods.length}回・最後は ${moodOf(last.v)[2]}${last.note ? '「' + last.note + '」' : ''}` : 'いまの気分を押すと、今日のノートに書きます'));
+    return card;
+  }
+  // 「## メモ」の終わりに足す（なければ作る）
+  function appendToMemo(text, lines) {
+    const L = text.split('\n');
+    const h = L.findIndex(l => /^#{1,6}\s+メモ\s*$/.test(l));
+    if (h < 0) return text.replace(/\n*$/, '') + '\n\n## メモ\n' + lines.join('\n') + '\n';
+    let end = L.findIndex((l, i) => i > h && /^#{1,6}\s/.test(l)); if (end < 0) end = L.length;
+    for (let i = end - 1; i > h; i--) if (/^\s*-\s*$/.test(L[i])) { L.splice(i, 1); end--; }   // テンプレートの空の「- 」
+    let at = end; while (at > h + 1 && !L[at - 1].trim()) at--;
+    L.splice(at, 0, ...lines);
+    return L.join('\n');
   }
   // ================= ノートのつながり（graph.js で描く） =================
   // カテゴリ：タグ（先頭の tags・本文の #タグ）か、いちばん上のフォルダ。線：[[リンク]]・[名前](ノート.md)
@@ -4011,6 +4155,8 @@
     const nxe = sched.find(i => (i.time || '') >= hhmm());
     ks.append(ring, tile('calendar-clock', `${sched.filter(i => i.type === 'event').length}件`, '今日の予定', nxe ? `次 ${nxe.time}` : ''), tile('circle-check', `${dn}件`, '今日完了したこと'),
       tile('triangle-alert', `${over.length}件`, '期限切れ', '', over.length ? 'bad' : ''), tile('list-todo', `${open.length}件`, 'まだのやること', `ノート ${Object.keys(S.files).length}件から`));
+    const hm2 = el('div', 'db-mood'); hm2.append(el('div', 'db-moodT', '今日の気分')); moodWidget(hm2);
+    ht.append(hm2);
     hero.append(ht, ks);
     grid.append(hero);
     // 今日のノート
@@ -4467,7 +4613,7 @@
       sb.append(h);
     } else if (tab === 'health') {
       const H = healthData();
-      sb.append(btn('btn primary wide', ['scale', '体重を書く'], () => weightSheet()));
+      sb.append(btn('btn primary wide', ['smile', '気分を書く'], () => moodSheet()), btn('btn white wide', ['scale', '体重を書く'], () => weightSheet()));
       if (H.goal) {
         sb.append(sideTitle('目標'));
         const n = el('nav', 'navCard');
@@ -4483,7 +4629,7 @@
       }
       sb.append(sideTitle('読むもの・書き方'));
       const h = el('div', 'navCard fHelp');
-      h.innerHTML = '<p>体重はデイリーノートの「メモ」に <code>- 体重 70.5kg</code>（体脂肪は <code>- 体脂肪 18%</code>）</p><p>睡眠・歩数・心拍は iPhone のヘルスケア（<code>Data/health/health.csv</code>）、筋トレは筋トレメモ（<code>Data/kintore/sets.csv</code>）から読みます</p><p>目標：ノートの先頭に <code>goal_weight: 67</code>・<code>goal_due: 2027-02-28</code>（本文の「目標：67kg（2027-02-28）」も読みます）</p>';
+      h.innerHTML = '<p>体重はデイリーノートの「メモ」に <code>- 体重 70.5kg</code>（体脂肪は <code>- 体脂肪 18%</code>）</p><p>気分は <code>- 気分 4/5 ひとこと</code>（1〜5。TEDDY に頼んでも同じ形で入ります）</p><p>睡眠・歩数・心拍は iPhone のヘルスケア（<code>Data/health/health.csv</code>）、筋トレは筋トレメモ（<code>Data/kintore/sets.csv</code>）から読みます</p><p>目標：ノートの先頭に <code>goal_weight: 67</code>・<code>goal_due: 2027-02-28</code>（本文の「目標：67kg（2027-02-28）」も読みます）</p>';
       sb.append(h);
     } else if (tab === 'graph') {
       sb.append(sideTitle('カテゴリ'));

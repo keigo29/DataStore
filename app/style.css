@@ -1369,3 +1369,28 @@ button.fRec { cursor: pointer; } button.fRec:hover { background: color-mix(in sr
 .sHAx { position: relative; height: 20px; border-top: 1px solid var(--f-line); }
 .sHAx span { position: absolute; top: 4px; transform: translateX(-50%); font-size: 10.5px; color: var(--f-sub); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sHAx span:first-child { transform: none; } .sHAx span:last-child { transform: translateX(-100%); }
+
+/* ================= 気分 ================= */
+.mdPlot { position: relative; height: 200px; margin: 8px 0 4px 30px; }
+.mdPlot svg { width: 100%; height: 100%; display: block; }
+.mdAx { position: absolute; top: 0; bottom: 0; left: -30px; width: 24px; pointer-events: none; }
+.mdAx span { position: absolute; transform: translateY(-50%); font-size: 13px; line-height: 1; }
+.mdDots i { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+.mdCmps { display: grid; gap: 6px; margin-top: 6px; }
+.mdCmp { display: grid; grid-template-columns: 56px 1fr 1fr 40px; gap: 10px; align-items: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.mdCmp small { color: var(--f-sub); }
+.mdCmp b { text-align: right; } .mdCmp b.g { color: #22c55e; } .mdCmp b.r { color: #ef4444; }
+.mdRec { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 10px; width: 100%; cursor: pointer; padding: 8px 2px; border-top: 1px solid var(--f-line); }
+.mdFace { flex: none; font-size: 22px; width: 30px; text-align: center; }
+.mdFaces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.mdF { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px 6px; border-radius: 12px; border: 1.5px solid color-mix(in srgb, currentColor 12%, transparent); transition: transform .12s; }
+.mdF .e { font-size: 26px; line-height: 1.1; filter: grayscale(.35); }
+.mdF small { font-size: 10.5px; opacity: .7; white-space: nowrap; }
+.mdF:hover { transform: translateY(-1px); }
+.mdF.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.mdF.on .e { filter: none; }
+.mdWSub { margin: 8px 0 0; font-size: 12px; opacity: .65; }
+.db-mood { margin-top: 12px; max-width: 420px; }
+.db-moodT { font-size: 12px; font-weight: 600; opacity: .65; margin-bottom: 6px; }
+.db-mood .mdF { padding: 5px 2px 4px; } .db-mood .mdF .e { font-size: 22px; }
+@media (max-width: 699px) { .mdCmp { grid-template-columns: 1fr 1fr 40px; gap: 2px 8px; font-size: 11.5px; } .mdCmp small { grid-column: 1 / -1; } .mdCmp b { grid-row: 2; grid-column: 3; } }

@@ -153,7 +153,7 @@
       sb.append(h);
     } else if (tab === 'health') {
       const H = healthData();
-      sb.append(btn('btn primary wide', ['scale', '体重を書く'], () => weightSheet()));
+      sb.append(btn('btn primary wide', ['smile', '気分を書く'], () => moodSheet()), btn('btn white wide', ['scale', '体重を書く'], () => weightSheet()));
       if (H.goal) {
         sb.append(sideTitle('目標'));
         const n = el('nav', 'navCard');
@@ -169,7 +169,7 @@
       }
       sb.append(sideTitle('読むもの・書き方'));
       const h = el('div', 'navCard fHelp');
-      h.innerHTML = '<p>体重はデイリーノートの「メモ」に <code>- 体重 70.5kg</code>（体脂肪は <code>- 体脂肪 18%</code>）</p><p>睡眠・歩数・心拍は iPhone のヘルスケア（<code>Data/health/health.csv</code>）、筋トレは筋トレメモ（<code>Data/kintore/sets.csv</code>）から読みます</p><p>目標：ノートの先頭に <code>goal_weight: 67</code>・<code>goal_due: 2027-02-28</code>（本文の「目標：67kg（2027-02-28）」も読みます）</p>';
+      h.innerHTML = '<p>体重はデイリーノートの「メモ」に <code>- 体重 70.5kg</code>（体脂肪は <code>- 体脂肪 18%</code>）</p><p>気分は <code>- 気分 4/5 ひとこと</code>（1〜5。TEDDY に頼んでも同じ形で入ります）</p><p>睡眠・歩数・心拍は iPhone のヘルスケア（<code>Data/health/health.csv</code>）、筋トレは筋トレメモ（<code>Data/kintore/sets.csv</code>）から読みます</p><p>目標：ノートの先頭に <code>goal_weight: 67</code>・<code>goal_due: 2027-02-28</code>（本文の「目標：67kg（2027-02-28）」も読みます）</p>';
       sb.append(h);
     } else if (tab === 'graph') {
       sb.append(sideTitle('カテゴリ'));

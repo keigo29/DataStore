@@ -108,6 +108,11 @@
       other.forEach(i => pt.append(todoRow(i, { noDate: true })));
       put('right', pt);
     }
+    {
+      const pmd = panel();
+      pmd.append(panelHead('smile', '今日の気分', btn('linkBtn', 'ひとこと', () => moodSheet())));
+      put('right', moodWidget(pmd));
+    }
     if (showPlanWidget()) {
       const pm = panel();
       pm.append(panelHead('wallet', '出費の予定', btn('linkBtn', '＋ 予定', () => planSheet(t))));
