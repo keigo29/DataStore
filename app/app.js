@@ -1553,11 +1553,19 @@
     const inner = el('div', 'cgIn');
     inner.style.height = 24 * P + 'px';
     const gut = el('div', 'cgGut cgHours');
-    for (let h = 1; h < 24; h++) { const s = el('span', '', `${h}:00`); s.style.top = h * P + 'px'; gut.append(s); }
+    for (let h = 1; h < 24; h++) { const s = el('span', '', `${String(h).padStart(2, '0')}:00`); s.style.top = h * P + 'px'; gut.append(s); }
     inner.append(gut);
+    if (days.includes(today)) {   // 「いま」の時刻の札（左の時刻の列）と、全部の列をまたぐ線
+      const n0 = new Date(), m0 = n0.getHours() * 60 + n0.getMinutes();
+      const pill = el('span', 'cgNowPill', `${String(n0.getHours()).padStart(2, '0')}:${String(n0.getMinutes()).padStart(2, '0')}`); pill.style.top = (m0 / 60) * P + 'px'; gut.append(pill);
+      const ln = el('div', 'cgNowAll'); ln.style.top = (m0 / 60) * P + 'px'; inner.append(ln);
+    }
     let firstMin = null;
+    const nowD = new Date(), nowMin = nowD.getHours() * 60 + nowD.getMinutes(), hb = hbData();
     days.forEach(k => {
-      const col = el('div', 'cgCol' + (k === today ? ' today' : '') + ([0, 6].includes(parseKey(k).getDay()) ? ' we' : ''));
+      const off = hb.habits.length && hb.off.has(k);
+      const col = el('div', 'cgCol' + (k === today ? ' today' : '') + ([0, 6].includes(parseKey(k).getDay()) ? ' we' : '') + (off ? ' off' : ''));
+      if (off) col.title = `${hb.off.get(k)}（休みの日）`;
       for (const p of layoutLanes(dayItems(k).timed)) {
         const b = btn('cgEv' + (p.i.type === 'todo' ? ' todo' : '') + (p.i.done ? ' done' : '') + (p.b - p.a <= 40 ? ' short' : ''), [], () => { if (!b.dataset.dragged) openItem(p.i); }, p.i.title);
         if (p.i.type === 'event') evDrag(b, p, days, P);
@@ -1565,11 +1573,32 @@
         b.style.height = Math.max(((p.b - p.a) / 60) * P - 3, 18) + 'px';
         b.style.left = `calc(${(p.lane / p.n) * 100}% + 2px)`;
         b.style.width = `calc(${100 / p.n}% - 5px)`;
-        b.append(el('b', '', p.i.title), el('small', '', evLabel(p.i)));
+        // 色：プロジェクトの色（なければ予定は青・やることは緑）
+        const pj = p.i.project && projByPath(p.i.project);
+        b.style.setProperty('--c', pj?.color || (p.i.type === 'todo' ? '#16a34a' : 'var(--ev)'));
+        // 状態：おわった（チェック）・いま（まわる丸）・これから（点線の丸）
+        const end = k < today || (k === today && p.b <= nowMin), now = k === today && p.a <= nowMin && nowMin < p.b;
+        const st = p.i.type === 'todo' ? (p.i.done ? 'circle-check' : 'circle-dashed') : end ? 'circle-check' : now ? 'loader-circle' : 'circle-dashed';
+        const ic = el('span', 'cgSt ' + st); ic.innerHTML = icon(st);
+        const tx = el('span', 'cgTx');
+        tx.append(el('b', '', p.i.title));
+        const sub = pj ? pj.name : nameOf(p.i.path) !== 'デイリー' ? nameOf(p.i.path) : '';
+        if (sub && p.b - p.a >= 60) tx.append(el('span', 'cgSub', sub));
+        b.append(ic, tx, el('small', '', evLabel(p.i)));
+        if (end && p.i.type === 'event') b.classList.add('past');
         col.append(b);
         if (firstMin == null || p.a < firstMin) firstMin = p.a;
       }
-      if (k === today) { const n = new Date(), ln = el('div', 'cgNow'); ln.style.top = ((n.getHours() * 60 + n.getMinutes()) / 60) * P + 'px'; col.append(ln); }
+      if (k === today) { const ln = el('div', 'cgNow'); ln.style.top = (nowMin / 60) * P + 'px'; col.append(ln); }
+      // マウスを乗せたところに「＋」（押すとそこに予定を入れる）
+      if (isWide()) {
+        const hv = el('div', 'cgHover'); hv.innerHTML = icon('plus'); hv.hidden = true; col.append(hv);
+        let raf = 0, lastY = 0;
+        const at = () => { raf = 0; const y = lastY - col.getBoundingClientRect().top, a = Math.max(0, Math.min(23 * 60, Math.floor(((y / P) * 60) / 30) * 30)); hv.style.top = (a / 60) * P + 2 + 'px'; hv.style.height = P - 4 + 'px'; hv.hidden = false; };
+        col.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || e.buttons || e.target.closest('.cgEv, .cgDraft')) { hv.hidden = true; return; } lastY = e.clientY; if (!raf) raf = requestAnimationFrame(at); });
+        col.addEventListener('pointerleave', () => { hv.hidden = true; });
+        col.addEventListener('pointerdown', () => { hv.hidden = true; });
+      }
       // 空いている時間：タップ（マウスはドラッグでも）すると「新しい予定」の四角を置く → 下の入力欄でタイトル
       const ghost = el('div', 'cgGhost'); ghost.hidden = true; col.append(ghost);
       const minAt = (e, snap = 30) => { const y = e.clientY - col.getBoundingClientRect().top; return Math.max(0, Math.min(24 * 60 - snap, Math.floor(((y / P) * 60) / snap) * snap)); };

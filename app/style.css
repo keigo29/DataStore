@@ -1761,3 +1761,46 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
 /* 丸の中の日付：iPhone のボタンの左右の余白（6px）で2けたが右にずれていた → 余白なし・字間なしで真ん中に */
 .cmNum, .mmDay, .cgDay .n, .cgDay b { padding: 0; letter-spacing: 0; text-indent: 0; }
 .cmNum, .mmDay { -webkit-appearance: none; appearance: none; line-height: 1; text-align: center; }
+
+/* ================= 日・週のカレンダー（参考デザイン：やわらかいカード・状態のアイコン・いまの札） ================= */
+.cg { --now: #f97316; }
+.cgHours span { font-size: 11px; font-weight: 500; letter-spacing: .01em; }
+.cgIn { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hp) - 1px), color-mix(in srgb, var(--text) 7%, transparent) calc(var(--hp) - 1px), color-mix(in srgb, var(--text) 7%, transparent) var(--hp)); }
+.cgCol { border-left-color: color-mix(in srgb, var(--text) 7%, transparent); }
+.cgCol.we { background: color-mix(in srgb, var(--text) 1.5%, transparent); }
+/* 休みの日：ななめのしま */
+.cgCol.off { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--text) 5.5%, transparent) 0 2px, transparent 2px 9px); }
+/* 予定のカード */
+.cgEv { --c: var(--ev); border: 1px solid color-mix(in srgb, var(--c) 38%, transparent); border-left: 1px solid color-mix(in srgb, var(--c) 38%, transparent);
+  background: color-mix(in srgb, var(--c) 9%, var(--card)); border-radius: 10px; padding: 7px 9px 6px 30px; color: var(--text);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04); transition: background .12s, border-color .12s; }
+.cgEv:hover { background: color-mix(in srgb, var(--c) 14%, var(--card)); border-color: color-mix(in srgb, var(--c) 60%, transparent); }
+.cgEv .cgSt { position: absolute; left: 8px; top: 7px; width: 16px; height: 16px; color: color-mix(in srgb, var(--c) 85%, var(--text)); display: grid; place-items: center; }
+.cgEv .cgSt .lc { width: 16px; height: 16px; }
+.cgEv .cgSt.circle-dashed { color: color-mix(in srgb, var(--c) 55%, var(--sub)); }
+.cgEv .cgTx { display: flex; flex-direction: column; min-width: 0; max-width: 100%; }
+.cgEv b { font-size: 12.5px; font-weight: 600; line-height: 1.35; }
+.cgEv .cgSub { font-size: 11px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+.cgEv small { margin-top: auto; font-size: 10.5px; color: var(--sub); }
+.cgEv.past { background: color-mix(in srgb, var(--c) 5%, var(--card)); }
+.cgEv.past b { color: color-mix(in srgb, var(--text) 75%, var(--sub)); }
+.cgEv.short { padding-top: 0; padding-bottom: 0; gap: 6px; }
+.cgEv.short .cgSt { top: 50%; margin-top: -8px; }
+.cgEv.short small { margin-top: 0; }
+.cgEv.todo { border-left-color: color-mix(in srgb, var(--c) 38%, transparent); background: color-mix(in srgb, var(--c) 9%, var(--card)); }
+.cgEv.lift { background: color-mix(in srgb, var(--c) 16%, var(--card)); }
+/* マウスを乗せたところの「＋」 */
+.cgHover { position: absolute; left: 3px; right: 4px; z-index: 1; border-radius: 10px; background: color-mix(in srgb, var(--text) 5%, var(--card)); border: 1px dashed color-mix(in srgb, var(--text) 16%, transparent);
+  display: grid; place-items: center; color: var(--sub); pointer-events: none; }
+.cgHover .lc { width: 16px; height: 16px; }
+/* いま：オレンジの線と時刻の札 */
+.cgNow { display: none; }
+.cgNowAll { position: absolute; left: var(--gut); right: 0; height: 0; border-top: 1.5px solid var(--now); z-index: 3; pointer-events: none; }
+.cgNowPill { position: absolute; right: 3px; transform: translateY(-50%); z-index: 4; background: var(--now) !important; color: #fff !important; font-size: 10.5px !important; font-weight: 700; padding: 2px 6px !important; border-radius: 99px; font-variant-numeric: tabular-nums; box-shadow: 0 1px 3px rgba(249, 115, 22, .35); }
+/* スマホの週（せまい列）は小さく */
+.cg.mWeek .cgEv { padding: 3px 3px 2px; border-radius: 6px; }
+.cg.mWeek .cgEv .cgSt, .cg.mWeek .cgEv .cgSub { display: none; }
+.cg.mWeek .cgNowPill { font-size: 8.5px !important; padding: 1px 3px !important; right: 1px; }
+.cg.mWeek .cgEv b { font-size: 9.5px; font-weight: 600; }
+.cg.mDay .cgNowPill { right: 2px; }
+.cgHours { background: var(--card); z-index: 2; }   /* 時刻の列には横の線を通さない */
