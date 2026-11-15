@@ -1804,3 +1804,8 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
 .cg.mWeek .cgEv b { font-size: 9.5px; font-weight: 600; }
 .cg.mDay .cgNowPill { right: 2px; }
 .cgHours { background: var(--card); z-index: 2; }   /* 時刻の列には横の線を通さない */
+/* 予定のカードの面をすきとおらせる（うしろの線が少し見える・色はうすく） */
+.cgEv, .cgEv.todo { background: color-mix(in srgb, var(--c) 5%, transparent); border-color: color-mix(in srgb, var(--c) 30%, transparent); box-shadow: none; -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); }
+.cgEv:hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
+.cgEv.past { background: color-mix(in srgb, var(--c) 3%, transparent); }
+.cgEv.lift { background: color-mix(in srgb, var(--c) 14%, var(--card)); }
