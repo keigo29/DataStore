@@ -1809,3 +1809,11 @@ dialog.wide { width: min(560px, calc(100vw - 40px)); }
 .cgEv:hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
 .cgEv.past { background: color-mix(in srgb, var(--c) 3%, transparent); }
 .cgEv.lift { background: color-mix(in srgb, var(--c) 14%, var(--card)); }
+/* 月のカレンダーの帯：予定のカードと同じく、すきとおる面＋同じ色の細い枠（字はその色の濃いめ） */
+.cmBar { background: color-mix(in srgb, var(--c) 9%, transparent); border: 1px solid color-mix(in srgb, var(--c) 34%, transparent); box-shadow: none;
+  color: color-mix(in srgb, var(--c) 78%, var(--text)); font-weight: 600; line-height: calc(var(--cmBarH) - 2px); }
+.cmBar:hover { filter: none; background: color-mix(in srgb, var(--c) 15%, transparent); }
+.cmBar.cl { border-left-color: transparent; } .cmBar.cr { border-right-color: transparent; }
+.cmBar.late { border-color: #ef4444; box-shadow: none; }
+.cmBar.done { opacity: 1; background: color-mix(in srgb, var(--c) 4%, transparent); border-color: color-mix(in srgb, var(--c) 18%, transparent); color: color-mix(in srgb, var(--c) 45%, var(--sub)); }
+.cmLegend .lbar::before { background: color-mix(in srgb, var(--ev) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ev) 40%, transparent); }
