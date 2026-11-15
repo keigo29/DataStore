@@ -302,7 +302,9 @@
         tx.append(el('b', '', p.i.title));
         const sub = pj ? pj.name : nameOf(p.i.path) !== 'デイリー' ? nameOf(p.i.path) : '';
         if (sub && p.b - p.a >= 60) tx.append(el('span', 'cgSub', sub));
-        b.append(ic, tx, el('small', '', evLabel(p.i)));
+        b.append(ic, tx);
+        if (p.b - p.a >= 60) b.append(el('small', '', evLabel(p.i)));   // 1時間未満はタイトルだけ
+        else b.title = `${p.i.title}  ${evLabel(p.i)}`;
         if (end && p.i.type === 'event') b.classList.add('past');
         col.append(b);
         if (firstMin == null || p.a < firstMin) firstMin = p.a;
