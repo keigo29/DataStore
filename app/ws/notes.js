@@ -25,6 +25,7 @@
   window.ICONS['replace-all'] ||= '<path d="M14 14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1"/><path d="M14 4a1 1 0 0 1 1-1"/><path d="M15 10a1 1 0 0 1-1-1"/><path d="M19 14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1"/><path d="M21 4a1 1 0 0 0-1-1"/><path d="M21 9a1 1 0 0 1-1 1"/><path d="m3 7 3 3 3-3"/><path d="M6 10V5a2 2 0 0 1 2-2h2"/><rect x="3" y="14" width="7" height="7" rx="1"/>';
   window.ICONS.keyboard ||= '<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>';
   window.ICONS['text-search'] ||= '<path d="M21 6H3"/><path d="M10 12H3"/><path d="M10 18H3"/><circle cx="17" cy="15" r="3"/><path d="m21 19-1.9-1.9"/>';
+  window.ICONS['file-image'] ||= "<path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\" /><path d=\"M14 2v5a1 1 0 0 0 1 1h5\" /><circle cx=\"10\" cy=\"12\" r=\"2\" /><path d=\"m20 17-1.296-1.296a2.41 2.41 0 0 0-3.408 0L9 22\" />";   // MDWS: 画像の行
   window.ICONS['square-split-horizontal'] ||= '<path d="M8 19H5c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2h3"/><path d="M16 5h3c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2h-3"/><line x1="12" x2="12" y1="4" y2="20"/>';
   const MAX_PANES = 3;
   let viewEl = null;                 // ノートの画面全体（#notesView）
@@ -288,6 +289,24 @@
     const base = t.split('/').pop();
     const rel = (folderOf(from) ? folderOf(from) + '/' : '') + t;
     return data.files.find(f => f.toLowerCase() === rel) || data.files.find(f => f.toLowerCase() === t) || data.files.find(f => f.split('/').pop().toLowerCase() === base) || null;
+  }
+  // MDWS: 画像などを大きく見る（ノートの一覧から。旧 Workstation と同じ）。画像は app.js が読み込み、読めたら data-vault の img を差しかえる
+  function showAttachment(rel) {
+    const d = el('dialog', 'askDlg nt-attDlg');
+    const head = el('div', 'nt-attHead');
+    head.append(el('h2', '', rel.split('/').pop()), btn('iconBtn', 'x', () => d.close(), '閉じる'));
+    const body = el('div', 'nt-attBody');
+    if (/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(rel)) { const img = el('img'); img.dataset.vault = rel; img.src = vaultUrl(rel); img.alt = rel; body.append(img); }
+    else body.append(el('p', 'nt-note', 'このファイルは、ここでは見られません'));
+    const row = el('div', 'dlgBtns');
+    if (ctx.api.notes.reveal) row.append(btn('btn white', ['folder-open', 'Finder で表示'], () => ctx.api.notes.reveal(rel)));
+    row.append(el('span', 'spacer'), btn('btn primary', '閉じる', () => d.close()));
+    const f = el('form'); f.method = 'dialog';
+    f.append(head, body, row);
+    d.append(f);
+    document.body.append(d);
+    d.addEventListener('close', () => d.remove());
+    d.showModal();
   }
   const vaultUrl = rel => (ctx.fileUrl ? ctx.fileUrl(rel) : 'vault://f/' + rel.split('/').map(encodeURIComponent).join('/'));   // MDWS: 画像は app.js が読み込む
 
@@ -2721,6 +2740,17 @@
         b.title = n.path;
         row(b, 'n:' + n.path);
         into.append(b);
+      }
+      // MDWS: 画像など（ノートに貼ったもの）も、フォルダの中に並べる。押すと大きく見られる（旧 Workstation と同じ）
+      if (!tagFilter) {
+        for (const f of data.files.filter(x => folderOf(x) === folder).sort(jaSort)) {
+          const b = el('div', 'nav nt-file nt-att');
+          b.innerHTML = icon('file-image');
+          b.append(el('span', 'name', f.split('/').pop()));
+          b.title = f;
+          b.addEventListener('click', () => showAttachment(f));
+          into.append(b);
+        }
       }
     };
     drawFolder('', scroller);
