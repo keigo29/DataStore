@@ -48,5 +48,17 @@
     if (isWide() && sideHidden()) g.listInto(null);
     if (!isWide()) { const top = el('div', 'ngMTop'); top.append(btn('btn white small', ['chevron-left', 'ノート'], () => switchTab('notes')), graphBySeg()); main.append(top); g.listInto(null); }
     main.append(g.el);
+    if (!isWide()) fitGraphHeight();
   }
+  // スマホ：グラフの高さを、下のタブのすぐ上まで伸ばす（画面の高さはスマホごとにちがうので、実際の位置で決める）
+  function fitGraphHeight() {
+    requestAnimationFrame(() => {
+      const g = graphObj?.el, tabs = $('#tabs');
+      if (!g || !g.isConnected || isWide()) return;
+      const tr = tabs?.getBoundingClientRect(), bottom = tr && tr.height > 0 ? tr.top : window.innerHeight;   // 下のタブ（固定）の上まで
+      g.style.height = Math.max(360, Math.round(bottom - g.getBoundingClientRect().top - 12)) + 'px';
+      graphObj.fit?.();
+    });
+  }
+  window.addEventListener('resize', () => { if (tab === 'graph' && !isWide()) fitGraphHeight(); });
 
