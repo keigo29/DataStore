@@ -14,6 +14,16 @@
   // 白い背景に黒い丸（色は使わず、選んだ所は濃さと太さで見せる）
   const GRAY = '#1d1d1f', BG = '#ffffff', ACCENT = '#000000', INK = '#1d1d1f';
   const NONE = '（なし）';
+  // 点のまわりのうすい黒い影（ネガのように、白い地に黒い点がにじんで見える）。ぼかした丸を1回だけ作り、描くときは貼るだけ（毎フレーム影を計算しない）
+  let haloImg = null;
+  function halo() {
+    if (haloImg) return haloImg;
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(0,0,0,.30)'); gr.addColorStop(.35, 'rgba(0,0,0,.14)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    return (haloImg = c);
+  }
   // カテゴリの玉のまわりのノートの輪の大きさ（ノートの数で決める）
   const clusterR = h => 34 + Math.sqrt(h.count || 1) * 13;
 
@@ -176,6 +186,7 @@
         const [x, y] = toScreen(n.x, n.y);
         if (x < -40 || x > W + 40 || y < -40 || y > H + 40) continue;
         const r = n.r * sz;
+        if (on) { const hr = r * (n.hub ? 4.2 : 3.6); ctx.globalAlpha = n.hub ? .9 : .7; ctx.drawImage(halo(), x - hr, y - hr, hr * 2, hr * 2); }
         ctx.globalAlpha = on ? (n.hub ? 1 : .9) : .12;
         ctx.fillStyle = n.color;
         ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
