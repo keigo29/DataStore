@@ -1,5 +1,5 @@
 // ノートのつながり（Obsidian のグラフのように）
-// ・カテゴリ（タグ／フォルダ）ごとに大きな玉（ハブ）を置き、そのノートがまわりに集まる。玉はひまわりの種のように渦を巻いて置き、まんなかへ引くので、全体が円の形にまとまる（Obsidian のグラフのように）
+// ・カテゴリ（タグ／フォルダ）ごとに大きな玉（ハブ）を置き、そのノートがまわりに集まる。玉はひまわりの種のように渦を巻いて置き、全体を1つの円の中に収める（Obsidian のグラフのように、全体が円の形になる）
 // ・線：ノート → カテゴリの玉、[[リンク]] でつながったノートどうし
 // ・canvas に描く。動き（力のつり合い）は requestAnimationFrame で1フレーム1回、止まったら描くのもやめる
 // 使い方：const g = NoteGraph.create({ onOpen(path) {} }); host.append(g.el); g.setData(data); g.listInto(el)
@@ -31,7 +31,7 @@
     const ctx = cv.getContext('2d');
 
     let nodes = [], edges = [], groups = [], byId = new Map(), adj = new Map();
-    let W = 0, H = 0, DPR = 1;
+    let W = 0, H = 0, DPR = 1, discR = 300;
     const cam = { x: 0, y: 0, k: 1 };
     let alpha = 0, raf = 0, hover = null, sel = null, selGroup = null, query = '';
     let mode = 'all';   // all（すべて）/ focus（しぼる：選んだものだけ）
@@ -52,7 +52,7 @@
         area += cr * cr;
         const rr = Math.sqrt(area) * 1.05, a = i * 2.39996;
         const o = old.get('g:' + g.id);
-        nodes.push({ id: 'g:' + g.id, hub: true, group: g.id, name: g.name, color: g.color, count: g.count, r: 4.5 + Math.min(6, Math.sqrt(g.count) * 1.4),
+        nodes.push({ id: 'g:' + g.id, hub: true, group: g.id, name: g.name, color: g.color, count: g.count, r: 3.6 + Math.min(3.4, Math.sqrt(g.count) * .7),
           x: o ? o.x : (i ? Math.cos(a) * rr : 0), y: o ? o.y : (i ? Math.sin(a) * rr : 0), vx: 0, vy: 0 });
       });
       const hubPos = new Map(nodes.map(n => [n.group, n]));
@@ -62,6 +62,7 @@
           x: o ? o.x : (h ? h.x : 0) + Math.cos(n._a = Math.random() * 6.283) * (h ? clusterR(h) * .7 : 80), y: o ? o.y : (h ? h.y : 0) + Math.sin(n._a) * (h ? clusterR(h) * .7 : 80), vx: 0, vy: 0 });
       }
       byId = new Map(nodes.map(n => [n.id, n]));
+      discR = 30 + Math.sqrt(nodes.length) * 16;   // 全体の円の大きさ（ノートが多いほど大きく）
       edges = [];
       for (const n of d.nodes) for (const g of n.groups) if (byId.has('g:' + g)) edges.push({ a: byId.get(n.id), b: byId.get('g:' + g), hub: true, primary: g === n.groups[0] });
       const seen = new Set();
@@ -72,7 +73,7 @@
       }
       adj = new Map(nodes.map(n => [n.id, new Set()]));
       for (const e of edges) { adj.get(e.a.id).add(e.b.id); adj.get(e.b.id).add(e.a.id); }
-      for (const n of nodes) if (!n.hub) n.r = 2.6 + Math.min(4, Math.sqrt(edges.filter(e => !e.hub && (e.a === n || e.b === n)).length) * 1.1);
+      for (const n of nodes) if (!n.hub) n.r = 2.4 + Math.min(2.4, Math.sqrt(edges.filter(e => !e.hub && (e.a === n || e.b === n)).length) * .8);
       if (sel && !byId.has(sel)) sel = null;
       if (selGroup && !groups.some(g => g.id === selGroup)) selGroup = null;
       alpha = old.size ? Math.max(alpha, .35) : 1;
@@ -116,16 +117,21 @@
       // 線はばね
       for (const e of edges) {
         // ノート → いちばんのカテゴリは短く強く（玉のまわりに花のように集まる）。ほかのカテゴリ・リンクは弱く（形をくずさない）
-        const L = e.hub ? (e.primary ? 26 + e.b.r * 2 + Math.sqrt(e.b.count || 1) * 4 : 120) : 60, K = e.hub ? (e.primary ? .09 : .003) : .008;
+        const L = e.hub ? (e.primary ? 28 + Math.sqrt(e.b.count || 1) * 3 : 120) : 60, K = e.hub ? (e.primary ? .09 : .003) : .008;
         const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
         const f = (d - L) / d * K * alpha;
         const wa = e.a.hub ? .15 : 1, wb = e.b.hub ? .15 : 1;
         e.a.vx += dx * f * wa; e.a.vy += dy * f * wa; e.b.vx -= dx * f * wb; e.b.vy -= dy * f * wb;
       }
       for (const n of nodes) {
-        // まんなかへ引く（ばねのように、遠いほど強く）。全体が円の形にまとまり、どこにもつながらないノートも外へ飛ばない
-        const gk = (n.hub ? .02 : .002) * alpha;
+        // まんなかへ引く（ばねのように、遠いほど強く）。どこにもつながらないノートも外へ飛ばない
+        const gk = (n.hub ? .02 : .006) * alpha;
         n.vx -= n.x * gk; n.vy -= n.y * gk;
+        // 全体を1つの円の中に収める：円（ノートの数で大きさを決める）の外に出たものは、ふちへ強く戻す。中は押し合って広がるので、ふちのはっきりした円になる
+        const d = Math.sqrt(n.x * n.x + n.y * n.y);
+        // カテゴリの玉はふちの内側に強く。ノートは少しだけはみ出してよい（ふちの星がつぶれないように）
+        const lim = n.hub ? discR - 30 : discR + 20;
+        if (d > lim) { const f = (d - lim) / d * (n.hub ? .35 : .08); n.vx -= n.x * f; n.vy -= n.y * f; }
         if (n.fixed) { n.vx = n.vy = 0; continue; }
         n.vx *= .6; n.vy *= .6;
         n.x += Math.max(-30, Math.min(30, n.vx)); n.y += Math.max(-30, Math.min(30, n.vy));
@@ -183,7 +189,7 @@
         const on = L ? L.has(n.id) : true;
         if (focus && !on) continue;
         const strong = (L && on) || nodes.length < 30;
-        let a = strong ? .9 : n.hub ? Math.max(fade, .55) : fade * .75;
+        let a = strong ? .9 : n.hub ? Math.min(1, Math.max(0, (cam.k - 1.1) / .6)) : fade * .75;
         if (L && !on) continue;   // 乗せている・選んでいるときは、つながっていない名前は出さない
         if (a < .04) continue;
         const [x, y] = toScreen(n.x, n.y);
