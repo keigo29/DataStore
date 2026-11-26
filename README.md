@@ -33,7 +33,7 @@ npm run serve      # http://localhost:8765/ で画面を見る
 
 - 画面の部品・色・アイコンは **Workstation モバイル**（`style.css` `icons.js`）と同じ
 - PC・タブレットの幅（幅 700px 以上・高さ 500px 以上・Mac 版）では **旧 Workstation（Mac 版）と同じ並び・同じ部品**（タスクの行・追加欄・ダッシュボードの行・ガントの表・ノートのカードとフォルダの木は旧 Workstation の CSS をそのまま使用）。並び（左端のレール｜サイドバー｜ツールバー付きの中央。`desk.css`）：ダッシュボード、プロジェクトのページ（数字4つ＋2列）、カレンダー（月とその日を横に）、ノートを並べて書く画面（左に書く・右に見た目）
-- PC・タブレットの幅のノートのタブは、旧 Workstation のノートの画面そのもの（`app/ws/`）。書く／並べる／読む・分割・全文検索・名前変更（リンクも書きかえ）・フォルダ・画像
+- PC・タブレットの幅のノートのタブは、旧 Workstation のノートの画面そのもの（`app/ws/`）。**見たままで書ける**（`# ` を打つとその場で見出し、表・コード・コールアウトも読む画面と同じ見た目。記号はカーソルのある行だけ。旧 Workstation の `live-editor.js` と CodeMirror 6 の `vendor/codemirror.js`）。上の「見たまま・書く・読む」で今までの書き方にも戻せる。書く／並べる／読む・分割・全文検索・名前変更（リンクも書きかえ）・フォルダ・画像
 - カレンダーで予定を入れる：
   - その日の欄に1行で書く（例：`14時 MTG`、`明日 10:00-11:30 歯医者`、`11/20 9時半 健康診断`、`金曜 19時〜21時 飲み会`、`来週の月曜 10:00 朝会`）。日付を書かなければ選んでいる日
   - 1日の時間割の空いているところを押す（マウスはドラッグで長さも）
@@ -127,7 +127,7 @@ Spring Boot のグループ開発。（← 最初の見出しまでが「メモ�
 | `parser.js` | Markdown からやること・予定を取り出す／チェックの切り替え／やることを足す |
 | `daily.js` | デイリーノートの場所と日付（Mac 版 `src/main/notes.js` と同じ） |
 | `icons.js` | Lucide アイコン（Workstation と同じ＋いくつか追加） |
-| `vendor/` | marked・DOMPurify・フォント（Mac 版と同じもの） |
+| `vendor/` | marked・DOMPurify・フォント・CodeMirror 6（見たままで書く。Mac 版と同じもの） |
 | `sw.js` / `manifest.webmanifest` / `icons/` | PWA の設定。ファイルを変えたら `sw.js` の `VERSION` を上げる |
 | `mac/main.js` / `mac/preload.js` | Mac 版のウィンドウ・画面とのやりとり（preload が `window.mdws` を用意すると、app.js はローカルのフォルダを使う） |
 | `mac/backend.js` | フォルダの .md の読み書きと git（pull / commit / push）。Electron なしでテストできる |

@@ -154,7 +154,7 @@ dialog.askDlg h2 { margin: 0 0 2px; font-size: 21px; font-weight: 700; letter-sp
 .nt-wrap { flex: 1; min-height: 0; display: grid; gap: 12px; position: relative; grid-template-columns: minmax(0, 1fr); }
 .nt-wrap.mode-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .nt-wrap.mode-split.info-col { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 230px; }
-.nt-wrap.mode-edit.info-col, .nt-wrap.mode-preview.info-col { grid-template-columns: minmax(0, 1fr) 230px; }
+.nt-wrap.mode-edit.info-col, .nt-wrap.mode-preview.info-col, .nt-wrap.mode-live.info-col { grid-template-columns: minmax(0, 1fr) 230px; }   /* MDWS: 見たままも */
 .nt-wrap.mode-edit .nt-preview, .nt-wrap.mode-preview .nt-edit { display: none; }
 .nt-wrap.mode-split.stack { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
 .nt-wrap:not(.info-col) .nt-info { display: none; }
@@ -691,3 +691,175 @@ dialog.ntFill { width: min(480px, calc(100vw - 40px)); padding: 22px; font-famil
 .nt-attHead h2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nt-attBody { display: grid; place-items: center; background: var(--soft); border-radius: var(--r); padding: 12px; max-height: 65vh; overflow: auto; }
 .nt-attBody img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px; }
+
+/* ---- 見たままで書く（旧 Workstation の style.css から。表・コード・リンクなどは読む画面と同じ見た目） ---- */
+.cm-lp-block a { color: var(--nt-text); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--nt-text) 35%, transparent); text-underline-offset: 3px; }
+.cm-lp-block a:hover { text-decoration: underline; }
+.cm-lp-block a.internal-link { color: var(--nt-text); font-weight: 600; }
+.cm-lp-block a.internal-link.is-unresolved { opacity: .6; }
+.cm-lp-block a.tag { display: inline-block; padding: 0 8px; border-radius: 99px; background: color-mix(in srgb, var(--nt-text) 9%, transparent); color: var(--nt-text); font-size: .88em; line-height: 1.7; text-decoration: none; }
+.cm-lp-block mark { background-color: var(--nt-mark-bg); color: var(--nt-mark-fg); padding: 2px 4px; margin: 0 1px; border-radius: 0; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.cm-lp-block table { border-collapse: collapse; margin: 10px 0; font-size: 14px; display: block; overflow-x: auto; }
+.cm-lp-block th, .cm-lp-block td { border: 1px solid var(--nt-line); padding: 6px 12px; }
+.cm-lp-block th { background: color-mix(in srgb, var(--nt-line) 45%, transparent); }
+.cm-lp-block img { max-width: 100%; border-radius: 6px; }
+.cm-lp-block code { font-family: var(--nt-mono); font-size: .88em; background: color-mix(in srgb, var(--nt-line) 60%, transparent); padding: 1px 5px; border-radius: 4px; }
+.cm-lp-block pre { position: relative; background: linear-gradient(135deg, #1E1E1E 0%, #2D2D2D 100%); border: 1px solid #333; border-radius: 6px; font-family: var(--nt-mono); box-shadow: 0 5px 15px 0 rgba(0,0,0,.25); padding: 14px 16px; overflow-x: auto; margin: 10px 0 14px; }
+#notesView .cm-lp-block pre code, #notesView .cm-lp-block code { font-family: var(--nt-mono) !important; }
+.cm-lp-block pre code { color: rgb(230, 230, 230); background: none; padding: 0; font-size: 13px; line-height: 1.6; }
+.cm-lp-block pre:hover .nt-copy { opacity: 1; }
+.cm-lp-block th { font-weight: 700; }
+#notesView[data-nt-theme="dark"] .cm-lp-block mark { background-color: var(--nt-mark-bg); color: var(--nt-mark-fg); }
+#notesView[data-nt-theme="dark"] .cm-lp-block code { background: #26272a; color: #E9E9E9; }
+#notesView[data-nt-theme="dark"] .cm-lp-block pre { background: linear-gradient(135deg, #1b1b1d 0%, #26272a 100%) !important; border: 1px solid #333438 !important; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+#notesView[data-nt-theme="dark"] .cm-lp-block pre code { background: none; color: #E6E6E6 !important; }
+#notesView[data-nt-theme="dark"] .cm-lp-block a { text-decoration-color: rgba(220,220,220,.45); }
+#notesView[data-nt-theme="dark"] .cm-lp-block a.tag { background: rgba(255,255,255,.09); color: #E4E4E4; }
+#notesView[data-nt-theme="dark"] .cm-lp-block th { background: #1d1d20; }
+#notesView[data-nt-theme="dark"] .cm-lp-block th, #notesView[data-nt-theme="dark"] .cm-lp-block td { border-color: #3a3b40; }
+.cm-lp-block pre { font-size: 13px; line-height: 1.65; tab-size: 4; white-space: pre; }
+.cm-lp-block pre code { white-space: inherit; tab-size: 4; display: block; }
+.cm-lp-block img.nt-img { display: block; margin: 8px 0; max-width: 100%; height: auto; }
+/* =====================================================================
+   ノートの「見たまま」編集（live-editor.js / CodeMirror 6）
+   ・本文の見た目は、読む画面（.nt-doc）にそろえる。記号はカーソルのある行だけ見える
+   ===================================================================== */
+.nt-liveDoc { max-width: var(--file-line-width, 1000px); margin: 0 auto; padding: 8px 34px 80px; color: var(--nt-text); font-family: var(--nt-font); font-size: 15.5px; line-height: 1.8; }
+.nt-liveDoc .cm-editor { background: transparent; color: var(--nt-text); }
+.nt-liveDoc .cm-editor.cm-focused { outline: none; }
+.nt-liveDoc .cm-scroller { font-family: var(--nt-font); line-height: 1.8; overflow: visible; }
+.nt-liveDoc .cm-content { padding: 0; caret-color: var(--nt-text); min-height: 200px; }
+.nt-liveDoc .cm-line { padding: 0; }
+.nt-liveDoc .cm-cursor { border-left-color: var(--nt-text); }
+.nt-liveDoc .cm-selectionBackground, .nt-liveDoc .cm-editor.cm-focused .cm-selectionBackground { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; }
+.nt-liveDoc .cm-placeholder { color: var(--nt-muted); }
+.nt-liveDoc .cm-selectionMatch { background: color-mix(in srgb, var(--warn) 22%, transparent); }
+/* 見出し */
+.cm-lp-h { font-weight: 700; line-height: 1.45; }
+.cm-lp-h1 { font-size: 23px; padding-top: 14px !important; padding-bottom: 6px !important; border-bottom: 1px solid var(--nt-line); }
+.cm-lp-h2 { font-size: 20px; padding-top: 10px !important; }
+.cm-lp-h3 { font-size: 17px; padding-top: 8px !important; }
+.cm-lp-h4, .cm-lp-h5, .cm-lp-h6 { font-size: 15.5px; padding-top: 6px !important; }
+/* 文字の飾り */
+.cm-lp-strong { font-weight: 700; }
+.cm-lp-em { font-style: italic; }
+.cm-lp-strike { text-decoration: line-through; color: var(--nt-muted); }
+.cm-lp-code { font-family: var(--nt-mono); font-size: .88em; background: color-mix(in srgb, var(--nt-line) 60%, transparent); padding: 1px 4px; border-radius: 4px; }
+.cm-lp-hl { background: var(--nt-mark-bg); color: var(--nt-mark-fg); padding: 1px 3px; }
+.cm-lp-link, .cm-lp-wiki { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--nt-text) 35%, transparent); text-underline-offset: 3px; cursor: pointer; }
+.cm-lp-wiki { font-weight: 600; }
+.cm-lp-wikiRaw { cursor: text; font-weight: 400; color: var(--nt-muted); }
+.cm-lp-tag { padding: 0 6px; border-radius: 99px; background: color-mix(in srgb, var(--nt-text) 9%, transparent); font-size: .9em; cursor: pointer; }
+.cm-lp-raw { color: var(--nt-muted); }
+/* 一覧・チェックリスト */
+.cm-lp-bullet { display: inline-block; width: 1ch; color: var(--nt-muted); font-weight: 700; }
+.cm-lp-olMark { color: var(--nt-muted); }
+.cm-lp-check { width: 15px; height: 15px; margin: 0 6px 0 0; vertical-align: -2px; accent-color: var(--nt-text); cursor: pointer; }
+.cm-lp-done { color: var(--nt-muted); }
+.cm-lp-done { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--nt-muted) 60%, transparent); }
+/* 引用・コールアウト */
+.cm-lp-quote { border-left: 3px solid var(--nt-line); padding-left: 14px !important; color: var(--nt-muted); }
+/* コールアウト：読む画面（.callout）と同じ色の箱。行ごとに背景を付け、最初と最後の行で角を丸める */
+.cm-lp-callout { --callout-color: rgb(8, 109, 221); background-color: color-mix(in srgb, var(--callout-color) 10%, transparent); padding: 0 16px !important; }
+.cm-lp-calloutTitle { color: var(--callout-color); font-weight: 700; padding-top: 10px !important; border-radius: 6px 6px 0 0; }
+.cm-lp-calloutLast { padding-bottom: 10px !important; border-radius: 0 0 6px 6px; }
+.cm-lp-calloutTitle.cm-lp-calloutLast { border-radius: 6px; }
+.cm-lp-callout[data-callout='info'], .cm-lp-callout[data-callout='todo'] { --callout-color: rgb(79, 223, 132); }
+.cm-lp-callout[data-callout='tip'], .cm-lp-callout[data-callout='hint'], .cm-lp-callout[data-callout='important'] { --callout-color: rgb(0, 191, 188); }
+.cm-lp-callout[data-callout='success'], .cm-lp-callout[data-callout='check'], .cm-lp-callout[data-callout='done'] { --callout-color: rgb(8, 185, 78); }
+.cm-lp-callout[data-callout='question'], .cm-lp-callout[data-callout='help'], .cm-lp-callout[data-callout='faq'] { --callout-color: rgb(236, 117, 0); }
+.cm-lp-callout[data-callout='warning'], .cm-lp-callout[data-callout='caution'], .cm-lp-callout[data-callout='attention'] { --callout-color: rgb(236, 117, 0); }
+.cm-lp-callout[data-callout='danger'], .cm-lp-callout[data-callout='error'], .cm-lp-callout[data-callout='failure'], .cm-lp-callout[data-callout='fail'], .cm-lp-callout[data-callout='bug'] { --callout-color: rgb(233, 49, 71); }
+.cm-lp-callout[data-callout='example'] { --callout-color: rgb(120, 82, 238); }
+.cm-lp-callout[data-callout='quote'], .cm-lp-callout[data-callout='cite'] { --callout-color: rgb(158, 158, 158); }
+.cm-lp-callout[data-callout='abstract'], .cm-lp-callout[data-callout='summary'], .cm-lp-callout[data-callout='tldr'] { --callout-color: rgb(0, 191, 188); }
+.cm-lp-callout[data-callout='target'] { --callout-color: rgb(245, 108, 108); }
+.cm-lp-callout[data-callout='note'] { --callout-color: rgb(0, 0, 0); }
+.cm-lp-callout[data-callout='code'] { --callout-color: rgb(125, 117, 207); }
+.cm-lp-callout[data-callout='customize'] { --callout-color: rgb(244, 195, 89); }
+/* コード・表・区切り線 */
+.cm-lp-codeblock { font-family: var(--nt-mono); font-size: 13px; line-height: 1.6; background: #232323; color: rgb(230, 230, 230); padding: 0 16px !important; caret-color: #fff; }
+.cm-lp-codeFirst { padding-top: 12px !important; border-radius: 6px 6px 0 0; }
+.cm-lp-codeLast { padding-bottom: 12px !important; border-radius: 0 0 6px 6px; }
+.cm-lp-codeFirst.cm-lp-codeLast { border-radius: 6px; }
+.cm-lp-fence { color: #8a8a8a; font-size: 12px; }
+.cm-lp-codeblock .cm-lp-code, .cm-lp-codeblock .cm-lp-wiki { background: none; color: inherit; }
+/* 一覧の字下げ（行ごとの字下げは live-editor.js が付ける） */
+.cm-lp-li { }
+/* 空の行は、読む画面の段落の間くらいに */
+.cm-lp-blank { line-height: .75; }
+/* 表：読む画面と同じ形（押すと記号のまま書きかえられる） */
+/* 表・コードブロックを読む画面と同じ形で出す箱（中の見た目は .nt-doc の pre・table の決まりをそのまま使う） */
+.cm-lp-block { cursor: text; display: flow-root; white-space: normal; font-family: var(--nt-font); }   /* CodeMirror の中は空白・改行をそのまま見せるので、HTML の箱では元に戻す（タグの間の改行が行として出てしまう） */
+.cm-lp-block pre, .cm-lp-block pre code { white-space: pre; }
+/* ※ 見たままの行（.cm-line）と、表・コードの箱には、外側の余白（margin）を付けない。
+   CodeMirror は行の高さを測ってカーソルの場所を決めるので、margin は高さに入らず、下へ行くほど押した場所と書く場所がずれる。
+   間をあけたいときは padding で（箱は flow-root にして、中の margin が外へはみ出さないようにしている） */
+.cm-lp-table { font-family: var(--nt-mono); font-size: 13.5px; }
+.cm-lp-hr { display: inline-block; width: 100%; height: 1px; background: var(--nt-line); vertical-align: middle; }
+/* 画像 */
+.cm-lp-imgWrap { display: inline-block; max-width: 100%; }
+.cm-lp-img { max-width: 100%; max-height: 520px; border-radius: 6px; vertical-align: middle; }
+/* 先頭のプロパティ：カーソルが中にないときは、小さな札にたたむ（上のプロパティの欄で直せる） */
+.cm-lp-fm { font-family: var(--nt-mono); font-size: 12.5px; color: var(--nt-muted); }
+.cm-lp-fmChip { display: none; }
+/* 探す窓 */
+.nt-liveDoc .cm-panels { background: var(--card); color: var(--text); border-color: var(--line); border-radius: 12px; }
+.nt-liveDoc .cm-panels-top { position: sticky; top: 0; z-index: 3; border-bottom: 1px solid var(--line); }
+.nt-liveDoc .cm-search { font-family: inherit; font-size: 12.5px; padding: 6px 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.nt-liveDoc .cm-search input.cm-textfield { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; background: var(--soft); color: var(--text); font: inherit; }
+.nt-liveDoc .cm-search button.cm-button { border: 0; border-radius: 8px; padding: 4px 10px; background: var(--soft); color: var(--text); font: inherit; background-image: none; }
+.nt-liveDoc .cm-search label { display: inline-flex; gap: 4px; align-items: center; }
+.nt-liveDoc .cm-searchMatch { background: color-mix(in srgb, var(--warn) 30%, transparent); }
+.nt-liveDoc .cm-searchMatch-selected { background: color-mix(in srgb, var(--warn) 60%, transparent); }
+/* [[ の候補 */
+.cm-tooltip.cm-tooltip-autocomplete { background: var(--card); border: 0; border-radius: 12px; box-shadow: var(--shadow-lg); overflow: hidden; }
+.cm-tooltip-autocomplete > ul { font-family: var(--nt-font) !important; font-size: 13px; max-height: 260px !important; }
+.cm-tooltip-autocomplete > ul > li { padding: 5px 12px !important; color: var(--text); }
+.cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--soft) !important; color: var(--text) !important; }
+/* 見たままのときの書式のツールバー：上に貼りつけて、本文をスクロールしても押せるように */
+.nt-liveBar { position: sticky; top: 0; z-index: 4; }
+.nt-liveBar .nt-bar { justify-content: center; }
+.nt-liveDoc .cm-panels-top { top: 46px; }
+/* ---------- 見たままの本文を、読む画面（.nt-doc）の CSS と同じ値にそろえる ----------
+   読む画面の決まり（上の .nt-doc の行）と1つずつ合わせたもの。読む画面を変えたら、ここも合わせる */
+.nt-liveDoc, .nt-liveDoc .cm-scroller { font-weight: 500; }                                   /* .nt-doc { font-weight: 500 } */
+.nt-liveDoc .cm-lp-strong { font-weight: 700; }              /* .nt-doc strong, th */
+.nt-liveDoc .cm-lp-h { font-weight: 700; line-height: 1.4; }                                  /* h1〜h4 */
+.nt-liveDoc .cm-lp-h1 { font-size: 20px; padding-top: 20px !important; padding-bottom: 5px !important; border-bottom: 0; }   /* h1 { margin: 18px 0 5px; padding-top: 2px; font-size: 20px } */
+#notesView[data-nt-theme="light"] .nt-liveDoc .cm-lp-h1 { font-size: 23px; border-bottom: 1px solid #E0E0E0; padding-bottom: 8px !important; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-h1 { border-bottom: 1px solid var(--nt-line); padding-bottom: 6px !important; }
+.nt-liveDoc .cm-lp-h2 { font-size: 20px; line-height: 1.5rem; padding-top: 10px !important; padding-bottom: 8px !important; }   /* h2 { padding-top: 10px; line-height: 1.5rem }, h2 + * { margin-top: 8px } */
+.nt-liveDoc .cm-lp-h3 { font-size: 17px; padding-top: 14px !important; padding-bottom: 4px !important; }  /* h3 { margin: 14px 0 4px } */
+.nt-liveDoc .cm-lp-h4, .nt-liveDoc .cm-lp-h5, .nt-liveDoc .cm-lp-h6 { font-size: 15.5px; padding-top: 12px !important; padding-bottom: 4px !important; }
+.nt-liveDoc .cm-lp-link, .nt-liveDoc .cm-lp-wiki { color: var(--nt-text); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--nt-text) 35%, transparent); text-underline-offset: 3px; }
+.nt-liveDoc .cm-lp-wiki { font-weight: 600; }                                                  /* a.internal-link */
+.nt-liveDoc .cm-lp-wiki.is-unresolved { opacity: .6; }                                        /* a.internal-link.is-unresolved */
+.nt-liveDoc .cm-lp-tag { display: inline-block; padding: 0 8px; border-radius: 99px; background: color-mix(in srgb, var(--nt-text) 9%, transparent); color: var(--nt-text); font-size: .88em; line-height: 1.7; text-decoration: none; }
+.nt-liveDoc .cm-lp-hl { background-color: var(--nt-mark-bg); color: var(--nt-mark-fg); padding: 2px 4px; margin: 0 1px; border-radius: 0; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.nt-liveDoc .cm-lp-u { color: #f57220; text-decoration: underline; }                          /* u */
+.nt-liveDoc .cm-lp-quote { padding: 2px 16px !important; border-left: 3px solid var(--nt-line); color: var(--nt-muted); }   /* blockquote */
+.nt-liveDoc .cm-lp-hr { height: 0; border-top: 1px solid var(--nt-line); background: none; margin: 14px 0; }  /* hr { margin: 18px 0 } */
+.nt-liveDoc .cm-lp-done { color: var(--nt-muted); text-decoration: line-through; }            /* li.is-checked */
+.nt-liveDoc .cm-lp-check { width: 15px; height: 15px; margin: 0 8px 0 0; vertical-align: -2px; accent-color: var(--nt-text); }   /* .task-list-item-checkbox */
+.nt-liveDoc .cm-lp-code { font-family: var(--nt-mono) !important; font-size: .88em; background: color-mix(in srgb, var(--nt-line) 60%, transparent); padding: 1px 5px; border-radius: 4px; }   /* code */
+.nt-liveDoc .cm-lp-codeblock { font-family: var(--nt-mono) !important; font-size: 13px; line-height: 1.65; background: #262626; color: rgb(230, 230, 230); border-left: 1px solid #333; border-right: 1px solid #333; tab-size: 4; }   /* pre, pre code */
+.nt-liveDoc .cm-lp-codeFirst { border-top: 1px solid #333; padding-top: 14px !important; }
+.nt-liveDoc .cm-lp-codeLast { border-bottom: 1px solid #333; padding-bottom: 14px !important; box-shadow: 0 8px 12px -6px rgba(0,0,0,.25); }
+.nt-liveDoc .cm-lp-img { max-width: 100%; border-radius: 6px; }                               /* img */
+/* ダーク（読む画面のダークの決まりと同じ） */
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-h, #notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-strong { color: var(--nt-strong); }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-selectionBackground, #notesView[data-nt-theme="dark"] .nt-liveDoc .cm-editor.cm-focused .cm-selectionBackground { background: rgba(255,255,255,.2) !important; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-code { background: #26272a; color: #E9E9E9; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-codeblock { background: #222224; color: #E6E6E6; border-color: #333438; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-quote { border-left-color: #48494f; color: #B4B8BE; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-hr { border-top-color: #34353a; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-link, #notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-wiki { text-decoration-color: rgba(220,220,220,.45); }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-tag { background: rgba(255,255,255,.09); color: #E4E4E4; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-done { color: #7d8187; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-check { accent-color: #E8E8E8; }
+#notesView[data-nt-theme="dark"] .nt-liveDoc .cm-lp-u { color: #ff8a3d; }
+.nt-liveDoc .cm-lp-calloutIcon { display: inline-grid; place-items: center; margin-right: 8px; vertical-align: -3px; }   /* .callout-icon */
+.nt-liveDoc .cm-lp-calloutIcon .lc { width: 17px; height: 17px; }
+.nt-liveDoc .cm-lp-bullet { color: var(--nt-text); font-size: 1.1em; line-height: 1; width: 16px; text-indent: 0; text-align: left; padding-left: 2px; box-sizing: border-box; }   /* ul の点（disc）と同じ黒い点 */
+.nt-liveDoc .cm-lp-li { padding-top: 1px !important; padding-bottom: 1px !important; }   /* li { margin: 2px 0 } */

@@ -528,7 +528,7 @@ html.wide main#view.gMode { overflow: hidden; display: flex; flex-direction: col
 html.wide main#view.gMode .ng { flex: 1; height: auto; min-height: 0; }
 html.wide main#view.gMode .demoBar { flex-shrink: 0; }
 .ngSide { gap: 2px; }
-.ngSide .ngItem { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; cursor: pointer; }
+.ngSide .ngItem { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border: 0; border-radius: 14px; background: none; color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; cursor: pointer; }
 .ngSide .ngItem:hover { background: var(--soft); }
 .ngSide .ngItem.on { box-shadow: inset 0 0 0 1.5px var(--text); }
 .ngSide .ngItem .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
