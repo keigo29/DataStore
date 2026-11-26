@@ -1,5 +1,5 @@
 // ノートのつながり（Obsidian のグラフのように）
-// ・カテゴリ（タグ／フォルダ）ごとに大きな玉（ハブ）を置き、そのノートがまわりに集まる
+// ・カテゴリ（タグ／フォルダ）ごとに大きな玉（ハブ）を置き、そのノートがまわりに集まる。玉はひまわりの種のように渦を巻いて置き、まんなかへ引くので、全体が円の形にまとまる（Obsidian のグラフのように）
 // ・線：ノート → カテゴリの玉、[[リンク]] でつながったノートどうし
 // ・canvas に描く。動き（力のつり合い）は requestAnimationFrame で1フレーム1回、止まったら描くのもやめる
 // 使い方：const g = NoteGraph.create({ onOpen(path) {} }); host.append(g.el); g.setData(data); g.listInto(el)
@@ -14,6 +14,8 @@
   // 白い背景に黒い丸（色は使わず、選んだ所は濃さと太さで見せる）
   const GRAY = '#1d1d1f', BG = '#ffffff', ACCENT = '#000000', INK = '#1d1d1f';
   const NONE = '（なし）';
+  // カテゴリの玉のまわりのノートの輪の大きさ（ノートの数で決める）
+  const clusterR = h => 34 + Math.sqrt(h.count || 1) * 13;
 
   function create(opts = {}) {
     const root = el('div', 'ng');
@@ -42,19 +44,22 @@
       let ci = 0;
       groups = d.groups.map(g => ({ ...g, color: INK, tint: g.id === NONE ? GRAY : COLORS[ci++ % COLORS.length] }));
       const gc = new Map(groups.map(g => [g.id, g.color]));
-      const R = 140 + groups.length * 22;
       nodes = [];
+      // カテゴリの玉は、ひまわりの種のように、まんなかから外へ渦を巻いて置く（多いカテゴリほどまんなか）。はじめから全体が円の形になる
+      let area = 0;
       groups.forEach((g, i) => {
-        const a = (i / Math.max(1, groups.length)) * Math.PI * 2;
+        const cr = 34 + Math.sqrt(g.count || 1) * 13;
+        area += cr * cr;
+        const rr = Math.sqrt(area) * 1.05, a = i * 2.39996;
         const o = old.get('g:' + g.id);
         nodes.push({ id: 'g:' + g.id, hub: true, group: g.id, name: g.name, color: g.color, count: g.count, r: 4.5 + Math.min(6, Math.sqrt(g.count) * 1.4),
-          x: o ? o.x : Math.cos(a) * R, y: o ? o.y : Math.sin(a) * R, vx: 0, vy: 0 });
+          x: o ? o.x : (i ? Math.cos(a) * rr : 0), y: o ? o.y : (i ? Math.sin(a) * rr : 0), vx: 0, vy: 0 });
       });
       const hubPos = new Map(nodes.map(n => [n.group, n]));
       for (const n of d.nodes) {
         const o = old.get(n.id), h = hubPos.get(n.groups[0]);
         nodes.push({ ...n, hub: false, group: n.groups[0], color: gc.get(n.groups[0]) || '#cfd6ff', r: 3.2,
-          x: o ? o.x : (h ? h.x : 0) + (Math.random() - .5) * 80, y: o ? o.y : (h ? h.y : 0) + (Math.random() - .5) * 80, vx: 0, vy: 0 });
+          x: o ? o.x : (h ? h.x : 0) + Math.cos(n._a = Math.random() * 6.283) * (h ? clusterR(h) * .7 : 80), y: o ? o.y : (h ? h.y : 0) + Math.sin(n._a) * (h ? clusterR(h) * .7 : 80), vx: 0, vy: 0 });
       }
       byId = new Map(nodes.map(n => [n.id, n]));
       edges = [];
@@ -71,7 +76,10 @@
       if (sel && !byId.has(sel)) sel = null;
       if (selGroup && !groups.some(g => g.id === selGroup)) selGroup = null;
       alpha = old.size ? Math.max(alpha, .35) : 1;
-      if (!old.size) { fitted = false; settled = false; userMoved = false; }
+      if (!old.size) {
+        fitted = false; settled = false; userMoved = false;
+        for (let i = 0; i < 220 && alpha > .25; i++) step();   // 先に裏で形を作る（はじめに散らばって見えないように）
+      }
       renderList(); renderBar(); renderPanel();
       kick();
     }
@@ -79,7 +87,7 @@
 
     // ---------- 動き（力のつり合い） ----------
     function step() {
-      const CELL = 110, grid = new Map();
+      const CELL = 70, grid = new Map();
       for (const n of nodes) { const k = Math.floor(n.x / CELL) + ',' + Math.floor(n.y / CELL); (grid.get(k) || grid.set(k, []).get(k)).push(n); }
       // 近くどうしは離れる（近いマスだけ見る）
       for (const n of nodes) {
@@ -91,27 +99,33 @@
             let dx = n.x - m.x, dy = n.y - m.y, d2 = dx * dx + dy * dy;
             if (d2 > CELL * CELL) continue;
             if (d2 < .01) { dx = Math.random() - .5; dy = Math.random() - .5; d2 = .25; }
-            const s = (n.hub || m.hub ? 900 : 260) / d2 * alpha;
+            const s = (n.hub || m.hub ? 500 : 90) / d2 * alpha;
             n.vx += dx * s; n.vy += dy * s;
           }
         }
       }
-      // カテゴリの玉どうしは遠くからでも離れる
+      // カテゴリの玉どうしは、まわりのノートの輪の大きさ（ノートの数）だけ離れる。遠くまでは押さない（全体が丸くまとまるように）
       const hubs = nodes.filter(n => n.hub);
       for (let i = 0; i < hubs.length; i++) for (let j = i + 1; j < hubs.length; j++) {
-        const a = hubs[i], b = hubs[j]; const dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy + 1;
-        const s = 26000 / d2 * alpha; a.vx += dx * s / Math.sqrt(d2) * 4; a.vy += dy * s / Math.sqrt(d2) * 4; b.vx -= dx * s / Math.sqrt(d2) * 4; b.vy -= dy * s / Math.sqrt(d2) * 4;
+        const a = hubs[i], b = hubs[j]; const dx = a.x - b.x, dy = a.y - b.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+        const want = clusterR(a) + clusterR(b) + 20;
+        if (d >= want) continue;
+        const f = (want - d) / d * .08 * alpha;
+        a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
       }
       // 線はばね
       for (const e of edges) {
-        const L = e.hub ? (e.primary ? 46 + e.b.r * 2 : 150) : 70, K = e.hub ? (e.primary ? .06 : .012) : .03;
+        // ノート → いちばんのカテゴリは短く強く（玉のまわりに花のように集まる）。ほかのカテゴリ・リンクは弱く（形をくずさない）
+        const L = e.hub ? (e.primary ? 26 + e.b.r * 2 + Math.sqrt(e.b.count || 1) * 4 : 120) : 60, K = e.hub ? (e.primary ? .09 : .003) : .008;
         const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
         const f = (d - L) / d * K * alpha;
         const wa = e.a.hub ? .15 : 1, wb = e.b.hub ? .15 : 1;
         e.a.vx += dx * f * wa; e.a.vy += dy * f * wa; e.b.vx -= dx * f * wb; e.b.vy -= dy * f * wb;
       }
       for (const n of nodes) {
-        n.vx -= n.x * .004 * alpha; n.vy -= n.y * .004 * alpha;   // まんなかへ少し
+        // まんなかへ引く（ばねのように、遠いほど強く）。全体が円の形にまとまり、どこにもつながらないノートも外へ飛ばない
+        const gk = (n.hub ? .02 : .002) * alpha;
+        n.vx -= n.x * gk; n.vy -= n.y * gk;
         if (n.fixed) { n.vx = n.vy = 0; continue; }
         n.vx *= .6; n.vy *= .6;
         n.x += Math.max(-30, Math.min(30, n.vx)); n.y += Math.max(-30, Math.min(30, n.vy));
