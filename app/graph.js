@@ -49,7 +49,12 @@
     let labels = false;   // 名前をいつも出す
 
     // ---------- データ ----------
+    let dataSig = '';
     function setData(d) {
+      // 中身（ノート・カテゴリ・線）が前と同じなら、並べ直さない（アプリが描き直すたびに点が動き出して、ふるえて見えないように）
+      const sig = JSON.stringify([d.nodes.map(n => [n.id, n.name, n.groups]), d.links, d.groups.map(g => [g.id, g.name, g.count])]);
+      if (sig === dataSig && nodes.length) { renderList(); renderBar(); renderPanel(); kick(); return; }
+      dataSig = sig;
       const old = new Map(nodes.map(n => [n.id, n]));
       let ci = 0;
       groups = d.groups.map(g => ({ ...g, color: INK, tint: g.id === NONE ? GRAY : COLORS[ci++ % COLORS.length] }));
@@ -86,7 +91,7 @@
       for (const n of nodes) if (!n.hub) n.r = 2.4 + Math.min(2.4, Math.sqrt(edges.filter(e => !e.hub && (e.a === n || e.b === n)).length) * .8);
       if (sel && !byId.has(sel)) sel = null;
       if (selGroup && !groups.some(g => g.id === selGroup)) selGroup = null;
-      alpha = old.size ? Math.max(alpha, .35) : 1;
+      alpha = old.size ? Math.max(alpha, .12) : 1;   // 変わったときも、今の位置から少しだけなじませる（大きく動かさない）
       if (!old.size) {
         fitted = false; settled = false; userMoved = false;
         for (let i = 0; i < 220 && alpha > .25; i++) step();   // 先に裏で形を作る（はじめに散らばって見えないように）
@@ -141,7 +146,7 @@
         const d = Math.sqrt(n.x * n.x + n.y * n.y);
         // カテゴリの玉はふちの内側に強く。ノートは少しだけはみ出してよい（ふちの星がつぶれないように）
         const lim = n.hub ? discR - 30 : discR + 20;
-        if (d > lim) { const f = (d - lim) / d * (n.hub ? .35 : .08); n.vx -= n.x * f; n.vy -= n.y * f; }
+        if (d > lim) { const f = (d - lim) / d * (n.hub ? .35 : .08) * Math.min(1, alpha * 4); n.vx -= n.x * f; n.vy -= n.y * f; }
         if (n.fixed) { n.vx = n.vy = 0; continue; }
         n.vx *= .6; n.vy *= .6;
         n.x += Math.max(-30, Math.min(30, n.vx)); n.y += Math.max(-30, Math.min(30, n.vy));
