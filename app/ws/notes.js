@@ -185,6 +185,8 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // 表示は「書く」と「読む」の2つだけ（前の「並べる」の設定は「読む」にする）
   const view = () => ((paneMode || ctx.get().settings.notesView) === 'edit' ? 'edit' : 'preview');
+  // MDWS: ノートの書き方：見たまま（はじめはこちら。旧 Workstation と同じ live-editor.js）／ 今までの 書く・読む の切り替え。上の「見たまま・書く・読む」で選ぶ
+  const isLive = () => ctx.get().settings.notesLive !== false && !!window.LiveEditor?.ok;
 
   // ---------- 読み込み ----------
   async function load() {
@@ -326,27 +328,30 @@
     // ノートのタブにいるなら、画面全体は描き直さない（このあとの render と markActive で、列・上のボタン・サイドバーを合わせる）
     if (ctx.view?.() !== 'notes') ctx.go('notes');
     // 新しいノート・空のノートは「書く」で開く
-    if ((opt.edit || !r.text.trim()) && view() !== 'edit') setView('edit');
+    if ((opt.edit || !r.text.trim()) && view() !== 'edit' && !isLive()) setView('edit');
     render();
     markActive();
     if (opt.edit || !r.text.trim()) focusEditor(opt.end);
   }
   function focusEditor(end) {
+    if (box?._live) { box._live.focus(end); return; }   // MDWS: 見たまま
     const ta = box?.querySelector('.nt-editor');
     if (!ta) return;
     ta.focus();
     if (end) ta.selectionStart = ta.selectionEnd = ta.value.length;
   }
-  function changed(text) {
+  function changed(text, fromLive = false) {
     if (!cur) return;
     cur.text = text;
+    // MDWS: 見たままで書いているときに、プロパティの欄などから書きかえた：エディタにも入れる
+    if (!fromLive && box?._live && box._live.getText() !== text) box._live.setText(text);
     paintHl();
     cur.dirty = true;
     setSaved('');
     clearTimeout(saveTimer);
     saveTimer = setTimeout(bound(saveNow), 700);
     clearTimeout(renderTimer);
-    renderTimer = setTimeout(bound(renderPreview), 150);
+    renderTimer = setTimeout(bound(() => { renderPreview(); if (box?._live) { renderProps(); renderLiveTitle(); renderInfo(); } }), 150);
   }
   // 書きかけのノートが、ほかで書きかえられていたとき：片方がプロパティだけ、もう片方が本文だけを変えたなら両方を合わせる
   // （毎日確認のチェックでプロパティが変わった・Obsidian でプロパティだけ直した、など）。合わせられなければ null
@@ -376,7 +381,7 @@
     if (!cur || !cur.dirty) return;
     const c = cur, pane = active;
     const sent = c.text;
-    const edVal = () => pane?.body.querySelector('.nt-editor')?.value;
+    const edVal = () => pane?.body.querySelector('.nt-editor')?.value ?? pane?.body._live?.getText();   // MDWS: 見たままのエディタも
     const mine = () => !pane || curOf(pane) === c;
     const r = await ctx.api.notes.write(c.path, sent, { expectMtime: c.mtime, quiet: true });
     if (r && r.error) { toast(r.error, 'warn'); return; }
@@ -977,8 +982,19 @@
   function render() {
     if (!box) return;
     if (!info.ready) return renderSetup();
-    if (!cur) return panes.length > 1 ? renderPick() : renderHome();
-    const mode = view();
+    if (!cur) { if (box._live) { box._live.destroy(); box._live = null; } return panes.length > 1 ? renderPick() : renderHome(); }
+    const mode = isLive() ? 'live' : view();
+    // MDWS: 見たまま：同じノートなら作り直さない（外で書きかわったときだけ中身を合わせる）
+    if (mode === 'live' && box._live && box.dataset.path === cur.path && box.dataset.mode === 'live') {
+      if (!cur.dirty && box._live.getText() !== cur.text) box._live.setText(cur.text);
+      renderLiveTitle();
+      renderProps();
+      renderInfo();
+      applyLayout();
+      return;
+    }
+    if (box._live) { box._live.destroy(); box._live = null; }
+    if (mode === 'live') return renderLive();
     // 書いている途中は、エディタを作り直さない（カーソルが飛ばないように）
     // 同じノート・同じ表示なら、エディタは作り直さない（書いている途中にカーソルやフォーカスが外れないように）
     const oldTa = box.querySelector('.nt-editor');
@@ -1048,6 +1064,110 @@
     renderPreview();
     renderInfo();
     paintHl(ta);
+  }
+
+  // ================= 見たままの書き方（live-editor.js。MDWS：旧 Workstation から） =================
+  // コールアウトのアイコンの名前：CSS の --callout-icon（スニペットで変えられる）→ 種類ごとの既定（読む画面と同じ決め方）
+  const calloutIcons = new Map();
+  function calloutIconName(type) {
+    if (calloutIcons.has(type)) return calloutIcons.get(type);
+    const probe = el('div', 'callout'); probe.dataset.callout = type; probe.style.display = 'none';
+    (document.getElementById('notesView') || document.body).append(probe);
+    const v = getComputedStyle(probe).getPropertyValue('--callout-icon').trim().replace(/^["']|["']$/g, '').replace(/^lucide-/, '');
+    probe.remove();
+    const name = window.ICONS[v] ? v : CALLOUT_ICON[type] || 'pencil';
+    calloutIcons.set(type, name);
+    return name;
+  }
+  const decodeURIComponentSafe = x => { try { return decodeURIComponent(x); } catch { return x; } };
+  // [文字](アドレス) のリンク：https はいつものブラウザ、それ以外はノートへのリンクとして開く
+  function openHref(href) {
+    href = String(href || '').trim();
+    if (!href) return;
+    if (/^https?:/i.test(href)) return ctx.api.app.openUrl(href);
+    if (/^[a-z][\w+.-]*:/i.test(href)) return toast('この種類のリンクは開けません', 'warn');
+    openLink(decodeURIComponentSafe(href).replace(/^\.\//, '').replace(/\.md(?=#|$)/i, ''));
+  }
+  // タイトル（ファイル名）→ プロパティ → 本文（見たままで書ける）。右に目次・リンク
+  function renderLive() {
+    box.innerHTML = '';
+    box.dataset.path = cur.path;
+    box.dataset.mode = 'live';
+    const wrap = el('div', 'nt-wrap mode-live');
+    const pv = el('div', 'nt-preview nt-livePane');
+    const ttl = el('div', 'inline-title');
+    ttl.title = '押して名前を変更';
+    ttl.addEventListener('click', rename);
+    const pbox = el('div', 'nt-props');
+    const host = el('div', 'nt-liveDoc markdown-source-view mod-cm6 is-live-preview');   // Obsidian と同じ名前も付ける（Obsidian の CSS スニペットが効くように）
+    const barBox = el('div', 'nt-liveBar');
+    pv.append(barBox, ttl, pbox, host);
+    const inf = el('aside', 'nt-info');
+    wrap.append(pv, inf);
+    applyLayout(wrap);
+    box.append(wrap);
+    const path = cur.path, myBox = box;
+    myBox._live = window.LiveEditor.create({
+      parent: host,
+      text: cur.text,
+      placeholder: '# を打つと見出し、- [ ] でチェックリスト、[[ でほかのノートへのリンク',
+      onChange: t => { const p = panes.find(x => x.body === myBox); if (p && p !== active) use(p); if (cur && cur.path === path) changed(t, true); },
+      onBlur: () => saveNow(),
+      openLink: ({ wiki, href, tag, newTab }) => {
+        if (tag) return filterTag(tag);
+        if (href) return openHref(href);
+        if (!wiki) return;
+        const [name, heading] = wiki.split('#');
+        const n = resolve(name, cur?.path);
+        if (n && newTab) openSide(n.path).then(() => { if (heading) scrollToHeading(heading); });
+        else openLink(wiki);
+      },
+      imageUrl: t => {
+        const f = /^https?:/i.test(t) ? null : resolveFile(decodeURIComponentSafe(String(t).split('|')[0].split('#')[0].trim()), cur?.path);
+        return f ? vaultUrl(f) : null;
+      },
+      noteNames: () => data.notes.map(n => n.name),
+      hasNote: name => !!resolve(name, cur?.path),
+      calloutIcon: type => icon(calloutIconName(type)),
+      copy: async text => { await ctx.api.app.copy(text); toast('コピーしました'); },
+      copyIcon: icon('copy'),
+      // 表を表の形で出すとき（読む画面と同じ変換・同じ安全のための取り除き）
+      renderMd: md => { setupMarked(); try { return window.DOMPurify.sanitize(window.marked.parse(md), { ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|vault|blob):|#|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i }); } catch { return ''; } },
+      // 今までの書く画面と同じキー（見出し・リスト・引用・下線・コード・テンプレート）
+      keys: [
+        ['Mod-1', t => linePrefix(t, l => '# ' + l, /^(\s*)#\s+/)], ['Mod-2', t => linePrefix(t, l => '## ' + l, /^(\s*)##\s+/)], ['Mod-3', t => linePrefix(t, l => '### ' + l, /^(\s*)###\s+/)],
+        ['Mod-Shift-8', t => linePrefix(t, l => '- ' + l, /^(\s*)[-*+]\s+(?!\[[ xX]\])/)], ['Mod-Shift-7', t => linePrefix(t, (l, i) => `${i + 1}. ` + l, /^(\s*)\d+[.)]\s+/)],
+        ['Mod-Shift-9', t => linePrefix(t, l => '- [ ] ' + l, /^(\s*)[-*+]\s+\[[ xX]\]\s+/)], ['Mod-Shift-.', t => linePrefix(t, l => '> ' + l, /^(\s*)>\s?/)],
+        ['Mod-u', t => wrapSel(t, '<u>', '</u>', '下線')], ['Mod-`', t => wrapSel(t, '`', '`', 'code')], ['Mod-t', t => insertTemplate(t)],
+      ].map(([key, fn]) => ({ key, run: () => fn(myBox._live.textareaLike()) })),
+      pasteImages: async files => {
+        const links = [];
+        for (const f of files.slice(0, 20)) {
+          const ext = (f.type.split('/')[1] || 'png').replace('svg+xml', 'svg').replace('jpeg', 'jpg');
+          const name = f.name && !/^image\.\w+$/i.test(f.name) ? f.name : `Pasted image ${stamp()}${links.length ? '-' + links.length : ''}.${ext}`;
+          const r = await ctx.api.notes.saveImage(path, name, await f.arrayBuffer());
+          if (r?.error) { toast(r.error, 'warn'); continue; }
+          links.push(r.link);
+        }
+        if (!links.length) return '';
+        await load();
+        toast(links.length === 1 ? '画像を入れました' : `画像を${links.length}枚入れました`);
+        return links.map(l => `![[${l}]]`).join('\n');
+      },
+    });
+    // 書式のツールバー（今までの「書く」画面と同じもの）。押すと、見たままのエディタの選んでいるところに効く
+    barBox.append(editBar(myBox._live.textareaLike()));
+    renderLiveTitle();
+    renderProps(true);
+    renderInfo();
+  }
+  function renderLiveTitle() {
+    const title = box?.querySelector('.nt-livePane > .inline-title');
+    if (!title || !cur) return;
+    title.textContent = nameOf(cur.path);
+    const { body } = splitFrontmatter(cur.text);
+    const firstH1 = /^#\s+(.+?)\s*$/.exec(body.trimStart().split('\n')[0]);
+    title.hidden = !!(firstH1 && firstH1[1].trim() === nameOf(cur.path));
   }
 
   // ================= 書く画面の装飾（入力欄の後ろに、同じ文字を色付きで重ねる） =================
@@ -1324,7 +1444,8 @@
     let html = '';
     try { html = window.marked.parse(body); } catch (e) { html = `<pre>${esc(e.message)}</pre>`; }
     const clean = window.DOMPurify.sanitize(html, {
-      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|vault):|#|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+      // MDWS: blob:（読み込んだ画像。app.js の fileUrl）も残す。ないと、2回目に描くとき（見たままで先に読んだときなど）に画像の src が消える
+      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|vault|blob):|#|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
       ADD_ATTR: ['target'],
     });
     doc.innerHTML = '';
@@ -1743,6 +1864,11 @@
   }
   function scrollToHeading(name) {
     const want = String(name).trim().toLowerCase();
+    if (box?._live && cur) {   // MDWS: 見たまま
+      const h = headings(cur.text).find(x => x.text.replace(/[*_`=[\]]/g, '').trim().toLowerCase() === want);
+      if (h) gotoLine(h.line);
+      return;
+    }
     const h = [...(box?.querySelectorAll('.nt-content h1,.nt-content h2,.nt-content h3,.nt-content h4,.nt-content h5,.nt-content h6') || [])].find(x => x.textContent.trim().toLowerCase() === want);
     h?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
@@ -1830,6 +1956,7 @@
     }
   }
   function gotoLine(line) {
+    if (box?._live) { box._live.gotoLine(line + 1); return; }   // MDWS: 見たまま
     const ta = box.querySelector('.nt-editor');
     if (!ta) return;
     const pos = ta.value.split('\n').slice(0, line).join('\n').length + (line ? 1 : 0);
@@ -2290,7 +2417,7 @@
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key === 's') { e.preventDefault(); saveNow(); return; }
     if (formatKey(e, ta)) return;
-    if (mod && e.key === 'e') { e.preventDefault(); setView(view() === 'preview' ? 'edit' : 'preview'); return; }
+    if (mod && e.key === 'e') { e.preventDefault(); if (!isLive()) setView(view() === 'preview' ? 'edit' : 'preview'); return; }
     if (codeKey(e, ta)) return;
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -2439,6 +2566,8 @@
   // ---------- 書式のツールバー（Obsidian の Editing Toolbar のような） ----------
   // 文字を置き換える。⌘Z で元に戻せるように、入力として扱う（execCommand）
   function put(ta, start, end, text, selStart = start + text.length, selEnd = selStart) {
+    // MDWS: 見たままのエディタ：直接書きかえる（元に戻すはエディタの中でまとめて効く）
+    if (ta.isLive) { ta.focus(); ta.replace(start, end, text); ta.setSelectionRange(selStart, selEnd); return; }
     ta.focus();
     ta.setSelectionRange(start, end);
     if (!document.execCommand('insertText', false, text)) ta.setRangeText(text, start, end, 'end');
@@ -2499,8 +2628,8 @@
       return x;
     };
     const sep = () => bar.append(el('span', 'nt-tbSep'));
-    b('undo-2', '元に戻す', () => { ta.focus(); document.execCommand('undo'); changed(ta.value); }, '⌘Z');
-    b('redo-2', 'やり直す', () => { ta.focus(); document.execCommand('redo'); changed(ta.value); }, '⇧⌘Z');
+    b('undo-2', '元に戻す', () => { if (ta.isLive) return ta.undo(); ta.focus(); document.execCommand('undo'); changed(ta.value); }, '⌘Z');
+    b('redo-2', 'やり直す', () => { if (ta.isLive) return ta.redo(); ta.focus(); document.execCommand('redo'); changed(ta.value); }, '⇧⌘Z');
     sep();
     b('heading-1', '見出し1', () => linePrefix(ta, l => '# ' + l, /^(\s*)#\s+/), '⌘1');
     b('heading-2', '見出し2', () => linePrefix(ta, l => '## ' + l, /^(\s*)##\s+/), '⌘2');
@@ -2513,7 +2642,7 @@
     b('underline', '下線', () => wrapSel(ta, '<u>', '</u>', '下線'), '⌘U');
     b('code', 'インラインコード', () => wrapSel(ta, '`', '`', 'code'), '⌘`');
     sep();
-    b('link', 'ノートへのリンク [[ ]]', () => { wrapSel(ta, '[[', ']]'); suggest(ta); });
+    b('link', 'ノートへのリンク [[ ]]', () => { wrapSel(ta, '[[', ']]'); if (ta.isLive) ta.complete(); else suggest(ta); });
     b('link-2', 'URLのリンク', () => {
       const s = ta.selectionStart, e = ta.selectionEnd, t = ta.value.slice(s, e) || 'リンク';
       put(ta, s, e, `[${t}](https://)`, s + t.length + 3, s + t.length + 11);
@@ -3040,13 +3169,17 @@
   function toolbar(tr, mk2) {
     if (!info.ready) return;
     const seg = el('div', 'seg nt-mode');
-    for (const [v, ic, label] of [['edit', 'pen-line', '書く'], ['preview', 'book-open', '読む']]) {
-      const b = el('button', view() === v ? 'on' : '');
+    // MDWS: 見たまま（# を打つとその場で見出し）／書く・読む（今までの切り替え）
+    const modes = [['edit', 'pen-line', '書く', '書く（⌘E で 書く⇔読む）'], ['preview', 'book-open', '読む', '読む（⌘E で 書く⇔読む）']];
+    if (window.LiveEditor?.ok) modes.unshift(['live', 'eye', '見たまま', '見たままで書く（# を打つとその場で見出し。記号はカーソルのある行だけ見えます）']);
+    const nowMode = isLive() ? 'live' : view();
+    for (const [v, ic, label, tip] of modes) {
+      const b = el('button', nowMode === v ? 'on' : '');
       b.type = 'button';
       b.innerHTML = icon(ic);
       b.append(el('span', 'lbl', label));
-      b.title = label + '（⌘E で 書く⇔読む）';
-      b.addEventListener('click', () => setView(v));
+      b.title = tip;
+      b.addEventListener('click', () => { if (v === 'live') ctx.api.settings.set({ notesLive: true }); else { if (isLive()) ctx.api.settings.set({ notesLive: false }); setView(v); } });
       seg.append(b);
     }
     const saved = el('span', 'nt-saved'); saved.id = 'ntSaved';
@@ -3348,13 +3481,14 @@
     onKey(e) {
       if (document.activeElement?.closest?.('#sideNotes .nt-tree') && onTreeKey(e)) return true;
       if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveNow(); return true; }
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key.toLowerCase() === 'f' || e.code === 'KeyF') && box?._live) { e.preventDefault(); box._live.openSearch(); return true; }   // MDWS: 見たまま
       if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'f' || e.code === 'KeyF')) { e.preventDefault(); if (e.shiftKey) openSearch(selectedText()); else openFind(active, undefined, null, { replace: e.altKey }); return true; }
       // 次・前の一致：Mac は ⌘G／⇧⌘G、Windows は F3／Shift+F3（どちらでも F3 は使える）
       if (active?.find && ((Keys.isMac && e.metaKey && e.key.toLowerCase() === 'g') || e.key === 'F3')) { e.preventDefault(); stepFind(active, e.shiftKey ? -1 : 1); return true; }
       // Windows の置換は Ctrl+H（VS Code と同じ）
-      if (!Keys.isMac && e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'h') { e.preventDefault(); openFind(active, undefined, null, { replace: true }); return true; }
+      if (!Keys.isMac && e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'h') { e.preventDefault(); if (box?._live) box._live.openSearch(); else openFind(active, undefined, null, { replace: true }); return true; }
       if ((e.metaKey || e.ctrlKey) && e.key === '\\') { e.preventDefault(); splitRight(); return true; }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'e') { e.preventDefault(); setView(view() === 'preview' ? 'edit' : 'preview'); return true; }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'e') { e.preventDefault(); if (!isLive()) setView(view() === 'preview' ? 'edit' : 'preview'); return true; }
       return false;
     },
     flush: saveNow,
